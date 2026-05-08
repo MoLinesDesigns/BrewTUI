@@ -89,7 +89,8 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **Rate limiting:** 30s cooldown between activation attempts, 15min lockout after 5 consecutive failures
 - **Watermark:** Profile exports can embed user email via zero-width Unicode (requires explicit `consent` parameter)
 - **Integrity:** Bundle SHA-256 verified at startup (`checkBundleIntegrity()`, fail-closed). Canary functions always return `false`
-- **Built-in accounts:** `getBuiltinAccountType()` in `license-manager.ts` — perennial accounts that bypass Polar validation entirely (e.g. always-PRO admin, always-free test account). Checked in `license-store.ts` `initialize()` after loading the license file.
+- **Built-in accounts:** `getBuiltinAccountType()` in `license-manager.ts` returns `null` unconditionally (SEG-009: hardcoded map removed because the AES key is bundle-derivable, so any user could forge perpetual licenses). The regression test `license-manager.test.ts:505-525` pins owner emails (artax, admin@molinesdesigns) among the candidates that must stay `null` — do not reintroduce a hardcoded entry.
+- **Owner Pro accounts** are instead provisioned via a private free recurring "comp" product in Polar carrying the same `license_keys` benefit (see auto-memory `polar_perpetual_pro.md` for IDs).
 - **Promo codes:** `src/lib/license/promo.ts` — promotional code redemption via brewtui-api backend
 
 ## BrewBar (menubar/)
@@ -163,6 +164,8 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - `__TEST_MODE__` and `process.env.APP_VERSION` are replaced at compile time by tsup (`tsup.config.ts` defines) — in dev mode (tsx), use `typeof __TEST_MODE__ !== 'undefined'` guard
 - Build produces hidden sourcemaps (`.map` files for debugging, not referenced in output bundle)
 - TUI clears the entire terminal (including scrollback) on startup for a clean display
+- Polar API endpoints require a trailing slash (e.g. `/v1/products/`); without it the API returns 307, and `curl -L` drops `Authorization` on the redirect so you get 405. Use the slash from the start.
+- Polar OpenAPI spec is public at `https://api.polar.sh/openapi.json` — quicker than docs for resolving request schemas.
 
 ## Commit hygiene
 - Never put specific prices, percentages or old→new price comparisons in commit messages or PR titles — git history is public and immutable. Use generic descriptions like `fix: align upgrade prompt with current pricing`.
