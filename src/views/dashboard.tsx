@@ -97,10 +97,10 @@ export function DashboardView() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // UX-008: let the user retry from the error screen instead of having
-  // to navigate away and back to trigger a refetch.
+  // UX-008: `r` triggers a refetch from any state — error or not — so the
+  // user can refresh the dashboard without leaving the view.
   useInput((input) => {
-    if (errors.installed && (input === 'r' || input === 'R')) {
+    if (input === 'r' || input === 'R') {
       void fetchAll();
     }
   });

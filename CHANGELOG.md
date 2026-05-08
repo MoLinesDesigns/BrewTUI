@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1] - 2026-05-08
+
+### Fixed
+- **Dashboard refresh:** pressing `r` now refetches Homebrew data from any
+  state instead of only from the error screen, so the overview stays current
+  without leaving the view. Footer hint added so the shortcut is discoverable.
+
 ## [0.7.0] - 2026-05-02
 
 ### Fixed

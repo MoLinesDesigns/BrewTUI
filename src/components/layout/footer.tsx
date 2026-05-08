@@ -10,7 +10,7 @@ import { SPACING } from '../../utils/spacing.js';
 type HintDef = [key: string, action: TranslationKey] | [text: TranslationKey];
 
 const VIEW_HINT_DEFS: Record<ViewId, HintDef[]> = {
-  dashboard: [['1-9,0', 'hint_navigate'], ['S', 'hint_search'], ['tab', 'hint_next'], ['q', 'hint_quit']],
+  dashboard: [['1-9,0', 'hint_navigate'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['tab', 'hint_next'], ['q', 'hint_quit']],
   installed: [['/', 'hint_filter'], ['enter', 'hint_info'], ['u', 'hint_uninstall'], ['f', 'hint_switchTab'], ['S', 'hint_search'], ['q', 'hint_quit']],
   search: [['hint_typeToSearch'], ['enter', 'hint_details'], ['i', 'hint_install'], ['esc', 'hint_back'], ['q', 'hint_quit']],
   outdated: [['enter', 'hint_upgrade'], ['A', 'hint_upgradeAll'], ['p', 'hint_pin'], ['r', 'hint_refresh'], ['S', 'hint_search'], ['q', 'hint_quit']],
