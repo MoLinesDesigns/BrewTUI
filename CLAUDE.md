@@ -47,7 +47,7 @@ Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
 - **`src/lib/parsers/`** — `json-parser.ts` handles `brew info/outdated/services --json`, `text-parser.ts` handles `brew search/doctor/config` text output.
 - **`src/lib/brew-api.ts`** — Typed high-level API combining CLI + parsers. Validates package names via `PKG_PATTERN` before passing to CLI. Also has `formulaeToListItems()`/`casksToListItems()` converters, `pinPackage()`/`unpinPackage()`, and `getCaskInfo()`.
 - **`src/stores/brew-store.ts`** — Zustand store holding all Homebrew data with per-key `loading`/`errors` maps. `fetchAll()` runs parallel fetches on startup.
-- **`src/stores/navigation-store.ts`** — Current view, history stack, selected package, selected package type. `VIEWS` array defines the ordered view list for tab cycling.
+- **`src/stores/navigation-store.ts`** — Current view, history stack, selected package, plus `menuMode` / `menuCursor` for the side-menu focus model added in 0.9.0. `VIEWS` keeps the canonical view order; `MENU_VIEWS` is what the side menu renders and `menuCursor` indexes into.
 - **`src/stores/modal-store.ts`** — Global modal state using a reference counter (not boolean) to handle nested suppressors correctly.
 - **Pro feature stores:** `cleanup-store.ts`, `history-store.ts`, `security-store.ts`, `profile-store.ts` — each wraps its feature's lib module and manages loading/error state.
 

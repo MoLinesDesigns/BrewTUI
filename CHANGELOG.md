@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.9.0] - 2026-05-13
+
+### Changed (UX — read this if you upgrade from 0.8.x)
+- **Side menu opens with `m`.** Numbers `1`–`0` no longer jump between views
+  and `Tab`/`Shift+Tab` no longer cycles them. Press `m` to focus the side
+  menu, move with `↑`/`↓`, confirm with `Enter`, and close with `Esc` or `m`
+  again. The menu border highlights and a single arrow tracks the cursor.
+- **Footer actions are numeric.** Each view exposes its commands as `1`,
+  `2`, `3`… instead of mnemonic letters; a one-line hint above the footer
+  reads "Choose an option by pressing its number". Globals (`Esc`, `q`, `L`)
+  keep their letters and contextual keys (`Enter`, `/`, `j/k`) keep their
+  meaning. The old letter shortcuts still work as aliases.
+- **Welcome screen** rewritten to teach the new model.
+
+### Added
+- **BrewBar live status banner.** After every `brew upgrade`, `install` or
+  `uninstall` from Brew-TUI, BrewBar refreshes immediately and shows a
+  friendly banner explaining what happened and how many packages are still
+  pending — for example *"Just upgraded htop from Brew-TUI. 3 packages still
+  pending an update."* or *"No packages left to update — you're all set."*.
+  Auto-fades after 30 s, dismissable manually. The handoff goes through
+  `~/.brew-tui/last-action.json` (atomic rename), watched by a
+  `DispatchSourceFileSystemObject` in BrewBar — same pattern already used
+  for iCloud sync, no new IPC.
+- **`useViewInput` hook** that suppresses per-view keypresses while the side
+  menu owns input, so arrow keys never get double-handled.
+
+### Cross-platform contract
+- Brew-TUI 0.9.0 and BrewBar 0.9.0 are released together. Update both halves
+  to keep license decryption and the new live banner working. BrewBar
+  detects drift on launch and prompts `brew-tui install-brewbar --force`.
+
 ## [0.8.1] - 2026-05-08
 
 ### Fixed

@@ -112,13 +112,19 @@ brew-tui delete-account    # Remove all local data (~/.brew-tui/)
 
 ### Keyboard Navigation
 
+> **Heads up — keyboard model changed in 0.9.0.** Numbers `1`–`0` no longer
+> jump between views; they now run the numbered actions in the footer of the
+> current view. Use `m` to focus the side menu and navigate with arrows.
+> Old per-view letter shortcuts (`i`, `u`, `r`, …) still work as aliases.
+
 | Key | Action |
 |-----|--------|
-| `1`-`0` | Jump to view |
-| `Tab` / `Shift+Tab` | Cycle views |
-| `j` / `k` | Navigate lists |
-| `Enter` | Select / confirm |
-| `/` | Search / filter |
+| `m` | Open the side menu (then `↑`/`↓` + `Enter`, `Esc`/`m` to close) |
+| `1`-`9` | Run the matching numbered action in the current view's footer |
+| `↑` / `↓` (or `j` / `k`) | Move within a list |
+| `Enter` | Open / confirm the highlighted item |
+| `/` | Filter the current list |
+| `S` | Open the Search view |
 | `Escape` | Go back |
 | `L` | Toggle language (en/es) |
 | `q` | Quit |
