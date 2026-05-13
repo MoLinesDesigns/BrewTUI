@@ -53,7 +53,13 @@ Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
 
 ### Navigation & Keyboard
 
-Global keys are in `src/hooks/use-keyboard.ts` via Ink's `useInput`: `1-0` jump to views, `Tab`/`Shift+Tab` cycle, `q` quits, `Esc` goes back, `L` toggles locale (en/es). Each view adds local keys (j/k scroll, Enter select, / search, action-specific shortcuts).
+Global keys live in `src/hooks/use-keyboard.ts` via Ink's `useInput`. **As of 0.9.0**: `m` opens the side menu (focus moves to the menu — `↑`/`↓` move the cursor, `Enter` navigates, `Esc`/`m` close); numbers `1`–`0` and `Tab`/`Shift+Tab` no longer change view. Always-globals: `q` quit, `Esc` back, `S` open Search view, `L` toggle locale.
+
+Per-view keys: each view adds its own `useInput` for `j`/`k` scroll, `Enter` select, `/` filter, and action-specific shortcuts. **Numbered actions in the footer** (`1`, `2`, `3`…) trigger those shortcuts directly, while the original letter shortcuts stay as aliases so muscle memory survives. Footer numbering lives in `src/components/layout/footer.tsx` (`VIEW_HINT_DEFS`); each view's `useInput` accepts both the number and the legacy letter (e.g. `if (input === 'A' || input === '1')`).
+
+**Critical seam — `useViewInput`** (`src/hooks/use-view-input.ts`): every view-level `useInput` MUST go through this wrapper. It suppresses the handler while `menuMode === true` so the side menu owns arrow keys without each view re-implementing the gate. Adding a new view? Use `useViewInput`, not bare `useInput`.
+
+**BrewBar handoff** (`src/lib/data-dir.ts:writeLastAction`): after every `brew upgrade`/`install`/`uninstall` from the TUI, call this with `{ timestamp, action, packages, remainingOutdated, source: 'brew-tui' }`. It writes `~/.brew-tui/last-action.json` atomically (tmp + rename) so BrewBar's `LastActionMonitor` (`menubar/BrewBar/Sources/Services/LastActionMonitor.swift`) picks it up via `DispatchSourceFileSystemObject` and fires `AppState.applyLastAction`. The watcher targets the parent directory (not the file) because rename invalidates a file-level descriptor.
 
 ### Views
 
@@ -110,13 +116,15 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 ## Adding a New View
 
 1. Add the ViewId to the union in `src/lib/types.ts`
-2. Add it to `VIEWS` array in `src/stores/navigation-store.ts`
-3. Create the view component in `src/views/`
+2. Add it to both `VIEWS` and `MENU_VIEWS` in `src/stores/navigation-store.ts` (`VIEWS` is canonical; `MENU_VIEWS` is the side-menu render order — exclude it only if the view is contextual like `search`)
+3. Create the view component in `src/views/`. Use `useViewInput` (NOT `useInput`) so the side menu can suppress it while in menu mode.
 4. Add the route case in `src/app.tsx`'s switch
-5. Add keybinding hints in `src/components/layout/footer.tsx`
-6. Add the label in `src/components/layout/header.tsx`
-7. If Pro-only: add the ViewId to `PRO_VIEWS` set in `src/lib/license/feature-gate.ts`. If Team-only: add to `TEAM_VIEWS` instead (separate tier from Pro)
-8. Add all user-facing strings to `src/i18n/en.ts` and `src/i18n/es.ts`
+5. Add keybinding hints in `src/components/layout/footer.tsx` using **numeric keys** (`'1'`, `'2'`…) for view-specific actions; keep `enter`/`esc`/`/` literal when contextual. The `hint_chooseNumber` line renders automatically when at least one numeric hint is present.
+6. In your `useViewInput`, accept both the new number and the legacy letter (e.g. `if (input === 'r' || input === '1')`) so muscle memory survives.
+7. Add the label in `src/components/layout/header.tsx`
+8. If Pro-only: add the ViewId to `PRO_VIEWS` set in `src/lib/license/feature-gate.ts`. If Team-only: add to `TEAM_VIEWS` instead (separate tier from Pro)
+9. Add all user-facing strings to `src/i18n/en.ts` and `src/i18n/es.ts`
+10. If the view triggers a `brew upgrade`/`install`/`uninstall`, call `writeLastAction()` from `src/lib/data-dir.ts` after the stream succeeds so BrewBar's banner reflects it.
 
 ## Internationalization (i18n)
 
