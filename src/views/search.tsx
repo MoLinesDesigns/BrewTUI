@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { TextInput } from '@inkjs/ui';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
@@ -71,7 +72,7 @@ export function SearchView() {
   const visibleCasks = results ? results.casks.slice(0, MAX_VISIBLE) : [];
   const allVisible = [...visibleFormulae, ...visibleCasks];
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (stream.isRunning) {
       if (key.escape) stream.cancel();
       return;
@@ -96,8 +97,8 @@ export function SearchView() {
       return;
     }
 
-    // 'i' → install directly (with confirmation)
-    if (input === 'i' && allVisible[cursor]) {
+    // 'i' or '1' → install directly (with confirmation)
+    if ((input === 'i' || input === '1') && allVisible[cursor]) {
       setConfirmInstall(allVisible[cursor]);
       return;
     }

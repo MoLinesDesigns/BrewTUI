@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
@@ -15,6 +16,9 @@ import type { TranslationKey } from '../i18n/en.js';
 import * as api from '../lib/brew-api.js';
 import type { Formula } from '../lib/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { writeLastAction } from '../lib/data-dir.js';
+import { useBrewStore } from '../stores/brew-store.js';
+import { logger } from '../utils/logger.js';
 
 const ACTION_PROGRESS_KEYS: Record<string, TranslationKey> = {
   install: 'pkgInfo_installing',
@@ -79,10 +83,27 @@ export function PackageInfoView() {
       refreshFn
         .then((f) => { if (mountedRef.current) { setFormula(f); } })
         .catch(() => { /* ignore refresh errors */ });
+
+      // BrewBar handoff for upgrade/install/uninstall actions started here.
+      // Refetch the outdated list so remainingOutdated is accurate, then write.
+      const action = activeActionRef.current;
+      if (action === 'upgrade' || action === 'install' || action === 'uninstall') {
+        void useBrewStore.getState().fetchOutdated().then(() => {
+          const out = useBrewStore.getState().outdated;
+          const remaining = out.formulae.length + out.casks.length;
+          void writeLastAction({
+            timestamp: new Date().toISOString(),
+            action,
+            packages: [packageName],
+            remainingOutdated: remaining,
+            source: 'brew-tui',
+          }).catch((err) => logger.warn('Failed to write last-action.json', err));
+        });
+      }
     }
   }, [stream.isRunning, stream.error]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (stream.isRunning) {
       if (key.escape) stream.cancel();
       return;
@@ -92,11 +113,11 @@ export function PackageInfoView() {
     if (!formula) return;
 
     const isInstalled = formula.installed.length > 0;
-    if (input === 'i' && !isInstalled) {
+    if ((input === 'i' || input === '1') && !isInstalled) {
       setConfirmAction('install');
-    } else if (input === 'u' && isInstalled) {
+    } else if ((input === 'u' || input === '2') && isInstalled) {
       setConfirmAction('uninstall');
-    } else if (input === 'U' && isInstalled && formula.outdated) {
+    } else if ((input === 'U' || input === '3') && isInstalled && formula.outdated) {
       setConfirmAction('upgrade');
     }
   });

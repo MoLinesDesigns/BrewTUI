@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { ResultBanner } from '../components/common/result-banner.js';
@@ -21,8 +22,8 @@ export function DoctorView() {
 
   useEffect(() => { fetchDoctor(); }, []);
 
-  useInput((input) => {
-    if (input === 'r') void fetchDoctor();
+  useViewInput((input) => {
+    if (input === 'r' || input === '1') void fetchDoctor();
   });
 
   if (loading.doctor) return <Loading message={t('loading_doctor')} />;

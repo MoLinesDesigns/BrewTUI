@@ -19,6 +19,10 @@ final class AppState {
     var cveCheckError: String?
     var syncActivity = false
     var syncMachineCount = 0
+    // Friendly toast shown after Brew-TUI publishes a `last-action.json`.
+    // Auto-clears after 30s via lastActionFadeTask.
+    var lastActionMessage: String?
+    private var lastActionFadeTask: Task<Void, Never>?
 
     private let checker: any BrewChecking
 
@@ -84,6 +88,67 @@ final class AppState {
     func updateSyncStatus(hasActivity: Bool, machineCount: Int) {
         syncActivity = hasActivity
         syncMachineCount = machineCount
+    }
+
+    // Builds a localized banner from the cross-process action payload and
+    // schedules an auto-fade. Refreshes `outdatedPackages` so the badge lines
+    // up with what the message claims is left.
+    func applyLastAction(_ action: LastAction) {
+        let message = formatLastActionMessage(
+            action: action.action,
+            packages: action.packages,
+            remaining: action.remainingOutdated
+        )
+        lastActionMessage = message
+        lastActionFadeTask?.cancel()
+        lastActionFadeTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 30 * 1_000_000_000)
+            guard !Task.isCancelled, let self else { return }
+            self.lastActionMessage = nil
+        }
+        Task { await refresh(force: true) }
+    }
+
+    func dismissLastActionMessage() {
+        lastActionFadeTask?.cancel()
+        lastActionFadeTask = nil
+        lastActionMessage = nil
+    }
+
+    private func formatLastActionMessage(action: String, packages: [String], remaining: Int) -> String {
+        let isUpgrade = action == "upgrade"
+        let pkgLabel: String
+        if packages.isEmpty {
+            pkgLabel = String(localized: "some packages")
+        } else if packages.count == 1, let only = packages.first {
+            pkgLabel = only
+        } else {
+            let template = String(localized: "%lld packages")
+            pkgLabel = String(format: template, Int64(packages.count))
+        }
+
+        let actionLine: String
+        if isUpgrade {
+            let template = String(localized: "Just upgraded %@ from Brew-TUI.")
+            actionLine = String(format: template, pkgLabel)
+        } else {
+            // install / uninstall — keep the wording neutral so future actions
+            // surface here without code changes per verb.
+            let template = String(localized: "Brew-TUI just ran %@ on %@.")
+            actionLine = String(format: template, action, pkgLabel)
+        }
+
+        let tailLine: String
+        if remaining == 0 {
+            tailLine = String(localized: "No packages left to update — you're all set.")
+        } else if remaining == 1 {
+            tailLine = String(localized: "1 package still pending an update.")
+        } else {
+            let template = String(localized: "%lld packages still pending an update.")
+            tailLine = String(format: template, Int64(remaining))
+        }
+
+        return "\(actionLine) \(tailLine)"
     }
 
     func upgrade(package name: String) async {

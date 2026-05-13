@@ -11,6 +11,29 @@ export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
 export const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 export const ONBOARDING_FLAG_PATH = join(DATA_DIR, 'onboarding-completed');
 export const ANALYTICS_CONSENT_PATH = join(DATA_DIR, 'analytics-consent');
+// Cross-process notification surface for BrewBar. Brew-TUI writes here after a
+// brew action completes; BrewBar watches the file with DispatchSource and shows
+// a banner with the result + remaining outdated count.
+export const LAST_ACTION_PATH = join(DATA_DIR, 'last-action.json');
+
+export interface LastAction {
+  timestamp: string;        // ISO 8601
+  action: 'upgrade' | 'install' | 'uninstall';
+  packages: string[];       // names actually upgraded/installed/uninstalled
+  remainingOutdated: number; // total outdated packages still pending after the action
+  source: 'brew-tui';
+}
+
+// Atomic write: write to a temp sibling then rename so partial reads from the
+// watcher cannot see a half-written file (rename is atomic on the same fs).
+export async function writeLastAction(payload: LastAction): Promise<void> {
+  await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
+  const json = JSON.stringify(payload, null, 2);
+  const tmp = `${LAST_ACTION_PATH}.tmp`;
+  await writeFile(tmp, json, { encoding: 'utf-8', mode: 0o600 });
+  const { rename } = await import('node:fs/promises');
+  await rename(tmp, LAST_ACTION_PATH);
+}
 
 export async function ensureDataDirs(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });

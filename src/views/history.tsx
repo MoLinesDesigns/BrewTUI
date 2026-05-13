@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useHistoryStore } from '../stores/history-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { useDebounce } from '../hooks/use-debounce.js';
@@ -76,7 +77,7 @@ export function HistoryView() {
     return result;
   }, [entries, filter, debouncedQuery]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (confirmClear || confirmReplay || stream.isRunning) return;
 
     if (isSearching) {
@@ -88,13 +89,13 @@ export function HistoryView() {
     }
 
     if (input === '/') { setIsSearching(true); return; }
-    if (input === 'f') {
+    if (input === 'f' || input === '1') {
       const idx = FILTERS.indexOf(filter);
       setFilter(FILTERS[(idx + 1) % FILTERS.length]!);
       setCursor(0);
       return;
     }
-    if (input === 'c' && entries.length > 0) { setConfirmClear(true); return; }
+    if ((input === 'c' || input === '2') && entries.length > 0) { setConfirmClear(true); return; }
     if (key.return && filtered[cursor]) {
       setConfirmReplay(filtered[cursor]);
       return;

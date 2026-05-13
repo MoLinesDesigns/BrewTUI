@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useRollbackStore } from '../stores/rollback-store.js';
 import { useLicenseStore } from '../stores/license-store.js';
 import { executeRollbackPlan } from '../lib/rollback/rollback-engine.js';
@@ -140,7 +141,7 @@ export function RollbackView() {
     }
   }, [isPro]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (phase === 'executing') return;
 
     if (phase === 'result') {
@@ -168,7 +169,7 @@ export function RollbackView() {
     } else if (key.return && snapshots[cursor]) {
       void selectSnapshot(snapshots[cursor]!, isPro());
       setPhase('plan');
-    } else if (input === 'r') {
+    } else if (input === 'r' || input === '1') {
       void fetchSnapshots(isPro());
     }
   });

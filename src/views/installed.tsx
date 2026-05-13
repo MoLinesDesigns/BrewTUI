@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import { useDebounce } from '../hooks/use-debounce.js';
@@ -63,7 +64,7 @@ export function InstalledView() {
     );
   }, [formulae, casks, tab, debouncedFilter]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (confirmUninstall) return;
 
     // SCR-12-I1: while a brew uninstall is streaming we promised "esc:cancel"
@@ -96,7 +97,7 @@ export function InstalledView() {
       return;
     }
 
-    if (input === 'u' && allItems[cursor]) {
+    if ((input === 'u' || input === '1') && allItems[cursor]) {
       setConfirmUninstall(allItems[cursor].name);
       return;
     }
@@ -112,7 +113,7 @@ export function InstalledView() {
     } else if (key.return && allItems[cursor]) {
       selectPackage(allItems[cursor].name, tab === 'formulae' ? 'formula' : 'cask');
       navigate('package-info');
-    } else if (input === 'f') {
+    } else if (input === 'f' || input === '2') {
       setTab((t) => t === 'formulae' ? 'casks' : 'formulae');
       setCursor(0);
     }

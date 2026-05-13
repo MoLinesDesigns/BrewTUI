@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useSyncStore } from '../stores/sync-store.js';
 import { useLicenseStore } from '../stores/license-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
@@ -186,7 +187,7 @@ export function SyncView() {
     setPhase('result');
   }, [conflictEntries, resolveConflicts]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (phase === 'syncing') return;
     if (phase === 'confirming-sync' || phase === 'confirming-apply') return;
 
@@ -232,20 +233,20 @@ export function SyncView() {
     }
 
     // phase === 'overview'
-    if (input === 's') {
+    if (input === 's' || input === '1') {
       setPhase('confirming-sync');
       return;
     }
-    if (input === 'c' && conflicts.length > 0) {
+    if ((input === 'c' || input === '3') && conflicts.length > 0) {
       setCursor(0);
       setPhase('conflicts');
       return;
     }
-    if (input === 'c' && lastResult?.success) {
+    if ((input === 'c' || input === '3') && lastResult?.success) {
       navigate('compliance');
       return;
     }
-    if (input === 'r') {
+    if (input === 'r' || input === '2') {
       void initialize(isPro());
       return;
     }

@@ -73,6 +73,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let machineCount = await SyncMonitor.shared.getKnownMachineCount()
             appState.updateSyncStatus(hasActivity: hasSyncActivity, machineCount: machineCount)
 
+            // Listen for actions performed in the Brew-TUI CLI so the popover
+            // reflects them immediately and shows a friendly status banner.
+            LastActionMonitor.shared.start { [weak self] action in
+                guard let self else { return }
+                self.appState.applyLastAction(action)
+            }
+
             updateBadge()
 
             badgeTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -88,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         badgeTimer?.invalidate()
         badgeTimer = nil
         scheduler.stop()
+        LastActionMonitor.shared.stop()
     }
 
     // MARK: - Login item

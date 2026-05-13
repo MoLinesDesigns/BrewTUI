@@ -1,35 +1,47 @@
 import { useInput } from 'ink';
-import { useNavigationStore, getNextView, getPrevView } from '../stores/navigation-store.js';
+import { useNavigationStore } from '../stores/navigation-store.js';
 import { useLocaleStore } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
-import type { ViewId } from '../lib/types.js';
-
-const VIEW_KEYS: Record<string, ViewId> = {
-  '1': 'dashboard',
-  '2': 'installed',
-  '3': 'outdated',
-  '4': 'services',
-  '5': 'doctor',
-  '6': 'profiles',
-  '7': 'smart-cleanup',
-  '8': 'history',
-  '9': 'security-audit',
-  '0': 'account',
-};
 
 export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boolean }) {
   const navigate = useNavigationStore((s) => s.navigate);
-  const currentView = useNavigationStore((s) => s.currentView);
   const goBack = useNavigationStore((s) => s.goBack);
+  const menuMode = useNavigationStore((s) => s.menuMode);
+  const enterMenuMode = useNavigationStore((s) => s.enterMenuMode);
+  const exitMenuMode = useNavigationStore((s) => s.exitMenuMode);
+  const moveMenuCursor = useNavigationStore((s) => s.moveMenuCursor);
+  const selectMenuItem = useNavigationStore((s) => s.selectMenuItem);
   const { locale, setLocale } = useLocaleStore();
   const modalOpen = useModalStore((s) => s.isOpen);
 
   useInput((input, key) => {
     if (opts?.disabled) return;
-
-    // When a confirm dialog is open, suppress navigation/quit so only the
-    // dialog's own useInput handler handles the keypress.
     if (modalOpen) return;
+
+    // Menu mode: arrows + enter operate the side menu, esc/m/q exit.
+    if (menuMode) {
+      if (input === 'q' || (key.ctrl && input === 'c')) {
+        opts?.onQuit?.();
+        return;
+      }
+      if (key.escape || input === 'm') {
+        exitMenuMode();
+        return;
+      }
+      if (key.upArrow) {
+        moveMenuCursor(-1);
+        return;
+      }
+      if (key.downArrow) {
+        moveMenuCursor(1);
+        return;
+      }
+      if (key.return) {
+        selectMenuItem();
+        return;
+      }
+      return;
+    }
 
     if (input === 'q' || (key.ctrl && input === 'c')) {
       opts?.onQuit?.();
@@ -41,12 +53,8 @@ export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boole
       return;
     }
 
-    if (key.tab && key.shift) {
-      navigate(getPrevView(currentView));
-      return;
-    }
-    if (key.tab) {
-      navigate(getNextView(currentView));
+    if (input === 'm') {
+      enterMenuMode();
       return;
     }
 
@@ -58,10 +66,6 @@ export function useGlobalKeyboard(opts?: { onQuit?: () => void; disabled?: boole
     if (input === 'L') {
       setLocale(locale === 'en' ? 'es' : 'en');
       return;
-    }
-
-    if (input in VIEW_KEYS) {
-      navigate(VIEW_KEYS[input]!);
     }
   }, { isActive: !opts?.disabled });
 }

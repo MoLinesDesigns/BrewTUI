@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useSecurityStore } from '../stores/security-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
@@ -51,14 +52,14 @@ export function SecurityAuditView() {
 
   const results = summary?.results ?? [];
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (confirmUpgrade || stream.isRunning) return;
 
     // ARQ-005: Manual refresh forces cache invalidation
-    if (input === 'r') { void scan(true); return; }
+    if (input === 'r' || input === '1') { void scan(true); return; }
     // Navigate to rollback view (capital R to avoid conflict with rescan)
     if (input === 'R') { navigate('rollback'); return; }
-    if (input === 'u' && results[cursor]) {
+    if ((input === 'u' || input === '2') && results[cursor]) {
       setConfirmUpgrade(results[cursor].packageName);
       return;
     }

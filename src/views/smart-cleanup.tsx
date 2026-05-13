@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useCleanupStore } from '../stores/cleanup-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
@@ -37,26 +38,26 @@ export function SmartCleanupView() {
   const isDependencyError = stream.error != null &&
     stream.lines.some((l) => l.includes('Refusing to uninstall') || l.includes('required by'));
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (stream.isRunning) {
       if (key.escape) stream.cancel();
       return;
     }
     if (confirmClean || confirmForce) return;
 
-    // After a dependency error, offer F to force
-    if (input === 'F' && isDependencyError && failedNames.length > 0) {
+    // After a dependency error, offer F (or 3) to force
+    if ((input === 'F' || input === '3') && isDependencyError && failedNames.length > 0) {
       setConfirmForce(true);
       return;
     }
 
-    if (input === 'r') { stream.clear(); setFailedNames([]); void analyze(); return; }
+    if (input === 'r' || input === '4') { stream.clear(); setFailedNames([]); void analyze(); return; }
     if (key.return && candidates[cursor]) {
       toggleSelect(candidates[cursor].name);
       return;
     }
-    if (input === 'a') { selectAll(); return; }
-    if (input === 'c' && selected.size > 0) { setConfirmClean(true); return; }
+    if (input === 'a' || input === '1') { selectAll(); return; }
+    if ((input === 'c' || input === '2') && selected.size > 0) { setConfirmClean(true); return; }
 
     if (input === 'j' || key.downArrow) setCursor((c) => Math.min(c + 1, Math.max(0, candidates.length - 1)));
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));

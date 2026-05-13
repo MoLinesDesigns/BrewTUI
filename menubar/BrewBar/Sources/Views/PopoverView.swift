@@ -14,6 +14,11 @@ struct PopoverView: View {
             headerView
             Divider()
 
+            if let message = appState.lastActionMessage {
+                lastActionBanner(message)
+                Divider()
+            }
+
             if appState.isLoading && appState.outdatedPackages.isEmpty {
                 loadingView
             } else if let error = appState.error {
@@ -44,6 +49,30 @@ struct PopoverView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(scheduler: scheduler)
         }
+    }
+
+    private func lastActionBanner(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.updatesFrequently)
+            Spacer(minLength: 4)
+            Button {
+                appState.dismissLastActionMessage()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(String(localized: "Dismiss"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.accentColor.opacity(0.08))
     }
 
     private var headerView: some View {

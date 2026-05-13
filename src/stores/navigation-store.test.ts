@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useNavigationStore, getNextView, getPrevView, VIEWS } from './navigation-store.js';
+import { useNavigationStore, getNextView, getPrevView, VIEWS, MENU_VIEWS } from './navigation-store.js';
 
 beforeEach(() => {
   useNavigationStore.setState({
@@ -7,6 +7,8 @@ beforeEach(() => {
     selectedPackage: null,
     selectedPackageType: null,
     viewHistory: [],
+    menuMode: false,
+    menuCursor: 0,
   });
 });
 
@@ -100,5 +102,65 @@ describe('navigation-store: tab cycle helpers', () => {
     const next = getNextView('search');
     expect(VIEWS).toContain(next);
     expect(next).not.toBe('search');
+  });
+});
+
+describe('navigation-store: menu mode', () => {
+  it('enterMenuMode positions cursor at the current view', () => {
+    useNavigationStore.setState({ currentView: 'doctor' });
+    useNavigationStore.getState().enterMenuMode();
+    const s = useNavigationStore.getState();
+    expect(s.menuMode).toBe(true);
+    expect(MENU_VIEWS[s.menuCursor]).toBe('doctor');
+  });
+
+  it('exitMenuMode disables menu mode without navigating', () => {
+    useNavigationStore.getState().enterMenuMode();
+    useNavigationStore.getState().exitMenuMode();
+    const s = useNavigationStore.getState();
+    expect(s.menuMode).toBe(false);
+    expect(s.currentView).toBe('dashboard');
+  });
+
+  it('moveMenuCursor stays within bounds', () => {
+    useNavigationStore.setState({ menuMode: true, menuCursor: 0 });
+    useNavigationStore.getState().moveMenuCursor(-1);
+    expect(useNavigationStore.getState().menuCursor).toBe(0);
+
+    useNavigationStore.setState({ menuMode: true, menuCursor: MENU_VIEWS.length - 1 });
+    useNavigationStore.getState().moveMenuCursor(1);
+    expect(useNavigationStore.getState().menuCursor).toBe(MENU_VIEWS.length - 1);
+  });
+
+  it('selectMenuItem navigates to the cursor view and closes the menu', () => {
+    useNavigationStore.setState({ currentView: 'dashboard' });
+    useNavigationStore.getState().enterMenuMode();
+    const targetIdx = MENU_VIEWS.indexOf('doctor');
+    useNavigationStore.setState({ menuCursor: targetIdx });
+    useNavigationStore.getState().selectMenuItem();
+    const s = useNavigationStore.getState();
+    expect(s.menuMode).toBe(false);
+    expect(s.currentView).toBe('doctor');
+    expect(s.viewHistory).toEqual(['dashboard']);
+  });
+
+  it('selectMenuItem on the current view just closes the menu', () => {
+    useNavigationStore.setState({ currentView: 'dashboard' });
+    useNavigationStore.getState().enterMenuMode();
+    useNavigationStore.getState().selectMenuItem();
+    const s = useNavigationStore.getState();
+    expect(s.menuMode).toBe(false);
+    expect(s.currentView).toBe('dashboard');
+    expect(s.viewHistory).toEqual([]);
+  });
+
+  it('goBack while in menu mode just closes the menu', () => {
+    useNavigationStore.setState({ currentView: 'installed', viewHistory: ['dashboard'] });
+    useNavigationStore.getState().enterMenuMode();
+    useNavigationStore.getState().goBack();
+    const s = useNavigationStore.getState();
+    expect(s.menuMode).toBe(false);
+    expect(s.currentView).toBe('installed');
+    expect(s.viewHistory).toEqual(['dashboard']);
   });
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, useInput } from 'ink';
+import { Box } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useProfileStore } from '../stores/profile-store.js';
 import { useLicenseStore } from '../stores/license-store.js';
 import { Loading } from '../components/common/loading.js';
@@ -52,17 +53,17 @@ export function ProfilesView() {
     return undefined;
   }, [mode]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (mode !== 'list' || confirmDelete) return;
 
-    if (input === 'n') { setMode('create-name'); return; }
-    if (input === 'd' && profileNames[cursor]) { setConfirmDelete(true); return; }
+    if (input === 'n' || input === '1') { setMode('create-name'); return; }
+    if ((input === 'd' || input === '4') && profileNames[cursor]) { setConfirmDelete(true); return; }
     if (key.return && profileNames[cursor]) {
       void loadProfile(profileNames[cursor]);
       setMode('detail');
       return;
     }
-    if (input === 'i' && profileNames[cursor]) {
+    if ((input === 'i' || input === '3') && profileNames[cursor]) {
       void prepareImport(profileNames[cursor]);
       return;
     }
@@ -71,19 +72,19 @@ export function ProfilesView() {
     else if (input === 'k' || key.upArrow) setCursor((c) => Math.max(c - 1, 0));
   });
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (key.escape || input === 'q') {
       setMode('list');
       return;
     }
-    if (input === 'e' && selectedProfile) {
+    if ((input === 'e' || input === '2') && selectedProfile) {
       setEditName(selectedProfile.name);
       setEditDesc(selectedProfile.description);
       setMode('edit-name');
     }
   }, { isActive: mode === 'detail' });
 
-  useInput(() => {
+  useViewInput(() => {
     setMode('list');
   }, { isActive: mode === 'importing' && !importRunning });
 

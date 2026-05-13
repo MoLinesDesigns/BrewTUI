@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useSecurityStore } from '../stores/security-store.js';
 import { useBrewfileStore } from '../stores/brewfile-store.js';
@@ -99,8 +100,8 @@ export function DashboardView() {
 
   // UX-008: `r` triggers a refetch from any state — error or not — so the
   // user can refresh the dashboard without leaving the view.
-  useInput((input) => {
-    if (input === 'r' || input === 'R') {
+  useViewInput((input) => {
+    if (input === 'r' || input === 'R' || input === '1') {
       void fetchAll();
     }
   });

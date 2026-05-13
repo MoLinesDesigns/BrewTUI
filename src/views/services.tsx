@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
@@ -42,7 +43,7 @@ export function ServicesView() {
 
   useEffect(() => { fetchServices(); }, []);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (actionInProgress) return;
     if (confirmAction) return;
 
@@ -53,7 +54,7 @@ export function ServicesView() {
       setCursor((c) => Math.min(c + 1, Math.max(0, services.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
-    } else if (input === 'r') {
+    } else if (input === 'r' || input === '4') {
       void fetchServices();
     }
 
@@ -74,9 +75,9 @@ export function ServicesView() {
         });
     };
 
-    if (input === 's') doAction('start');
-    else if (input === 'x') setConfirmAction({ type: 'stop', name: svc.name });
-    else if (input === 'R') setConfirmAction({ type: 'restart', name: svc.name });
+    if (input === 's' || input === '1') doAction('start');
+    else if (input === 'x' || input === '2') setConfirmAction({ type: 'stop', name: svc.name });
+    else if (input === 'R' || input === '3') setConfirmAction({ type: 'restart', name: svc.name });
   });
 
   if (loading.services) return <Loading message={t('loading_services')} />;

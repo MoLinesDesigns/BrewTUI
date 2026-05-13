@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Text, useInput, useStdout } from 'ink';
+import { Box, Text, useStdout } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { pinPackage, unpinPackage, getUpgradeImpact } from '../lib/brew-api.js';
@@ -17,6 +18,8 @@ import { t } from '../i18n/index.js';
 import { useDebounce } from '../hooks/use-debounce.js';
 import type { UpgradeImpact } from '../lib/impact/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { writeLastAction } from '../lib/data-dir.js';
+import { logger } from '../utils/logger.js';
 
 function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
   const riskColor =
@@ -67,6 +70,10 @@ export function OutdatedView() {
     | null
   >(null);
   const hasRefreshed = useRef(false);
+  // Names submitted to `brew upgrade` so that, once the stream finishes and the
+  // outdated list is refreshed, we can write the BrewBar handoff with what was
+  // actually upgraded plus the remaining outdated count.
+  const pendingUpgradeRef = useRef<string[] | null>(null);
   const [impact, setImpact] = useState<UpgradeImpact | null>(null);
   const [impactLoading, setImpactLoading] = useState(false);
 
@@ -75,7 +82,20 @@ export function OutdatedView() {
   useEffect(() => {
     if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current) {
       hasRefreshed.current = true;
-      void fetchOutdated();
+      void fetchOutdated().then(() => {
+        const pkgs = pendingUpgradeRef.current;
+        if (!pkgs) return;
+        pendingUpgradeRef.current = null;
+        const state = useBrewStore.getState().outdated;
+        const remaining = state.formulae.length + state.casks.length;
+        void writeLastAction({
+          timestamp: new Date().toISOString(),
+          action: 'upgrade',
+          packages: pkgs,
+          remainingOutdated: remaining,
+          source: 'brew-tui',
+        }).catch((err) => logger.warn('Failed to write last-action.json', err));
+      });
     }
   }, [stream.isRunning, stream.error]);
 
@@ -115,7 +135,7 @@ export function OutdatedView() {
     return () => { cancelled = true; };
   }, [debouncedCursor, stream.isRunning]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (stream.isRunning) {
       if (key.escape) stream.cancel();
       return;
@@ -125,7 +145,7 @@ export function OutdatedView() {
         stream.clear();
         return;
       }
-      if (input === 'r') {
+      if (input === 'r' || input === '3') {
         stream.clear();
         void fetchOutdated();
       }
@@ -139,14 +159,14 @@ export function OutdatedView() {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (key.return && allOutdated[cursor]) {
       setConfirmAction({ type: 'single', name: allOutdated[cursor].name });
-    } else if (input === 'A' && allOutdated.length > 0) {
+    } else if ((input === 'A' || input === '1') && allOutdated.length > 0) {
       setConfirmAction({ type: 'all' });
-    } else if (input === 'p' && allOutdated[cursor]) {
+    } else if ((input === 'p' || input === '2') && allOutdated[cursor]) {
       // ARQ-008: Use brew-api functions instead of direct execBrew
       const pkg = allOutdated[cursor];
       void (pkg.pinned ? unpinPackage(pkg.name) : pinPackage(pkg.name)).then(() => void fetchOutdated());
       return;
-    } else if (input === 'r') {
+    } else if (input === 'r' || input === '3') {
       void fetchOutdated();
     }
   });
@@ -205,8 +225,10 @@ export function OutdatedView() {
             onConfirm={() => {
               hasRefreshed.current = false;
               if (confirmAction.type === 'all') {
+                pendingUpgradeRef.current = allOutdated.map((p) => p.name);
                 void stream.run(['upgrade']);
               } else if (confirmAction.name) {
+                pendingUpgradeRef.current = [confirmAction.name];
                 void stream.run(['upgrade', confirmAction.name]);
               }
               setConfirmAction(null);

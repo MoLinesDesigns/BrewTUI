@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { TextInput } from '@inkjs/ui';
 import { useLicenseStore } from '../stores/license-store.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
@@ -23,7 +24,7 @@ export function AccountView() {
   const [promoResult, setPromoResult] = useState<{ success: boolean; message: string } | null>(null);
   const [revalidating, setRevalidating] = useState(false);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (confirmDeactivate || deactivating || promoMode || revalidating) {
       if (key.escape && promoMode) {
         setPromoMode(false);
@@ -32,10 +33,10 @@ export function AccountView() {
       return;
     }
 
-    if (input === 'd' && status === 'pro') {
+    if ((input === 'd' || input === '2') && status === 'pro') {
       setConfirmDeactivate(true);
     }
-    if (input === 'p') {
+    if (input === 'p' || input === '1') {
       setPromoMode(true);
       setPromoResult(null);
     }

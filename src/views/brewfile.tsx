@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { TextInput } from '@inkjs/ui';
 import { useBrewfileStore } from '../stores/brewfile-store.js';
 import { useLicenseStore } from '../stores/license-store.js';
@@ -131,7 +132,7 @@ export function BrewfileView() {
     }
   }, [schema, isPro]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (phase === 'reconciling') return;
     if (phase === 'confirming-reconcile') return; // ConfirmDialog handles input
 
@@ -146,15 +147,15 @@ export function BrewfileView() {
     if (phase === 'creating') return; // TextInput handles input
 
     // phase === 'overview'
-    if (input === 'n') {
+    if (input === 'n' || input === '1') {
       setPhase('creating');
       return;
     }
-    if (input === 'r') {
+    if (input === 'r' || input === '2') {
       void load();
       return;
     }
-    if (input === 'c') {
+    if (input === 'c' || input === '3') {
       const needsReconcile =
         drift && (
           drift.missingPackages.length > 0 ||

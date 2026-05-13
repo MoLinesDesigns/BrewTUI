@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { TextInput } from '@inkjs/ui';
 import { useComplianceStore } from '../stores/compliance-store.js';
 import { useLicenseStore } from '../stores/license-store.js';
@@ -172,7 +173,7 @@ export function ComplianceView() {
     }
   }, [report, isPro, runCheck]);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (phase === 'remediating' || phase === 'importing') return;
     if (phase === 'confirming-remediate') return;
 
@@ -185,19 +186,19 @@ export function ComplianceView() {
     }
 
     // phase === 'overview'
-    if (input === 'i') {
+    if (input === 'i' || input === '2') {
       setPhase('importing');
       return;
     }
-    if (input === 'r' && policy) {
+    if ((input === 'r' || input === '1') && policy) {
       handleRecheck();
       return;
     }
-    if (input === 'e' && report) {
+    if ((input === 'e' || input === '3') && report) {
       void handleExport();
       return;
     }
-    if (input === 'c' && report) {
+    if ((input === 'c' || input === '4') && report) {
       const actionable = report.violations.filter(
         (v) => v.type === 'missing' || v.type === 'wrong-version',
       );

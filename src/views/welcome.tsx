@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useViewInput } from '../hooks/use-view-input.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { GradientText } from '../utils/gradient.js';
@@ -18,7 +19,7 @@ export function WelcomeView({ onContinue }: WelcomeViewProps) {
     return () => { /* cleanup not required */ };
   }, []);
 
-  useInput((input, key) => {
+  useViewInput((input, key) => {
     if (key.return || input === ' ' || key.escape) {
       void markOnboardingComplete().finally(onContinue);
     }
@@ -37,11 +38,11 @@ export function WelcomeView({ onContinue }: WelcomeViewProps) {
       <Box flexDirection="column" marginTop={SPACING.sm}>
         <Text color={COLORS.muted}>{t('welcome_keysHeader')}</Text>
         <Box flexDirection="column" paddingLeft={SPACING.sm} marginTop={SPACING.xs}>
-          <Text><Text color={COLORS.gold} bold>1-9 0</Text>  {t('welcome_keyJumpView')}</Text>
-          <Text><Text color={COLORS.gold} bold>Tab</Text>     {t('welcome_keyCycleView')}</Text>
-          <Text><Text color={COLORS.gold} bold>j k</Text>     {t('welcome_keyMove')}</Text>
-          <Text><Text color={COLORS.gold} bold>/</Text>       {t('welcome_keySearch')}</Text>
+          <Text><Text color={COLORS.gold} bold>m</Text>       {t('welcome_keyMenu')}</Text>
+          <Text><Text color={COLORS.gold} bold>{'↑ ↓'}</Text>     {t('welcome_keyMove')}</Text>
+          <Text><Text color={COLORS.gold} bold>1-9</Text>     {t('welcome_keyAction')}</Text>
           <Text><Text color={COLORS.gold} bold>Enter</Text>   {t('welcome_keySelect')}</Text>
+          <Text><Text color={COLORS.gold} bold>S</Text>       {t('welcome_keySearch')}</Text>
           <Text><Text color={COLORS.gold} bold>Esc</Text>     {t('welcome_keyBack')}</Text>
           <Text><Text color={COLORS.gold} bold>L</Text>       {t('welcome_keyLocale')}</Text>
           <Text><Text color={COLORS.gold} bold>q</Text>       {t('welcome_keyQuit')}</Text>
