@@ -181,8 +181,11 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 
 ## Publishing
 
-All three channels must be updated on each release:
-- **npm:** `npm publish` (prepublishOnly runs typecheck + build automatically)
-- **GitHub Releases:** `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI
-- **Homebrew Tap:** Update `Formula/brew-tui.rb` in MoLinesDesigns/homebrew-tap with new tarball URL and SHA256
-- **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired
+All three channels must be updated on each release, in this order (auto-memory `release_pipeline.md` has the full step list):
+1. `npm version <x.y.z> --no-git-tag-version` → `(cd menubar && tuist generate --no-open)` → commit + tag + push (pre-push runs validate).
+2. `NOTARY_PROFILE=brewbar-notary bash menubar/scripts/release.sh` — produces notarized `menubar/build/BrewBar.app.zip` + `.sha256`. Must run BEFORE the GH Release so the zip is available as an asset.
+3. `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI, attaching `BrewBar.app.zip` and `BrewBar.app.zip.sha256`.
+4. `npm publish` (prepublishOnly runs typecheck + build + lint).
+5. Bump `MoLinesDesigns/homebrew-tap`: **both** `Formula/brew-tui.rb` (npm tarball SHA via `shasum -a 256` on the published `.tgz`) and `Casks/brewbar.rb` (BrewBar.app.zip SHA).
+- **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired.
+- **Notary health check:** before step 2, run `xcrun notarytool history --keychain-profile brewbar-notary` — a 401 means the keychain profile is gone and `release.sh` will fail.
