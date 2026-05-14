@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.1] - 2026-05-14
+
+### Changed (UX)
+- **Side menu is active by default on launch.** Arrows `↑` / `↓` and `Enter`
+  operate the side menu from the first frame — you no longer need to press
+  `m` first. `m` still toggles the menu closed / reopened.
+- **`M` indicator blinks in brand orange.** The keyboard hint for the menu
+  toggle alternates brightness (same hue) so the shortcut is always visible
+  without changing color.
+
+### Added
+- **`useTerminalSize()` / `useContainerSize(ref)` hooks** — TUI analogs of CSS
+  `100vw` / `100vh` and `100cqi` container queries. Views can measure their
+  actual container width instead of the global viewport, so they remain
+  correct if reparented into a panel.
+- **`<BlinkingText>`** reusable component (brightness pulse, constant hue).
+- **`installed.tsx`** derives `nameWidth` / `versionWidth` from the real
+  container width via `useContainerSize` instead of `stdout.columns`.
+- **`outdated.tsx`** paginates by terminal rows via `useTerminalSize`.
+
+### Coverage
+- 434 tests passing (+5 over 0.9.0).
+
 ## [0.9.0] - 2026-05-13
 
 ### Changed (UX — read this if you upgrade from 0.8.x)
