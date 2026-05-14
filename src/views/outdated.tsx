@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
@@ -20,6 +20,7 @@ import type { UpgradeImpact } from '../lib/impact/types.js';
 import { SPACING } from '../utils/spacing.js';
 import { writeLastAction } from '../lib/data-dir.js';
 import { logger } from '../utils/logger.js';
+import { useTerminalSize } from '../hooks/use-terminal-size.js';
 
 function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
   const riskColor =
@@ -171,8 +172,8 @@ export function OutdatedView() {
     }
   });
 
-  const { stdout } = useStdout();
-  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
+  const { rows: terminalRows } = useTerminalSize();
+  const MAX_VISIBLE_ROWS = Math.max(5, terminalRows - 8);
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = allOutdated.slice(start, start + MAX_VISIBLE_ROWS);
 

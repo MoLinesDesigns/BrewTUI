@@ -89,6 +89,11 @@ const en = {
   hint_useLocal: 'use local',
   hint_menuOpen: 'M: menu  ·  S: search  ·  L: lang',
   hint_menuMode: '↑↓: move  ·  ↵: select  ·  esc/m: close',
+  // Split variants so the side-menu hint can render the M/m as a separate
+  // blinking element while the rest stays static.
+  hint_menuOpen_suffix: ': menu  ·  S: search  ·  L: lang',
+  hint_menuMode_prefix: '↑↓: move  ·  ↵: select  ·  esc/',
+  hint_menuMode_suffix: ': close',
   hint_chooseNumber: 'Choose an option by pressing its number:',
 
   // ── Loading / progress ──

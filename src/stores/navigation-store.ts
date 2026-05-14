@@ -35,7 +35,9 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
   selectedPackage: null,
   selectedPackageType: null,
   viewHistory: [],
-  menuMode: false,
+  // menuMode starts ON so the side menu owns arrows from the first frame —
+  // users can navigate with ↑/↓/↵ without having to press M first.
+  menuMode: true,
   menuCursor: 0,
 
   navigate: (view) => {

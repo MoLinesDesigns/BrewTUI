@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Box, Text, type DOMElement } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
@@ -17,6 +17,8 @@ import { COLORS } from '../utils/colors.js';
 import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
+import { useContainerSize } from '../hooks/use-container-size.js';
+import { useTerminalSize } from '../hooks/use-terminal-size.js';
 import type { PackageListItem } from '../lib/types.js';
 import { SPACING } from '../utils/spacing.js';
 
@@ -28,6 +30,15 @@ export function InstalledView() {
   const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
   const navigate = useNavigationStore((s) => s.navigate);
   const selectPackage = useNavigationStore((s) => s.selectPackage);
+  const { openModal, closeModal } = useModalStore();
+
+  const containerRef = useRef<DOMElement>(null);
+  const { width: containerWidth } = useContainerSize(containerRef);
+  const { rows: terminalRows } = useTerminalSize();
+  // Fallback to viewport width on first frame, before measureElement runs.
+  const columns = containerWidth > 0 ? containerWidth : 80;
+  const nameWidth = Math.floor(columns * 0.35);
+  const versionWidth = Math.floor(columns * 0.15);
 
   const [filter, setFilter] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -36,11 +47,6 @@ export function InstalledView() {
   const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
   const debouncedFilter = useDebounce(filter, 200);
   const stream = useBrewStream();
-  const { openModal, closeModal } = useModalStore();
-  const { stdout } = useStdout();
-  const cols = stdout?.columns ?? 80;
-  const nameWidth = Math.floor(cols * 0.35);
-  const versionWidth = Math.floor(cols * 0.15);
 
   useEffect(() => { fetchInstalled(); }, []);
 
@@ -146,12 +152,12 @@ export function InstalledView() {
     );
   }
 
-  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
+  const MAX_VISIBLE_ROWS = Math.max(5, terminalRows - 8);
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = allItems.slice(start, start + MAX_VISIBLE_ROWS);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" ref={containerRef}>
       {/* Tab selector — both tabs always have a round border so the tab bar
           height stays constant when switching (prevents content jump). The
           inactive tab uses a dim gray border to signal it is not selected. */}

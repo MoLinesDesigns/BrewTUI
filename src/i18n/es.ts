@@ -91,6 +91,9 @@ const es: Translations = {
   hint_useLocal: 'usar local',
   hint_menuOpen: 'M: menú  ·  S: buscar  ·  L: idioma',
   hint_menuMode: '↑↓: mover  ·  ↵: seleccionar  ·  esc/m: cerrar',
+  hint_menuOpen_suffix: ': menú  ·  S: buscar  ·  L: idioma',
+  hint_menuMode_prefix: '↑↓: mover  ·  ↵: seleccionar  ·  esc/',
+  hint_menuMode_suffix: ': cerrar',
   hint_chooseNumber: 'Elige una opción pulsando su número:',
 
   // ── Loading / progress ──

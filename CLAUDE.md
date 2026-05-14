@@ -83,6 +83,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **lib/ modules must not import from stores** — receive `isPro: boolean` as parameter instead of importing `useLicenseStore`. Callers in views/stores pass the value
 - **API response validation**: Always validate external API responses at runtime (Polar, OSV) — never trust `as Type` casts alone
 - **Reusable UI patterns**: Use `<ResultBanner>` for success/error banners, `<SelectableRow>` for cursor-highlighted rows
+- **Responsive layout**: prefer `useContainerSize(ref)` over `useStdout().columns` for new views — it measures the actual container width (CSS `cqi` analog), so views remain correct if reparented into a panel. `useTerminalSize()` is the viewport equivalent (`vw`/`vh`).
 
 ## Freemium Model
 

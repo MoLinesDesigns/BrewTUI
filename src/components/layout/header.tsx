@@ -5,6 +5,7 @@ import { isProView, isTeamView } from '../../lib/license/feature-gate.js';
 import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import { GradientText, GRADIENTS } from '../../utils/gradient.js';
+import { BlinkingText } from '../common/blinking-text.js';
 import type { ViewId } from '../../lib/types.js';
 import type { TranslationKey } from '../../i18n/en.js';
 import { SPACING } from '../../utils/spacing.js';
@@ -128,9 +129,16 @@ export function Header() {
       </Box>
       <Box borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={menuBorderColor} marginTop={SPACING.none}>
         {menuMode ? (
-          <Text color={COLORS.brand}>{t('hint_menuMode')}</Text>
+          <Text color={COLORS.brand}>
+            {t('hint_menuMode_prefix')}
+            <BlinkingText color={COLORS.brand}>m</BlinkingText>
+            {t('hint_menuMode_suffix')}
+          </Text>
         ) : (
-          <Text color={COLORS.textSecondary}>{t('hint_menuOpen')}</Text>
+          <Text color={COLORS.textSecondary}>
+            <BlinkingText color={COLORS.brand}>M</BlinkingText>
+            {t('hint_menuOpen_suffix')}
+          </Text>
         )}
       </Box>
     </Box>
