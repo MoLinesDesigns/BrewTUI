@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
+import { useTerminalSize } from '../hooks/use-terminal-size.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { useSecurityStore } from '../stores/security-store.js';
 import { useBrewfileStore } from '../stores/brewfile-store.js';
@@ -93,8 +95,15 @@ export function DashboardView() {
   const lastFetchedAt = useBrewStore((s) => s.lastFetchedAt);
   const fetchAll = useBrewStore((s) => s.fetchAll);
   const isPro = useLicenseStore((s) => s.isPro);
-  const { stdout } = useStdout();
-  const columns = stdout?.columns ?? 80;
+  const { columns } = useTerminalSize();
+  // Two split lists (outdated + service errors) share the remaining rows.
+  // Reserve title, statcards (3 rows), system info block (~5 rows), and footers.
+  const splitRows = useVisibleRows({
+    reservedRows: 18,
+    fallbackReservedRows: 22,
+    minRows: 2,
+  });
+  const halfRows = Math.max(1, Math.floor(splitRows / 2));
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -201,14 +210,14 @@ export function DashboardView() {
         <Box flexDirection="column" marginTop={SPACING.xs}>
           <SectionHeader emoji={'\u{1F4E6}'} title={t('dashboard_outdatedPackages')} gradient={GRADIENTS.fire} />
           <Box paddingLeft={SPACING.sm} flexDirection="column">
-            {outdated.formulae.slice(0, 10).map((pkg) => (
+            {outdated.formulae.slice(0, halfRows).map((pkg) => (
               <Box key={pkg.name} gap={SPACING.xs}>
                 <Text color={COLORS.text}>{pkg.name}</Text>
                 <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
               </Box>
             ))}
-            {outdated.formulae.length > 10 && (
-              <Text color={COLORS.textSecondary} italic>{t('common_andMore', { count: outdated.formulae.length - 10 })}</Text>
+            {outdated.formulae.length > halfRows && (
+              <Text color={COLORS.textSecondary} italic>{t('common_andMore', { count: outdated.formulae.length - halfRows })}</Text>
             )}
           </Box>
         </Box>
@@ -218,13 +227,16 @@ export function DashboardView() {
         <Box flexDirection="column" marginTop={SPACING.xs}>
           <SectionHeader emoji={'\u26A0\uFE0F'} title={t('dashboard_serviceErrors')} color={COLORS.error} />
           <Box paddingLeft={SPACING.sm} flexDirection="column">
-            {errorServiceList.map((s) => (
+            {errorServiceList.slice(0, halfRows).map((s) => (
               <Box key={s.name} gap={SPACING.xs}>
                 <StatusBadge label={t('badge_error')} variant="error" />
                 <Text>{s.name}</Text>
                 {s.exit_code != null && <Text color={COLORS.muted}>{t('common_exit', { code: s.exit_code })}</Text>}
               </Box>
             ))}
+            {errorServiceList.length > halfRows && (
+              <Text color={COLORS.textSecondary} italic>{t('common_andMore', { count: errorServiceList.length - halfRows })}</Text>
+            )}
           </Box>
         </Box>
       )}

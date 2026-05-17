@@ -18,6 +18,7 @@ import { DATA_DIR } from '../lib/data-dir.js';
 import { join } from 'node:path';
 import type { ComplianceReport, ComplianceViolation } from '../lib/compliance/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 type Phase = 'overview' | 'importing' | 'confirming-remediate' | 'remediating' | 'result';
 
@@ -47,7 +48,7 @@ function ViolationItem({ violation }: { violation: ComplianceViolation }) {
   return (
     <Box marginBottom={SPACING.none}>
       <Text color={color}>{prefix} </Text>
-      <Text color={color}>{violation.detail}</Text>
+      <Text color={color} wrap="wrap">{violation.detail}</Text>
     </Box>
   );
 }
@@ -55,23 +56,45 @@ function ViolationItem({ violation }: { violation: ComplianceViolation }) {
 function ViolationList({ violations }: { violations: ComplianceViolation[] }) {
   const errors = violations.filter((v) => v.severity === 'error');
   const warnings = violations.filter((v) => v.severity === 'warning');
+  // Reserve title + score (~5 rows) + section headers (2) + key hints (2).
+  const totalRows = useVisibleRows({
+    reservedRows: 11,
+    fallbackReservedRows: 18,
+    minRows: 2,
+  });
+  // Split rows proportionally between the two sections; +1 per section header.
+  const total = errors.length + warnings.length;
+  const errorBudget = total === 0
+    ? 0
+    : Math.min(errors.length, Math.max(1, Math.round((errors.length / total) * totalRows)));
+  const warningBudget = Math.max(0, totalRows - errorBudget);
+  const visibleErrors = errors.slice(0, errorBudget);
+  const visibleWarnings = warnings.slice(0, warningBudget);
+  const errorsHidden = errors.length - visibleErrors.length;
+  const warningsHidden = warnings.length - visibleWarnings.length;
 
   return (
     <Box flexDirection="column" marginTop={SPACING.xs}>
       {errors.length > 0 && (
         <Box flexDirection="column" marginBottom={SPACING.xs}>
           <Text color={COLORS.error} bold>{t('compliance_violations', { count: String(errors.length) })} (errors)</Text>
-          {errors.map((v) => (
+          {visibleErrors.map((v) => (
             <ViolationItem key={`${v.type}-${v.packageName}`} violation={v} />
           ))}
+          {errorsHidden > 0 && (
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: errorsHidden })}</Text>
+          )}
         </Box>
       )}
       {warnings.length > 0 && (
         <Box flexDirection="column">
           <Text color={COLORS.warning} bold>{t('compliance_violations', { count: String(warnings.length) })} (warnings)</Text>
-          {warnings.map((v) => (
+          {visibleWarnings.map((v) => (
             <ViolationItem key={`${v.type}-${v.packageName}`} violation={v} />
           ))}
+          {warningsHidden > 0 && (
+            <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: warningsHidden })}</Text>
+          )}
         </Box>
       )}
     </Box>

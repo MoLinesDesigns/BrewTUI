@@ -28,8 +28,8 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogPro
   });
 
   return (
-    <Box borderStyle="double" borderColor={COLORS.purple} paddingX={SPACING.sm} paddingY={SPACING.xs} flexDirection="column">
-      <Text bold color={COLORS.text}>{message}</Text>
+    <Box borderStyle="double" borderColor={COLORS.purple} paddingX={SPACING.sm} paddingY={SPACING.xs} flexDirection="column" flexShrink={1}>
+      <Text bold color={COLORS.text} wrap="wrap">{message}</Text>
       <Box marginTop={SPACING.xs}>
         <Text color={COLORS.success}>{t('confirm_yes')}</Text>
         <Text> / </Text>

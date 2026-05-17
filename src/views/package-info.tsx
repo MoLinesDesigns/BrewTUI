@@ -204,9 +204,13 @@ export function PackageInfoView() {
           <Box flexDirection="column">
             <SectionHeader emoji={'\u{1F517}'} title={t('pkgInfo_dependencies', { count: formula.dependencies.length })} gradient={GRADIENTS.ocean} />
             <Box paddingLeft={SPACING.sm} flexWrap="wrap" columnGap={2}>
-              {formula.dependencies.map((dep) => (
+              {/* Cap deps shown to avoid blowing the viewport; rest summarised. */}
+              {formula.dependencies.slice(0, 30).map((dep) => (
                 <Text key={dep} color={COLORS.muted}>{dep}</Text>
               ))}
+              {formula.dependencies.length > 30 && (
+                <Text color={COLORS.textSecondary} italic>{t('common_andMore', { count: formula.dependencies.length - 30 })}</Text>
+              )}
             </Box>
           </Box>
         )}
@@ -215,7 +219,7 @@ export function PackageInfoView() {
           <Box flexDirection="column">
             <SectionHeader emoji={'\u26A0\uFE0F'} title={t('pkgInfo_caveats')} color={COLORS.warning} />
             <Box borderStyle="round" borderColor={COLORS.warning} paddingX={SPACING.sm}>
-              <Text color={COLORS.warning}>{formula.caveats}</Text>
+              <Text color={COLORS.warning} wrap="wrap">{formula.caveats}</Text>
             </Box>
           </Box>
         )}

@@ -26,18 +26,18 @@ export function WelcomeView({ onContinue }: WelcomeViewProps) {
   });
 
   return (
-    <Box flexDirection="column" paddingY={SPACING.md} paddingX={SPACING.lg}>
+    <Box flexDirection="column" paddingY={SPACING.xs} paddingX={SPACING.sm} flexShrink={1}>
       <Box>
         <GradientText colors={GRADIENTS.gold} bold>{t('welcome_title')}</GradientText>
       </Box>
 
-      <Box marginTop={SPACING.sm}>
-        <Text color={COLORS.text}>{t('welcome_intro')}</Text>
+      <Box marginTop={SPACING.xs}>
+        <Text color={COLORS.text} wrap="wrap">{t('welcome_intro')}</Text>
       </Box>
 
-      <Box flexDirection="column" marginTop={SPACING.sm}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <Text color={COLORS.muted}>{t('welcome_keysHeader')}</Text>
-        <Box flexDirection="column" paddingLeft={SPACING.sm} marginTop={SPACING.xs}>
+        <Box flexDirection="column" paddingLeft={SPACING.sm}>
           <Text><Text color={COLORS.gold} bold>m</Text>       {t('welcome_keyMenu')}</Text>
           <Text><Text color={COLORS.gold} bold>{'↑ ↓'}</Text>     {t('welcome_keyMove')}</Text>
           <Text><Text color={COLORS.gold} bold>1-9</Text>     {t('welcome_keyAction')}</Text>
@@ -49,14 +49,14 @@ export function WelcomeView({ onContinue }: WelcomeViewProps) {
         </Box>
       </Box>
 
-      <Box flexDirection="column" marginTop={SPACING.sm}>
+      <Box flexDirection="column" marginTop={SPACING.xs}>
         <Text color={COLORS.muted}>{t('welcome_proHeader')}</Text>
         <Box paddingLeft={SPACING.sm}>
-          <Text color={COLORS.textSecondary}>{t('welcome_proIntro')}</Text>
+          <Text color={COLORS.textSecondary} wrap="wrap">{t('welcome_proIntro')}</Text>
         </Box>
       </Box>
 
-      <Box marginTop={SPACING.md}>
+      <Box marginTop={SPACING.xs}>
         <Text color={COLORS.success} bold>{t('welcome_continueHint')}</Text>
       </Box>
     </Box>

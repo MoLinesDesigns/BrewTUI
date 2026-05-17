@@ -15,6 +15,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t, tp } from '../i18n/index.js';
 import type { RollbackAction, RollbackPlan } from '../lib/rollback/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 type Phase = 'list' | 'plan' | 'confirm' | 'executing' | 'result';
 
@@ -44,6 +45,15 @@ function actionPrefix(action: RollbackAction): string {
 
 function PlanView({ plan }: { plan: RollbackPlan }) {
   const executableCount = plan.actions.filter((a) => a.strategy !== 'unavailable' && a.action !== 'remove').length;
+  // Reserve title + label row + hint row + warning rows (cap 3).
+  const reservedForWarnings = Math.min(plan.warnings.length, 3) * 2;
+  const actionsBudget = useVisibleRows({
+    reservedRows: 6 + reservedForWarnings,
+    fallbackReservedRows: 14 + reservedForWarnings,
+    minRows: 2,
+  });
+  const visibleActions = plan.actions.slice(0, actionsBudget);
+  const hiddenActions = plan.actions.length - visibleActions.length;
 
   return (
     <Box flexDirection="column" marginTop={SPACING.xs}>
@@ -56,7 +66,7 @@ function PlanView({ plan }: { plan: RollbackPlan }) {
         <ResultBanner status="success" message={t('rollback_diff_empty')} />
       )}
 
-      {plan.actions.map((a) => (
+      {visibleActions.map((a) => (
         <Box key={a.packageName + a.action}>
           <Text color={actionColor(a)}>{actionPrefix(a)} </Text>
           <Text color={actionColor(a)} bold>{a.packageName}</Text>
@@ -72,12 +82,18 @@ function PlanView({ plan }: { plan: RollbackPlan }) {
           <Text color={COLORS.muted} dimColor>  [{strategyLabel(a)}]</Text>
         </Box>
       ))}
+      {hiddenActions > 0 && (
+        <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: hiddenActions })}</Text>
+      )}
 
-      {plan.warnings.map((w) => (
+      {plan.warnings.slice(0, 3).map((w) => (
         <Box key={w} marginTop={SPACING.xs}>
-          <Text color={COLORS.warning}>⚠ {w}</Text>
+          <Text color={COLORS.warning} wrap="wrap">⚠ {w}</Text>
         </Box>
       ))}
+      {plan.warnings.length > 3 && (
+        <Text color={COLORS.textSecondary} dimColor>  {t('common_andMore', { count: plan.warnings.length - 3 })}</Text>
+      )}
 
       <Box marginTop={SPACING.xs}>
         {plan.canExecute ? (
@@ -103,6 +119,11 @@ export function RollbackView() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const generatorRef = useRef<AsyncGenerator<string> | null>(null);
   const mountedRef = useRef(true);
+  const snapshotRows = useVisibleRows({
+    reservedRows: 6,
+    fallbackReservedRows: 14,
+    minRows: 1,
+  });
 
   useEffect(() => {
     mountedRef.current = true;
@@ -209,26 +230,39 @@ export function RollbackView() {
         </Box>
       )}
 
-      {phase === 'list' && snapshots.length > 0 && (
-        <Box flexDirection="column" marginTop={SPACING.xs}>
-          <Text color={COLORS.textSecondary} dimColor>{t('rollback_select_snapshot')}</Text>
+      {phase === 'list' && snapshots.length > 0 && (() => {
+        const start = Math.max(0, cursor - Math.floor(snapshotRows / 2));
+        const visible = snapshots.slice(start, start + snapshotRows);
+        return (
           <Box flexDirection="column" marginTop={SPACING.xs}>
-            {snapshots.map((s, i) => (
-              <SelectableRow key={s.capturedAt} isCurrent={i === cursor}>
-                <Text bold={i === cursor} color={i === cursor ? COLORS.text : COLORS.muted}>
-                  {s.label ?? t('rollback_snapshot_auto')}
-                </Text>
-                <Text color={COLORS.textSecondary}>
-                  {' — '}{new Date(s.capturedAt).toLocaleString()}
-                </Text>
-                <Text color={COLORS.muted} dimColor>
-                  {' '}({tp('packages', s.formulae.length + s.casks.length)})
-                </Text>
-              </SelectableRow>
-            ))}
+            <Text color={COLORS.textSecondary} dimColor>{t('rollback_select_snapshot')}</Text>
+            <Box flexDirection="column" marginTop={SPACING.xs}>
+              {start > 0 && (
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+              )}
+              {visible.map((s, vi) => {
+                const i = start + vi;
+                return (
+                  <SelectableRow key={s.capturedAt} isCurrent={i === cursor}>
+                    <Text bold={i === cursor} color={i === cursor ? COLORS.text : COLORS.muted}>
+                      {s.label ?? t('rollback_snapshot_auto')}
+                    </Text>
+                    <Text color={COLORS.textSecondary}>
+                      {' — '}{new Date(s.capturedAt).toLocaleString()}
+                    </Text>
+                    <Text color={COLORS.muted} dimColor>
+                      {' '}({tp('packages', s.formulae.length + s.casks.length)})
+                    </Text>
+                  </SelectableRow>
+                );
+              })}
+              {start + snapshotRows < snapshots.length && (
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: snapshots.length - start - snapshotRows })}</Text>
+              )}
+            </Box>
           </Box>
-        </Box>
-      )}
+        );
+      })()}
 
       {phase === 'plan' && (
         <Box flexDirection="column">

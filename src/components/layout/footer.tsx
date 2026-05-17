@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { useNavigationStore } from '../../stores/navigation-store.js';
+import { useTerminalSize } from '../../hooks/use-terminal-size.js';
 import { COLORS } from '../../utils/colors.js';
 import { t, useLocaleStore } from '../../i18n/index.js';
 import type { ViewId } from '../../lib/types.js';
@@ -50,8 +51,11 @@ export function Footer() {
   const currentView = useNavigationStore((s) => s.currentView);
   const menuMode = useNavigationStore((s) => s.menuMode);
   const locale = useLocaleStore((s) => s.locale);
+  const { rows } = useTerminalSize();
   const defs = VIEW_HINT_DEFS[currentView] ?? [];
-  const showChoose = hasNumberedActions(defs) && !menuMode;
+  // Drop the explanatory "choose a number" line on short terminals — the hint
+  // bar below already shows `1:`, `2:` etc. so the extra row is redundant.
+  const showChoose = hasNumberedActions(defs) && !menuMode && rows >= 26;
 
   return (
     <Box flexDirection="column">

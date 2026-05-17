@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
+import { useTerminalSize } from '../../hooks/use-terminal-size.js';
 import { useNavigationStore, MENU_VIEWS } from '../../stores/navigation-store.js';
 import { isProView, isTeamView } from '../../lib/license/feature-gate.js';
 import { COLORS } from '../../utils/colors.js';
@@ -95,9 +96,17 @@ export function Header() {
   const menuMode = useNavigationStore((s) => s.menuMode);
   const menuCursor = useNavigationStore((s) => s.menuCursor);
   useLocaleStore((s) => s.locale);
-  const { stdout } = useStdout();
-  const cols = stdout?.columns ?? 80;
-  const isNarrow = cols < 95;
+  const { columns, rows } = useTerminalSize();
+  const isNarrow = columns < 95;
+  const hideLogoByWidth = columns < 45;
+  // Vertical breakpoints. The full menu is 10 rows (8 entries + bottom hint +
+  // borders); the logo is 6 rows; leave at least 8 rows for content + footer.
+  // - rows >= 32: logo + menu (full)
+  // - 22..31: drop logo, keep menu
+  // - rows < 22 and not in menuMode: collapse menu to a single status line
+  // - rows < 22 and menuMode: show the menu anyway (user is navigating)
+  const hideLogoByHeight = rows < 32;
+  const collapseMenu = rows < 22 && !menuMode;
   const cursorView = menuMode ? (MENU_VIEWS[menuCursor] ?? null) : null;
 
   const logoBlock = (
@@ -144,11 +153,37 @@ export function Header() {
     </Box>
   );
 
+  // Single-row collapsed header. Shows the current view and the global hint
+  // line so the user always sees both context and how to expand the menu.
+  if (collapseMenu) {
+    const currentLabel = t(VIEW_LABEL_KEYS[currentView]);
+    const currentIsPro = isProView(currentView) || isTeamView(currentView);
+    return (
+      <Box paddingX={SPACING.xs}>
+        <Text color={COLORS.success} bold>{'▶ '}</Text>
+        <Text color={COLORS.success} bold>{currentLabel}</Text>
+        {currentIsPro && <Text color={COLORS.brand} bold> {t('pro_badge')}</Text>}
+        <Text color={COLORS.textSecondary}>  </Text>
+        <BlinkingText color={COLORS.brand}>M</BlinkingText>
+        <Text color={COLORS.textSecondary}>{t('hint_menuOpen_suffix')}</Text>
+      </Box>
+    );
+  }
+
   if (isNarrow) {
     return (
       <Box flexDirection="column" paddingX={SPACING.xs}>
-        {logoBlock}
-        <Box marginTop={SPACING.xs}>{menuBlock}</Box>
+        {!hideLogoByWidth && !hideLogoByHeight && logoBlock}
+        <Box marginTop={hideLogoByWidth || hideLogoByHeight ? SPACING.none : SPACING.xs}>{menuBlock}</Box>
+      </Box>
+    );
+  }
+
+  // Wide terminal but short: stack vertically and drop the logo.
+  if (hideLogoByHeight) {
+    return (
+      <Box flexDirection="column" paddingX={SPACING.xs}>
+        {menuBlock}
       </Box>
     );
   }

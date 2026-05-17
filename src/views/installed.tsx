@@ -36,8 +36,11 @@ export function InstalledView() {
   const { width: containerWidth } = useContainerSize(containerRef);
   // Fallback to viewport width on first frame, before measureElement runs.
   const columns = containerWidth > 0 ? containerWidth : 80;
-  const nameWidth = Math.floor(columns * 0.35);
-  const versionWidth = Math.floor(columns * 0.15);
+  const nameWidth = Math.max(12, Math.floor(columns * 0.35));
+  const versionWidth = Math.max(8, Math.floor(columns * 0.15));
+  // Reserve room for nameWidth + versionWidth + cursor (1) + gaps (~3) + badges.
+  // Whatever is left over goes to the description column.
+  const descWidth = Math.max(10, columns - nameWidth - versionWidth - 8);
 
   const [filter, setFilter] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -246,7 +249,7 @@ export function InstalledView() {
               {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
               {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
               {!item.outdated && !item.pinned && !item.kegOnly && !item.installedAsDependency && (
-                <Text color={COLORS.textSecondary} dimColor>{truncate(item.desc, 30)}</Text>
+                <Text color={COLORS.textSecondary} dimColor>{truncate(item.desc, descWidth)}</Text>
               )}
             </SelectableRow>
           );

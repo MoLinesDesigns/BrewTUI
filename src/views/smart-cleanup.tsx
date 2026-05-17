@@ -14,6 +14,7 @@ import { SelectableRow } from '../components/common/selectable-row.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 export function SmartCleanupView() {
   const { summary, selected, loading, error, analyze, toggleSelect, selectAll } = useCleanupStore();
@@ -23,6 +24,12 @@ export function SmartCleanupView() {
   const [failedNames, setFailedNames] = useState<string[]>([]);
   const stream = useBrewStream();
   const hasRefreshed = useRef(false);
+  // StatCards (3 rows) + title + warning/confirm dialog + footer hints.
+  const listRows = useVisibleRows({
+    reservedRows: confirmClean || confirmForce ? 12 : 9,
+    fallbackReservedRows: confirmClean || confirmForce ? 18 : 14,
+    minRows: 1,
+  });
 
   useEffect(() => { analyze(); }, []);
 
@@ -143,27 +150,38 @@ export function SmartCleanupView() {
         <ResultBanner status="success" message={`\u2714 ${t('cleanup_systemClean')}`} />
       )}
 
-      {candidates.length > 0 && !confirmClean && (
-        <Box flexDirection="column">
-          {candidates.map((c, i) => {
-            const isCurrent = i === cursor;
-            const isSelected = selected.has(c.name);
-            return (
-              <SelectableRow key={c.name} isCurrent={isCurrent}>
-                <Text color={isSelected ? COLORS.success : COLORS.muted}>{isSelected ? '\u2611' : '\u2610'}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>{c.name}</Text>
-                <Text color={COLORS.warning}>{c.diskUsageFormatted}</Text>
-                <Text color={COLORS.textSecondary}>[{c.reason}]</Text>
-              </SelectableRow>
-            );
-          })}
-          <Box marginTop={SPACING.xs}>
-            <Text color={COLORS.text} bold>
-              {cursor + 1}/{candidates.length}
-            </Text>
+      {candidates.length > 0 && !confirmClean && (() => {
+        const start = Math.max(0, cursor - Math.floor(listRows / 2));
+        const visible = candidates.slice(start, start + listRows);
+        return (
+          <Box flexDirection="column">
+            {start > 0 && (
+              <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+            )}
+            {visible.map((c, i) => {
+              const idx = start + i;
+              const isCurrent = idx === cursor;
+              const isSelected = selected.has(c.name);
+              return (
+                <SelectableRow key={c.name} isCurrent={isCurrent}>
+                  <Text color={isSelected ? COLORS.success : COLORS.muted}>{isSelected ? '\u2611' : '\u2610'}</Text>
+                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>{c.name}</Text>
+                  <Text color={COLORS.warning}>{c.diskUsageFormatted}</Text>
+                  <Text color={COLORS.textSecondary}>[{c.reason}]</Text>
+                </SelectableRow>
+              );
+            })}
+            {start + listRows < candidates.length && (
+              <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: candidates.length - start - listRows })}</Text>
+            )}
+            <Box marginTop={SPACING.xs}>
+              <Text color={COLORS.text} bold>
+                {cursor + 1}/{candidates.length}
+              </Text>
+            </Box>
           </Box>
-        </Box>
-      )}
+        );
+      })()}
     </Box>
   );
 }

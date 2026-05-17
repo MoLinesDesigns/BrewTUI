@@ -131,12 +131,10 @@ export function AccountView() {
         )}
 
         {status === 'free' && (
-          <Box flexDirection="column" marginTop={SPACING.sm} borderStyle="round" borderColor={COLORS.brand} paddingX={SPACING.sm} paddingY={SPACING.xs}>
+          <Box flexDirection="column" marginTop={SPACING.xs} borderStyle="round" borderColor={COLORS.brand} paddingX={SPACING.sm} paddingY={SPACING.none} flexShrink={1}>
             <Text bold color={COLORS.brand}>{'\u2B50'} {t('account_upgradeTitle')}</Text>
-            <Text> </Text>
-            <Text>{t('account_unlockDesc')}</Text>
+            <Text wrap="wrap">{t('account_unlockDesc')}</Text>
             <Text color={COLORS.info} bold>{t('account_pricing')}</Text>
-            <Text> </Text>
             <Text color={COLORS.muted}>{t('upgrade_buyAt')} <Text color={COLORS.sky} bold>{t('upgrade_buyUrl')}</Text></Text>
             <Text color={COLORS.muted}>{t('account_runActivate')} <Text color={COLORS.success} bold>{t('account_activateCmd')}</Text></Text>
           </Box>

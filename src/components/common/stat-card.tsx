@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
+import { useTerminalSize } from '../../hooks/use-terminal-size.js';
 import { COLORS } from '../../utils/colors.js';
 import { SPACING } from '../../utils/spacing.js';
 
@@ -10,10 +11,9 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, color = COLORS.white }: StatCardProps) {
-  const { stdout } = useStdout();
-  const cols = stdout?.columns ?? 80;
+  const { columns } = useTerminalSize();
   // Adapt min width to terminal: tight on narrow, comfortable on wide
-  const minW = cols < 60 ? 12 : cols < 100 ? 14 : 16;
+  const minW = columns < 60 ? 12 : columns < 100 ? 14 : 16;
 
   return (
     <Box
@@ -23,6 +23,7 @@ export function StatCard({ label, value, color = COLORS.white }: StatCardProps) 
       paddingY={SPACING.none}
       flexDirection="column"
       alignItems="center"
+      flexShrink={1}
       minWidth={minW}
     >
       <Text bold color={color}>{value}</Text>

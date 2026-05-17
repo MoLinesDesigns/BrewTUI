@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Text, type DOMElement } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
+import { useContainerSize } from '../hooks/use-container-size.js';
+import { truncate } from '../utils/format.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
@@ -36,10 +38,11 @@ export function ServicesView() {
   const [confirmAction, setConfirmAction] = useState<{ type: 'stop' | 'restart'; name: string } | null>(null);
   // SCR-014: Persist last error until explicitly cleared
   const [lastError, setLastError] = useState<string | null>(null);
-  const { stdout } = useStdout();
-  const cols = stdout?.columns ?? 80;
-  const svcNameWidth = Math.floor(cols * 0.35);
-  const svcStatusWidth = Math.floor(cols * 0.15);
+  const containerRef = useRef<DOMElement>(null);
+  const { width: containerWidth } = useContainerSize(containerRef);
+  const cols = containerWidth > 0 ? containerWidth : 80;
+  const svcNameWidth = Math.max(12, Math.floor(cols * 0.35));
+  const svcStatusWidth = Math.max(8, Math.floor(cols * 0.15));
   const MAX_VISIBLE_ROWS = useVisibleRows({
     reservedRows: lastError || actionInProgress ? 8 : 6,
     fallbackReservedRows: lastError || actionInProgress ? 16 : 14,
@@ -101,7 +104,7 @@ export function ServicesView() {
   const visible = services.slice(start, start + MAX_VISIBLE_ROWS);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" ref={containerRef}>
       <SectionHeader emoji={'\u2699\uFE0F'} title={t('services_titleCount', { count: services.length })} gradient={GRADIENTS.ocean} />
 
       {confirmAction && (
@@ -148,7 +151,7 @@ export function ServicesView() {
           return (
             <SelectableRow key={svc.name} isCurrent={isCurrent}>
               <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
-                {svc.name.padEnd(svcNameWidth - 2)}
+                {truncate(svc.name, svcNameWidth - 2).padEnd(svcNameWidth - 2)}
               </Text>
               <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
               <Text color={COLORS.muted}>{svc.user ?? '-'}</Text>

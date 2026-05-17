@@ -14,6 +14,7 @@ import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import type { SyncConflict } from '../lib/sync/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 type Phase = 'overview' | 'confirming-sync' | 'syncing' | 'conflicts' | 'confirming-apply' | 'result';
 
@@ -95,9 +96,23 @@ function ConflictsList({
   entries: ConflictEntry[];
   cursor: number;
 }) {
+  // Each conflict entry uses ~4 rows. Pick window from available rows / 4.
+  const availableRows = useVisibleRows({
+    reservedRows: 8,
+    fallbackReservedRows: 14,
+    minRows: 4,
+  });
+  const perEntryRows = 4;
+  const maxEntries = Math.max(1, Math.floor(availableRows / perEntryRows));
+  const start = Math.max(0, cursor - Math.floor(maxEntries / 2));
+  const visible = entries.slice(start, start + maxEntries);
   return (
     <Box flexDirection="column" marginTop={SPACING.xs}>
-      {entries.map((entry, i) => {
+      {start > 0 && (
+        <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+      )}
+      {visible.map((entry, vi) => {
+        const i = start + vi;
         const { conflict, resolution } = entry;
         const isActive = i === cursor;
         return (
@@ -125,6 +140,9 @@ function ConflictsList({
           </Box>
         );
       })}
+      {start + maxEntries < entries.length && (
+        <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: entries.length - start - maxEntries })}</Text>
+      )}
       <Box marginTop={SPACING.xs}>
         <Text color={COLORS.textSecondary}>
           j/k:{t('hint_navigate')}  l:{t('sync_conflict_use_local')}  r:{t('sync_conflict_use_remote')}  enter:{t('hint_apply')}  esc:{t('hint_back')}

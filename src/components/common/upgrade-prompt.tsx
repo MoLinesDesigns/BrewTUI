@@ -34,29 +34,25 @@ export function UpgradePrompt({ viewId }: UpgradePromptProps) {
   const labelKey: TranslationKey = team ? 'upgrade_teamLabel' : 'upgrade_proLabel';
 
   return (
-    <Box flexDirection="column" alignItems="center" paddingY={SPACING.sm}>
+    <Box flexDirection="column" alignItems="center" paddingY={SPACING.xs}>
       <Box
         borderStyle="double"
         borderColor={COLORS.brand}
-        paddingX={SPACING.md}
-        paddingY={SPACING.sm}
+        paddingX={SPACING.sm}
+        paddingY={SPACING.none}
         flexDirection="column"
         alignItems="center"
+        flexShrink={1}
         width="80%"
       >
         <Text bold color={COLORS.brand}>{'\u2B50'} {t(headerKey, { title })}</Text>
-        <Text> </Text>
         <Text color={COLORS.text} wrap="wrap">{t(keys.desc)}</Text>
-        <Text> </Text>
-        <Box flexDirection="column" alignItems="center">
+        <Box flexDirection="column" alignItems="center" marginTop={SPACING.xs}>
           <Text color={COLORS.info} bold>{t(pricingKey)}</Text>
-          <Text> </Text>
           <Text color={COLORS.muted}>{t('upgrade_buyAt')}</Text>
-          <Text color={COLORS.sky} bold>  {t(buyUrlKey)}</Text>
-          <Text> </Text>
+          <Text color={COLORS.sky} bold>{t(buyUrlKey)}</Text>
           <Text color={COLORS.muted}>{t('upgrade_activateWith')}</Text>
-          <Text color={COLORS.success} bold>  {t('upgrade_activateCmd')}</Text>
-          <Text> </Text>
+          <Text color={COLORS.success} bold>{t('upgrade_activateCmd')}</Text>
           <Text color={COLORS.brand}>{t(labelKey)}</Text>
         </Box>
       </Box>
