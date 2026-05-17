@@ -222,14 +222,3 @@ GitHub: https://github.com/MoLinesDesigns/Brew-TUI
 4. How to install
 5. Pro features and BrewBar
 6. Link to GitHub
-
----
-
-## JSR (JavaScript Registry)
-
-Requires Deno auth. Run in terminal:
-```bash
-npx jsr publish --token <your-jsr-token>
-```
-
-Get token at: https://jsr.io/account/tokens

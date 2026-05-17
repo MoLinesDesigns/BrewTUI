@@ -58,6 +58,7 @@ let project = Project(
             deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "LSUIElement": true,
+                "LSApplicationCategoryType": "public.app-category.developer-tools",
                 "NSMainStoryboardFile": "",
                 "CFBundleDisplayName": "BrewBar",
                 "CFBundleDevelopmentRegion": "en",
