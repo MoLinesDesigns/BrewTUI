@@ -35,8 +35,13 @@ if [[ -z "$NOTARY_PROFILE" ]]; then
 fi
 
 # ── Step 1: regenerate workspace ──────────────────────────────────────────
-# Tuist caches build settings; re-run after every Project.swift change.
-( cd "$(dirname "$0")/.." && tuist generate --no-open )
+# Tuist caches the compiled manifest (not just the workspace). Without an
+# explicit clean, `readMarketingVersion()` is NOT re-run when package.json
+# changes — so the .app keeps shipping the previous release's version while
+# the npm tarball already advanced. This breaks the cross-platform version
+# contract silently (the user sees a stale BrewBar even after `brew upgrade`).
+# Always `tuist clean` before `tuist generate` during release.
+( cd "$(dirname "$0")/.." && tuist clean && tuist generate --no-open )
 
 # ── Step 2: archive ───────────────────────────────────────────────────────
 # Note: exportOptions.plist must declare method=developer-id (not "none")
