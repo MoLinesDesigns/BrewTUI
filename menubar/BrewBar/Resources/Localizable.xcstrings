@@ -1151,6 +1151,181 @@
           }
         }
       }
+    },
+    "Pro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Pro" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Pro" } }
+      }
+    },
+    "Basic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Basic" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Básico" } }
+      }
+    },
+    "BrewBar version %@, tier %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "BrewBar version %1$@, tier %2$@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "BrewBar versión %1$@, nivel %2$@" } }
+      }
+    },
+    "General": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "General" } },
+        "es": { "stringUnit": { "state": "translated", "value": "General" } }
+      }
+    },
+    "Menu Bar Badges": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Menu Bar Badges" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Indicadores de la barra" } }
+      }
+    },
+    "Show outdated count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Show outdated count" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Mostrar contador de desactualizados" } }
+      }
+    },
+    "Show CVE alerts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Show CVE alerts" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Mostrar alertas CVE" } }
+      }
+    },
+    "Show sync indicator": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Show sync indicator" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Mostrar indicador de sincronización" } }
+      }
+    },
+    "Toggle the icons that appear next to BrewBar's menu bar icon.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Toggle the icons that appear next to BrewBar's menu bar icon." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Activa o desactiva los iconos que aparecen junto al icono de BrewBar en la barra." } }
+      }
+    },
+    "License": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "License" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Licencia" } }
+      }
+    },
+    "Tier": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Tier" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Nivel" } }
+      }
+    },
+    "Email": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Email" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Correo" } }
+      }
+    },
+    "Plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Plan" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Plan" } }
+      }
+    },
+    "Last validated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Last validated" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Última validación" } }
+      }
+    },
+    "Expires": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Expires" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Caduca" } }
+      }
+    },
+    "No license loaded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No license loaded" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Sin licencia cargada" } }
+      }
+    },
+    "Revalidate license": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Revalidate license" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Revalidar licencia" } }
+      }
+    },
+    "Manage subscription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Manage subscription" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Gestionar suscripción" } }
+      }
+    },
+    "Revalidation Error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Revalidation Error" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Error de revalidación" } }
+      }
+    },
+    "Could not launch terminal for revalidation.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Could not launch terminal for revalidation." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudo abrir el terminal para revalidar." } }
+      }
+    },
+    "Advanced": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Advanced" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Avanzado" } }
+      }
+    },
+    "BrewBar version": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "BrewBar version" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Versión de BrewBar" } }
+      }
+    },
+    "Brew-TUI CLI": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Brew-TUI CLI" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Brew-TUI CLI" } }
+      }
+    },
+    "Open data folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Open data folder" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Abrir carpeta de datos" } }
+      }
+    },
+    "View logs": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "View logs" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Ver registros" } }
+      }
     }
   },
   "version": "1.1"

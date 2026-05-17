@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.1.0] - 2026-05-17
+
+### Added
+- **BrewBar popover footer** now shows `BrewBar v<version> · <tier>` so the
+  user can see at a glance which version is installed and whether the active
+  license is Pro or Basic.
+- **BrewBar Settings panel** reorganised into five sections:
+  - **General** — check interval, launch at login.
+  - **Notifications** — toggle plus System Settings hint when denied.
+  - **Menu Bar Badges** — independent toggles for the outdated counter, CVE
+    alerts, and sync indicator next to the menu bar icon (`BadgePreferences`,
+    persisted in UserDefaults, default on).
+  - **License** — tier, email, plan, last validated, expiration, plus
+    `Revalidate license` (spawns `brew-tui revalidate` in Terminal) and
+    `Manage subscription` (opens Polar).
+  - **Advanced** — `BrewBar version`, `Brew-TUI CLI` version, `Open data
+    folder` (`~/.brew-tui/` in Finder), and `View logs` (Console.app).
+- **`LicenseSummary` model** — flat, Sendable snapshot derived from
+  `LicenseStatus` exposed on `AppState`. Built once at launch so the popover
+  and Settings can read tier/email/plan/dates without re-decrypting
+  `license.json`.
+
 ## [1.0.0] - 2026-05-17
 
 ### Added

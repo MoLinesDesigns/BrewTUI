@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private let appState = AppState()
     private let scheduler = SchedulerService()
+    private let badgePreferences = BadgePreferences()
     private var badgeTimer: Timer?
     private var launchTask: Task<Void, Never>?
     private var hostingController: NSHostingController<PopoverView>?
@@ -55,9 +56,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
+            // Snapshot the license for the popover tier badge + Settings panel.
+            // Built from the same value `checkLicense()` returned so we never
+            // re-decode the file.
+            appState.licenseSummary = LicenseSummary(from: licenseStatus)
+            // Surface the brew-tui CLI version alongside BrewBar's in the
+            // About section. Reused from VersionChecker so we do not spawn
+            // a second `brew-tui --version` process at launch.
+            if case let .match(version) = versionStatus {
+                appState.brewTuiCliVersion = version
+            } else if case let .mismatch(brewTui, _) = versionStatus {
+                appState.brewTuiCliVersion = brewTui
+            }
+
             setupStatusItem()
             setupPopover()
             appState.onRefreshComplete = { [weak self] in
+                self?.updateBadge()
+            }
+            badgePreferences.onChange = { [weak self] in
                 self?.updateBadge()
             }
 
@@ -240,7 +257,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         // Create the hosting controller once and reuse on each popover open
         hostingController = NSHostingController(
-            rootView: PopoverView(appState: appState, scheduler: scheduler)
+            rootView: PopoverView(
+                appState: appState,
+                scheduler: scheduler,
+                badgePreferences: badgePreferences
+            )
         )
         popover.contentViewController = hostingController
     }
@@ -253,9 +274,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let sync = appState.syncActivity
 
         var parts: [String] = []
-        if outdated > 0 { parts.append("\(outdated)↑") }
-        if cve > 0      { parts.append("\(cve)⚠") }
-        if sync         { parts.append("⟳") }
+        if outdated > 0, badgePreferences.showOutdated { parts.append("\(outdated)↑") }
+        if cve > 0, badgePreferences.showCVE          { parts.append("\(cve)⚠") }
+        if sync, badgePreferences.showSync            { parts.append("⟳") }
         // No leading space: AppKit already pads between image and title via imagePosition.
         // An empty string here is required so variable-length collapses fully when there's
         // no badge to show; a leading " " would keep one glyph of width reserved.

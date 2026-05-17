@@ -41,10 +41,80 @@ enum DegradationLevel: Sendable {
     case expired   // 30+ days — block Pro features
 }
 
-enum LicenseStatus {
+extension LicenseData: Sendable {}
+
+enum LicenseStatus: Sendable {
     case pro(LicenseData, DegradationLevel)
     case expired
     case notFound
+}
+
+/// Flat, UI-friendly snapshot of the active license. Built once at launch
+/// and stored on AppState so the popover and Settings can read it without
+/// re-running the checker (and without holding a non-Sendable enum payload).
+struct LicenseSummary: Sendable, Equatable {
+    enum Tier: Sendable, Equatable {
+        case pro
+        case basic
+    }
+
+    let tier: Tier
+    let email: String?
+    let plan: String?
+    let activatedAt: Date?
+    let expiresAt: Date?
+    let lastValidatedAt: Date?
+    let degradation: DegradationLevelMirror
+
+    /// Equatable mirror of DegradationLevel — keeps the original enum
+    /// internal to the checker while exposing the value flat.
+    enum DegradationLevelMirror: Sendable, Equatable {
+        case none
+        case warning
+        case limited
+        case expired
+    }
+
+    var tierLabel: String {
+        switch tier {
+        case .pro: String(localized: "Pro")
+        case .basic: String(localized: "Basic")
+        }
+    }
+}
+
+extension LicenseSummary {
+    init(from status: LicenseStatus) {
+        switch status {
+        case let .pro(data, level):
+            self.tier = .pro
+            self.email = data.customerEmail
+            self.plan = data.plan
+            self.activatedAt = LicenseChecker.parsePublicDate(data.activatedAt)
+            self.expiresAt = data.expiresAt.flatMap(LicenseChecker.parsePublicDate)
+            self.lastValidatedAt = LicenseChecker.parsePublicDate(data.lastValidatedAt)
+            self.degradation = .init(level)
+        case .expired, .notFound:
+            self.tier = .basic
+            self.email = nil
+            self.plan = nil
+            self.activatedAt = nil
+            self.expiresAt = nil
+            self.lastValidatedAt = nil
+            self.degradation = .expired
+        }
+    }
+}
+
+private extension LicenseSummary.DegradationLevelMirror {
+    init(_ level: DegradationLevel) {
+        switch level {
+        case .none: self = .none
+        case .warning: self = .warning
+        case .limited: self = .limited
+        case .expired: self = .expired
+        }
+    }
 }
 
 // MARK: - LicenseChecker
@@ -225,6 +295,10 @@ struct LicenseChecker {
     }
 
     private static func parseDate(_ value: String) -> Date? {
+        parsePublicDate(value)
+    }
+
+    static func parsePublicDate(_ value: String) -> Date? {
         let fractionalFormatter = ISO8601DateFormatter()
         fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 

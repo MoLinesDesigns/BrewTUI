@@ -23,6 +23,13 @@ final class AppState {
     // Auto-clears after 30s via lastActionFadeTask.
     var lastActionMessage: String?
     private var lastActionFadeTask: Task<Void, Never>?
+    /// Snapshot of the license decoded at launch. Used by PopoverView's footer
+    /// (tier badge) and SettingsView's License section. nil until the launch
+    /// task in AppDelegate populates it.
+    var licenseSummary: LicenseSummary?
+    /// Version of the brew-tui CLI on PATH. Populated alongside the license at
+    /// launch; shown in SettingsView's About section.
+    var brewTuiCliVersion: String?
 
     private let checker: any BrewChecking
 

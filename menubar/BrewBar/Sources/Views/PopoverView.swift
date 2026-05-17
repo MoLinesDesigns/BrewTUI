@@ -3,6 +3,7 @@ import SwiftUI
 struct PopoverView: View {
     let appState: AppState
     let scheduler: SchedulerService
+    let badgePreferences: BadgePreferences
 
     @State private var showSettings = false
     @State private var refreshTask: Task<Void, Never>?
@@ -41,14 +42,55 @@ struct PopoverView: View {
 
             Divider()
             footerView
+            Divider()
+            versionFooter
         }
         // UI-015: drop the fixed 420 minHeight so users with large Dynamic Type
         // sizes do not get content clipped at the bottom of the popover.
         .frame(minWidth: 340, maxWidth: 340)
         .onDisappear { refreshTask?.cancel() }
         .sheet(isPresented: $showSettings) {
-            SettingsView(scheduler: scheduler)
+            SettingsView(
+                scheduler: scheduler,
+                appState: appState,
+                badgePreferences: badgePreferences
+            )
         }
+    }
+
+    // Cross-platform version contract: the bundle's CFBundleShortVersionString
+    // is fed by `$(MARKETING_VERSION)`, which is read from package.json at
+    // generate-time (see menubar/Project.swift). Falling back to "?" keeps the
+    // footer rendering even if the Info.plist key is missing in tests/previews.
+    private var bundleVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    }
+
+    private var tierLabel: String {
+        appState.licenseSummary?.tierLabel ?? String(localized: "Basic")
+    }
+
+    private var versionFooter: some View {
+        HStack(spacing: 4) {
+            Spacer()
+            Text(verbatim: "BrewBar v\(bundleVersion)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            Text(verbatim: "·")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+            Text(tierLabel)
+                .font(.caption2)
+                .foregroundStyle(appState.canUpgrade
+                    ? BrewBarTheme.accent(highContrast: colorSchemeContrast == .increased)
+                    : .secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(format: String(localized: "BrewBar version %@, tier %@"), bundleVersion, tierLabel))
     }
 
     private func lastActionBanner(_ message: String) -> some View {
@@ -301,21 +343,24 @@ struct PopoverView: View {
 #Preview("Outdated Packages") {
     PopoverView(
         appState: PreviewData.makeAppState(),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
 }
 
 #Preview("Up to Date") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: []),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
 }
 
 #Preview("Loading") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: [], isLoading: true),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
 }
 
@@ -325,7 +370,8 @@ struct PopoverView: View {
             packages: [],
             error: "Homebrew is not installed. Install it from https://brew.sh"
         ),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
 }
 
@@ -334,14 +380,16 @@ struct PopoverView: View {
         appState: PreviewData.makeAppState(
             services: PreviewData.errorServices
         ),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
 }
 
 #Preview("Spanish / Outdated") {
     PopoverView(
         appState: PreviewData.makeAppState(),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
     .environment(\.locale, Locale(identifier: "es"))
 }
@@ -349,7 +397,8 @@ struct PopoverView: View {
 #Preview("Spanish / Up to Date") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: []),
-        scheduler: PreviewData.makeScheduler()
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
     )
     .environment(\.locale, Locale(identifier: "es"))
 }
