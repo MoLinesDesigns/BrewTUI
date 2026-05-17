@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.0.0] - 2026-05-17
+
+### Added
+- **Container-driven layouts.** New `ContentSizeContext` plus the
+  `useVisibleRows` hook let views derive their visible row count from the real
+  content container instead of the global terminal viewport, so each view
+  paginates correctly when reparented or when the side menu is open. Applied
+  to `installed.tsx`, `outdated.tsx`, `history.tsx`, `services.tsx`, and
+  `search.tsx`.
+
+### Changed
+- **Search view layout** rewritten around the new container size so result
+  columns and pagination match the actual panel width, not the raw terminal
+  width.
+- **BrewBar Info.plist** declares `LSApplicationCategoryType =
+  public.app-category.developer-tools` (set in `menubar/Project.swift`), so
+  Xcode's "No App Category" archive warning no longer fires.
+
+### Removed
+- **`scripts/publish-all.sh`** — pointed at the old `MoLinesGitHub` org, tried
+  to publish to JSR (channel removed in 0.9.2) and referenced a non-existent
+  GitHub Action. The canonical pipeline lives in `CLAUDE.md` Publishing and
+  in the `release_pipeline.md` auto-memory.
+- **`jsr.json`** — JSR has not been published since 0.6.2 and CI does not
+  reference it; the file was misleading metadata, not a release target.
+
+### Docs
+- **`CLAUDE.md` Publishing section** pins the canonical tap
+  (`MoLinesDesigns/homebrew-tap`) and explains the GitHub silent-redirect
+  trap: `brew tap molinesgithub/tap` resolves to the same repo but registers
+  as a second tap, which triggers `Formulae found in multiple taps` on every
+  install. Fix is local and one-shot: `brew untap molinesgithub/tap`.
+
+### Coverage
+- 434 tests passing (unchanged from 0.9.2).
+
 ## [0.9.2] - 2026-05-17
 
 ### Fixed
