@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
 import { useHistoryStore } from '../stores/history-store.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
@@ -19,6 +19,7 @@ import { useModalStore } from '../stores/modal-store.js';
 import type { TranslationKey } from '../i18n/en.js';
 import type { HistoryAction, HistoryEntry } from '../lib/history/types.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 const ACTION_ICONS: Record<HistoryAction, { icon: string; color: string }> = {
   install: { icon: '+', color: COLORS.success },
@@ -47,11 +48,16 @@ export function HistoryView() {
   const stream = useBrewStream();
   const debouncedQuery = useDebounce(searchQuery, 200);
   const { openModal, closeModal } = useModalStore();
-  // PERF-006: useStdout has to be called unconditionally on every render — the
-  // previous version invoked it after early returns, which violates rules of
-  // hooks the moment loading/error flips and changes the hook count.
-  const { stdout } = useStdout();
-  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 8);
+  const MAX_VISIBLE_ROWS = useVisibleRows({
+    reservedRows: isSearching || stream.lines.length > 0 || stream.isRunning ? 8 : 5,
+    fallbackReservedRows: isSearching || stream.lines.length > 0 || stream.isRunning ? 16 : 13,
+    minRows: 1,
+  });
+  const streamRows = useVisibleRows({
+    reservedRows: 7,
+    fallbackReservedRows: 16,
+    minRows: 1,
+  });
 
   useEffect(() => { fetchHistory(); }, []);
 
@@ -160,7 +166,12 @@ export function HistoryView() {
 
       {(stream.isRunning || stream.lines.length > 0) && (
         <Box marginY={SPACING.xs}>
-          <ProgressLog lines={stream.lines} isRunning={stream.isRunning} title={t('hint_replay')} />
+          <ProgressLog
+            lines={stream.lines}
+            isRunning={stream.isRunning}
+            title={t('hint_replay')}
+            maxVisible={streamRows}
+          />
         </Box>
       )}
 

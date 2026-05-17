@@ -11,6 +11,7 @@ import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 const STATUS_VARIANTS = {
   started: 'success',
@@ -39,7 +40,11 @@ export function ServicesView() {
   const cols = stdout?.columns ?? 80;
   const svcNameWidth = Math.floor(cols * 0.35);
   const svcStatusWidth = Math.floor(cols * 0.15);
-  const MAX_VISIBLE_ROWS = Math.max(5, (stdout?.rows ?? 24) - 10);
+  const MAX_VISIBLE_ROWS = useVisibleRows({
+    reservedRows: lastError || actionInProgress ? 8 : 6,
+    fallbackReservedRows: lastError || actionInProgress ? 16 : 14,
+    minRows: 1,
+  });
 
   useEffect(() => { fetchServices(); }, []);
 

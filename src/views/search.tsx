@@ -10,11 +10,18 @@ import { ConfirmDialog } from '../components/common/confirm-dialog.js';
 import { ResultBanner } from '../components/common/result-banner.js';
 import { COLORS } from '../utils/colors.js';
 import { SelectableRow } from '../components/common/selectable-row.js';
+import { StatusBadge } from '../components/common/status-badge.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useNavigationStore } from '../stores/navigation-store.js';
 import * as api from '../lib/brew-api.js';
 import { SPACING } from '../utils/spacing.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
+
+type SearchResult = {
+  name: string;
+  type: 'formula' | 'cask';
+};
 
 export function SearchView() {
   const [query, setQuery] = useState('');
@@ -29,6 +36,16 @@ export function SearchView() {
   const selectPackage = useNavigationStore((s) => s.selectPackage);
   const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
   const hasRefreshed = useRef(false);
+  const resultRows = useVisibleRows({
+    reservedRows: searchError ? 8 : 6,
+    fallbackReservedRows: searchError ? 18 : 16,
+    minRows: 1,
+  });
+  const streamRows = useVisibleRows({
+    reservedRows: 5,
+    fallbackReservedRows: 14,
+    minRows: 1,
+  });
 
   // Suppress global Escape while results are showing so Escape clears results
   // rather than navigating away from this view.
@@ -67,10 +84,21 @@ export function SearchView() {
     }
   }, [stream.isRunning, stream.error]);
 
-  const MAX_VISIBLE = 20;
-  const visibleFormulae = results ? results.formulae.slice(0, MAX_VISIBLE) : [];
-  const visibleCasks = results ? results.casks.slice(0, MAX_VISIBLE) : [];
-  const allVisible = [...visibleFormulae, ...visibleCasks];
+  const allResults: SearchResult[] = results
+    ? [
+      ...results.formulae.map((name) => ({ name, type: 'formula' as const })),
+      ...results.casks.map((name) => ({ name, type: 'cask' as const })),
+    ]
+    : [];
+  const start = Math.min(
+    Math.max(0, cursor - Math.floor(resultRows / 2)),
+    Math.max(0, allResults.length - resultRows),
+  );
+  const visibleResults = allResults.slice(start, start + resultRows);
+
+  useEffect(() => {
+    setCursor((current) => Math.min(current, Math.max(0, allResults.length - 1)));
+  }, [allResults.length]);
 
   useViewInput((input, key) => {
     if (stream.isRunning) {
@@ -91,20 +119,21 @@ export function SearchView() {
     }
 
     // Enter → navigate to package-info view (preview details, deps, caveats)
-    if (key.return && allVisible[cursor]) {
-      selectPackage(allVisible[cursor]);
+    if (key.return && allResults[cursor]) {
+      const result = allResults[cursor];
+      selectPackage(result.name, result.type);
       navigate('package-info');
       return;
     }
 
     // 'i' or '1' → install directly (with confirmation)
-    if ((input === 'i' || input === '1') && allVisible[cursor]) {
-      setConfirmInstall(allVisible[cursor]);
+    if ((input === 'i' || input === '1') && allResults[cursor]) {
+      setConfirmInstall(allResults[cursor].name);
       return;
     }
 
     if (input === 'j' || key.downArrow) {
-      setCursor((c) => Math.min(c + 1, Math.max(0, allVisible.length - 1)));
+      setCursor((c) => Math.min(c + 1, Math.max(0, allResults.length - 1)));
     } else if (input === 'k' || key.upArrow) {
       setCursor((c) => Math.max(c - 1, 0));
     } else if (key.escape) {
@@ -120,6 +149,7 @@ export function SearchView() {
           lines={stream.lines}
           isRunning={stream.isRunning}
           title={t('search_installing')}
+          maxVisible={streamRows}
         />
         {stream.isRunning && (
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
@@ -176,42 +206,37 @@ export function SearchView() {
 
       {results && !searching && !confirmInstall && (
         <Box flexDirection="column">
-          {visibleFormulae.length > 0 && (
-            <Box flexDirection="column" marginBottom={SPACING.xs}>
-              <Text bold color={COLORS.info}>{t('search_formulaeHeader', { count: results.formulae.length })}</Text>
-              {visibleFormulae.map((name, i) => {
-                const isCurrent = i === cursor;
-                return (
-                  <SelectableRow key={name} isCurrent={isCurrent}>
-                    <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
-                  </SelectableRow>
-                );
-              })}
-              {results.formulae.length > MAX_VISIBLE && (
-                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: results.formulae.length - MAX_VISIBLE })}</Text>
-              )}
-            </Box>
+          {allResults.length > 0 && (
+            <Text color={COLORS.textSecondary}>
+              {t('search_formulaeHeader', { count: results.formulae.length })}  {t('search_casksHeader', { count: results.casks.length })}
+            </Text>
           )}
 
-          {visibleCasks.length > 0 && (
+          {allResults.length > 0 && (
             <Box flexDirection="column">
-              <Text bold color={COLORS.purple}>{t('search_casksHeader', { count: results.casks.length })}</Text>
-              {visibleCasks.map((name, i) => {
-                const idx = visibleFormulae.length + i;
+              {start > 0 && (
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreAbove', { count: start })}</Text>
+              )}
+              {visibleResults.map((result, i) => {
+                const idx = start + i;
                 const isCurrent = idx === cursor;
                 return (
-                  <SelectableRow key={name} isCurrent={isCurrent}>
-                    <Text bold={isCurrent} inverse={isCurrent}>{name}</Text>
+                  <SelectableRow key={`${result.type}:${result.name}`} isCurrent={isCurrent}>
+                    <Text bold={isCurrent} inverse={isCurrent}>{result.name}</Text>
+                    <StatusBadge
+                      label={result.type === 'formula' ? 'Formula' : 'Cask'}
+                      variant={result.type === 'formula' ? 'info' : 'muted'}
+                    />
                   </SelectableRow>
                 );
               })}
-              {results.casks.length > MAX_VISIBLE && (
-                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: results.casks.length - MAX_VISIBLE })}</Text>
+              {start + resultRows < allResults.length && (
+                <Text color={COLORS.textSecondary} dimColor>  {t('scroll_moreBelow', { count: allResults.length - start - resultRows })}</Text>
               )}
             </Box>
           )}
 
-          {allVisible.length === 0 && (
+          {allResults.length === 0 && (
             <Box borderStyle="round" borderColor={COLORS.textSecondary} paddingX={SPACING.sm}>
               <Text color={COLORS.textSecondary} italic>{t('search_noResults')}</Text>
             </Box>
@@ -219,7 +244,7 @@ export function SearchView() {
 
           <Box marginTop={SPACING.xs}>
             <Text color={COLORS.text} bold>
-              {allVisible.length > 0 ? `${cursor + 1}/${allVisible.length}` : ''}
+              {allResults.length > 0 ? `${cursor + 1}/${allResults.length}` : ''}
             </Text>
           </Box>
         </Box>

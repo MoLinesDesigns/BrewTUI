@@ -18,7 +18,7 @@ import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useContainerSize } from '../hooks/use-container-size.js';
-import { useTerminalSize } from '../hooks/use-terminal-size.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 import type { PackageListItem } from '../lib/types.js';
 import { SPACING } from '../utils/spacing.js';
 
@@ -34,7 +34,6 @@ export function InstalledView() {
 
   const containerRef = useRef<DOMElement>(null);
   const { width: containerWidth } = useContainerSize(containerRef);
-  const { rows: terminalRows } = useTerminalSize();
   // Fallback to viewport width on first frame, before measureElement runs.
   const columns = containerWidth > 0 ? containerWidth : 80;
   const nameWidth = Math.floor(columns * 0.35);
@@ -47,6 +46,17 @@ export function InstalledView() {
   const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
   const debouncedFilter = useDebounce(filter, 200);
   const stream = useBrewStream();
+
+  const listRows = useVisibleRows({
+    reservedRows: isSearching ? 14 : 10,
+    fallbackReservedRows: isSearching ? 18 : 14,
+    minRows: 1,
+  });
+  const streamRows = useVisibleRows({
+    reservedRows: 5,
+    fallbackReservedRows: 14,
+    minRows: 1,
+  });
 
   useEffect(() => { fetchInstalled(); }, []);
 
@@ -135,6 +145,7 @@ export function InstalledView() {
           lines={stream.lines}
           isRunning={stream.isRunning}
           title={t('pkgInfo_uninstalling', { name: '...' })}
+          maxVisible={streamRows}
         />
         {stream.isRunning && (
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
@@ -152,7 +163,7 @@ export function InstalledView() {
     );
   }
 
-  const MAX_VISIBLE_ROWS = Math.max(5, terminalRows - 8);
+  const MAX_VISIBLE_ROWS = listRows;
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = allItems.slice(start, start + MAX_VISIBLE_ROWS);
 

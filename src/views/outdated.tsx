@@ -20,7 +20,7 @@ import type { UpgradeImpact } from '../lib/impact/types.js';
 import { SPACING } from '../utils/spacing.js';
 import { writeLastAction } from '../lib/data-dir.js';
 import { logger } from '../utils/logger.js';
-import { useTerminalSize } from '../hooks/use-terminal-size.js';
+import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
   const riskColor =
@@ -77,6 +77,16 @@ export function OutdatedView() {
   const pendingUpgradeRef = useRef<string[] | null>(null);
   const [impact, setImpact] = useState<UpgradeImpact | null>(null);
   const [impactLoading, setImpactLoading] = useState(false);
+  const listRows = useVisibleRows({
+    reservedRows: impact || impactLoading ? 11 : 7,
+    fallbackReservedRows: impact || impactLoading ? 18 : 14,
+    minRows: 1,
+  });
+  const streamRows = useVisibleRows({
+    reservedRows: 5,
+    fallbackReservedRows: 14,
+    minRows: 1,
+  });
 
   useEffect(() => { fetchOutdated(); }, []);
 
@@ -172,8 +182,7 @@ export function OutdatedView() {
     }
   });
 
-  const { rows: terminalRows } = useTerminalSize();
-  const MAX_VISIBLE_ROWS = Math.max(5, terminalRows - 8);
+  const MAX_VISIBLE_ROWS = listRows;
   const start = Math.max(0, cursor - Math.floor(MAX_VISIBLE_ROWS / 2));
   const visible = allOutdated.slice(start, start + MAX_VISIBLE_ROWS);
 
@@ -187,6 +196,7 @@ export function OutdatedView() {
           lines={stream.lines}
           isRunning={stream.isRunning}
           title={t('outdated_upgrading')}
+          maxVisible={streamRows}
         />
         {stream.isRunning && (
           <Text color={COLORS.textSecondary}>esc:{t('hint_cancel')}</Text>
