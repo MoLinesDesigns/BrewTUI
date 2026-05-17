@@ -181,6 +181,8 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 
 ## Publishing
 
+**Canonical tap:** `MoLinesDesigns/homebrew-tap` (tapped as `molinesdesigns/tap`). The org was renamed from `MoLinesGitHub` to `MoLinesDesigns`, and GitHub silently redirects the old URL — so `brew tap molinesgithub/tap` resolves to the **same repo** but registers as a second tap locally. The result is a `Formulae found in multiple taps` error on every install of `brew-tui` or its cask. Never re-add the legacy tap; if it shows up (Time Machine restore, fresh shell, copied dotfiles), run `brew untap molinesgithub/tap`. Do not script around this — the fix is local and one-shot.
+
 All three channels must be updated on each release, in this order (auto-memory `release_pipeline.md` has the full step list):
 1. `npm version <x.y.z> --no-git-tag-version` → `(cd menubar && tuist generate --no-open)` → commit + tag + push (pre-push runs validate).
 2. `NOTARY_PROFILE=brewbar-notary bash menubar/scripts/release.sh` — produces notarized `menubar/build/BrewBar.app.zip` + `.sha256`. Must run BEFORE the GH Release so the zip is available as an asset.
