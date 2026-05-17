@@ -189,5 +189,6 @@ All three channels must be updated on each release, in this order (auto-memory `
 3. `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI, attaching `BrewBar.app.zip` and `BrewBar.app.zip.sha256`.
 4. `npm publish` (prepublishOnly runs typecheck + build + lint).
 5. Bump `MoLinesDesigns/homebrew-tap`: **both** `Formula/brew-tui.rb` (npm tarball SHA via `shasum -a 256` on the published `.tgz`) and `Casks/brewbar.rb` (BrewBar.app.zip SHA).
+- **Local tap clone:** `brew tap` already keeps it at `/opt/homebrew/Library/Taps/molinesdesigns/homebrew-tap`. Edit there and `git push origin main` — no need to clone elsewhere.
 - **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired.
 - **Notary health check:** before step 2, run `xcrun notarytool history --keychain-profile brewbar-notary` — a 401 means the keychain profile is gone and `release.sh` will fail.
