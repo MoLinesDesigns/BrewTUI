@@ -222,7 +222,9 @@ export function SearchView() {
                 const isCurrent = idx === cursor;
                 return (
                   <SelectableRow key={`${result.type}:${result.name}`} isCurrent={isCurrent}>
-                    <Text bold={isCurrent} inverse={isCurrent}>{result.name}</Text>
+                    <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                      <Text bold={isCurrent} inverse={isCurrent} wrap="truncate-middle">{result.name}</Text>
+                    </Box>
                     <StatusBadge
                       label={result.type === 'formula' ? 'Formula' : 'Cask'}
                       variant={result.type === 'formula' ? 'info' : 'muted'}

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, type DOMElement } from 'ink';
 import { useViewInput } from '../hooks/use-view-input.js';
 import { useContainerSize } from '../hooks/use-container-size.js';
-import { truncate } from '../utils/format.js';
 import { useBrewStore } from '../stores/brew-store.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { StatusBadge } from '../components/common/status-badge.js';
@@ -12,7 +11,7 @@ import { SectionHeader } from '../components/common/section-header.js';
 import { COLORS } from '../utils/colors.js';
 import { GRADIENTS } from '../utils/gradient.js';
 import { t } from '../i18n/index.js';
-import { SPACING } from '../utils/spacing.js';
+import { SPACING, getLayoutMode } from '../utils/spacing.js';
 import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 const STATUS_VARIANTS = {
@@ -41,7 +40,14 @@ export function ServicesView() {
   const containerRef = useRef<DOMElement>(null);
   const { width: containerWidth } = useContainerSize(containerRef);
   const cols = containerWidth > 0 ? containerWidth : 80;
-  const svcNameWidth = Math.max(12, Math.floor(cols * 0.35));
+  const mode = getLayoutMode(cols);
+  // Widths are passed to <Box width=...>; Yoga handles truncation via
+  // <Text wrap="truncate">. No padEnd string-building (the old approach
+  // misaligned header vs row by -2). minWidth=0 + flexShrink=1 enable
+  // shrink-below-content (the CSS `min-width: 0` pattern).
+  const svcNameWidth = mode === 'single'
+    ? Math.max(8, cols - 2 /* cursor + gap */)
+    : Math.max(12, Math.floor(cols * 0.35));
   const svcStatusWidth = Math.max(8, Math.floor(cols * 0.15));
   const MAX_VISIBLE_ROWS = useVisibleRows({
     reservedRows: lastError || actionInProgress ? 8 : 6,
@@ -136,9 +142,20 @@ export function ServicesView() {
 
       <Box flexDirection="column" marginTop={SPACING.xs}>
         <Box gap={SPACING.xs} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border} paddingBottom={SPACING.none}>
-          <Text bold color={COLORS.text}>{'  '}{t('services_name').padEnd(svcNameWidth)}</Text>
-          <Text bold color={COLORS.text}>{t('services_status').padEnd(svcStatusWidth)}</Text>
-          <Text bold color={COLORS.text}>{t('services_user')}</Text>
+          <Text bold color={COLORS.text}>{' '}</Text>
+          <Box width={svcNameWidth} flexShrink={1} minWidth={0}>
+            <Text bold color={COLORS.text} wrap="truncate">{t('services_name')}</Text>
+          </Box>
+          {mode !== 'single' && (
+            <Box width={svcStatusWidth} flexShrink={1} minWidth={0}>
+              <Text bold color={COLORS.text} wrap="truncate">{t('services_status')}</Text>
+            </Box>
+          )}
+          {mode !== 'single' && mode !== 'compact' && (
+            <Box flexGrow={1} flexShrink={1} minWidth={0}>
+              <Text bold color={COLORS.text} wrap="truncate">{t('services_user')}</Text>
+            </Box>
+          )}
         </Box>
 
         {start > 0 && (
@@ -150,13 +167,28 @@ export function ServicesView() {
           const isCurrent = idx === cursor;
           return (
             <SelectableRow key={svc.name} isCurrent={isCurrent}>
-              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
-                {truncate(svc.name, svcNameWidth - 2).padEnd(svcNameWidth - 2)}
-              </Text>
-              <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
-              <Text color={COLORS.muted}>{svc.user ?? '-'}</Text>
-              {svc.exit_code != null && svc.exit_code !== 0 && (
-                <Text color={COLORS.error}>{t('common_exit', { code: svc.exit_code })}</Text>
+              <Box width={svcNameWidth} flexShrink={1} minWidth={0}>
+                <Text
+                  bold={isCurrent}
+                  inverse={isCurrent}
+                  color={isCurrent ? COLORS.text : COLORS.muted}
+                  wrap="truncate-middle"
+                >
+                  {svc.name}
+                </Text>
+              </Box>
+              {mode !== 'single' && (
+                <Box width={svcStatusWidth} flexShrink={1} minWidth={0}>
+                  <StatusBadge label={svc.status} variant={STATUS_VARIANTS[svc.status]} />
+                </Box>
+              )}
+              {mode !== 'single' && mode !== 'compact' && (
+                <Box flexGrow={1} flexShrink={1} minWidth={0} gap={SPACING.xs}>
+                  <Text color={COLORS.muted} wrap="truncate">{svc.user ?? '-'}</Text>
+                  {svc.exit_code != null && svc.exit_code !== 0 && (
+                    <Text color={COLORS.error}>{t('common_exit', { code: svc.exit_code })}</Text>
+                  )}
+                </Box>
               )}
             </SelectableRow>
           );

@@ -195,10 +195,20 @@ export function HistoryView() {
             return (
               <SelectableRow key={entry.id} isCurrent={isCurrent}>
                 <Text color={color} bold>{icon}</Text>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
-                  {t(ACTION_LABEL_KEYS[entry.action]).padEnd(12)}
-                </Text>
-                <Text color={COLORS.text}>{entry.packageName ?? t('history_all')}</Text>
+                {/* Action label: fixed-width cell with truncate, instead of
+                    `padEnd(12)` which only worked when the localised label
+                    happened to fit. Spanish "instalación" / "desinstalación"
+                    bust the old hardcoded width. */}
+                <Box width={14} flexShrink={1} minWidth={0}>
+                  <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted} wrap="truncate">
+                    {t(ACTION_LABEL_KEYS[entry.action])}
+                  </Text>
+                </Box>
+                {/* Package name takes the remaining space and truncates middle
+                    to preserve @version suffixes. */}
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  <Text color={COLORS.text} wrap="truncate-middle">{entry.packageName ?? t('history_all')}</Text>
+                </Box>
                 {entry.success
                   ? <StatusBadge label={t('badge_ok')} variant="success" />
                   : <StatusBadge label={t('badge_fail')} variant="error" />}

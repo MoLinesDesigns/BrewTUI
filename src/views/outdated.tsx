@@ -265,9 +265,20 @@ export function OutdatedView() {
             const isCurrent = idx === cursor;
             return (
               <SelectableRow key={pkg.name} isCurrent={isCurrent}>
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
-                  {pkg.name}
-                </Text>
+                {/* Name takes the remaining row width and truncates in the
+                    middle to preserve @suffix tags. flexGrow=1 lets it eat
+                    leftover space; flexShrink=1 + minWidth=0 lets it shrink
+                    below its content (CSS `min-width: 0`). */}
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  <Text
+                    bold={isCurrent}
+                    inverse={isCurrent}
+                    color={isCurrent ? COLORS.text : COLORS.muted}
+                    wrap="truncate-middle"
+                  >
+                    {pkg.name}
+                  </Text>
+                </Box>
                 <VersionArrow current={pkg.installed_versions[0] ?? ''} latest={pkg.current_version} />
                 {pkg.pinned && <StatusBadge label={t('outdated_pinned')} variant="info" />}
               </SelectableRow>

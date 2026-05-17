@@ -14,13 +14,12 @@ import { ResultBanner } from '../components/common/result-banner.js';
 import { SelectableRow } from '../components/common/selectable-row.js';
 import { Loading, ErrorMessage } from '../components/common/loading.js';
 import { COLORS } from '../utils/colors.js';
-import { truncate } from '../utils/format.js';
 import { t } from '../i18n/index.js';
 import { useModalStore } from '../stores/modal-store.js';
 import { useContainerSize } from '../hooks/use-container-size.js';
 import { useVisibleRows } from '../hooks/use-visible-rows.js';
 import type { PackageListItem } from '../lib/types.js';
-import { SPACING } from '../utils/spacing.js';
+import { SPACING, getLayoutMode } from '../utils/spacing.js';
 
 export function InstalledView() {
   const formulae = useBrewStore((s) => s.formulae);
@@ -36,11 +35,18 @@ export function InstalledView() {
   const { width: containerWidth } = useContainerSize(containerRef);
   // Fallback to viewport width on first frame, before measureElement runs.
   const columns = containerWidth > 0 ? containerWidth : 80;
-  const nameWidth = Math.max(12, Math.floor(columns * 0.35));
+  const mode = getLayoutMode(columns);
+  // Column widths are passed to <Box width=...> and Yoga handles the truncate
+  // via <Text wrap="truncate">. We do NOT call String.padEnd — that builds the
+  // row as a string and bypasses the flex layout, which is why narrow widths
+  // used to cut words / overflow. minWidth=0 + flexShrink=1 on each <Box>
+  // lets Yoga shrink the cell below its content size (the canonical CSS
+  // `min-width: 0` pattern). The last column (desc/badges) uses flexGrow=1 so
+  // it eats the remainder regardless of gap arithmetic.
+  const nameWidth = mode === 'single'
+    ? Math.max(8, columns - 2 /* cursor + gap */)
+    : Math.max(12, Math.floor(columns * 0.35));
   const versionWidth = Math.max(8, Math.floor(columns * 0.15));
-  // Reserve room for nameWidth + versionWidth + cursor (1) + gaps (~3) + badges.
-  // Whatever is left over goes to the description column.
-  const descWidth = Math.max(10, columns - nameWidth - versionWidth - 8);
 
   const [filter, setFilter] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -216,13 +222,24 @@ export function InstalledView() {
         </Box>
       )}
 
-      {/* Column header — 1 space prefix matches the 1-char cursor glyph in data
-          rows; gap={SPACING.xs} is shared by both header and data rows via the parent Box,
-          so widths must match: ' ' + gap(1) + padEnd(27) aligns with data rows. */}
+      {/* Column header — widths match the data rows below. Both share the same
+          gap={SPACING.xs} parent Box plus a 1-char cursor glyph in front. We
+          do NOT pad strings here: Yoga handles alignment via <Box width=…>. */}
       <Box gap={SPACING.xs} borderStyle="single" borderBottom borderTop={false} borderLeft={false} borderRight={false} borderColor={COLORS.border}>
-        <Text color={COLORS.text} bold>{' '}{t('installed_col_package').padEnd(nameWidth)}</Text>
-        <Text color={COLORS.text} bold>{t('installed_col_version').padEnd(versionWidth)}</Text>
-        <Text color={COLORS.text} bold>{t('installed_col_status')}</Text>
+        <Text color={COLORS.text}>{' '}</Text>
+        <Box width={nameWidth} flexShrink={1} minWidth={0}>
+          <Text color={COLORS.text} bold wrap="truncate">{t('installed_col_package')}</Text>
+        </Box>
+        {mode !== 'single' && (
+          <Box width={versionWidth} flexShrink={1} minWidth={0}>
+            <Text color={COLORS.text} bold wrap="truncate">{t('installed_col_version')}</Text>
+          </Box>
+        )}
+        {mode !== 'single' && mode !== 'compact' && (
+          <Box flexGrow={1} flexShrink={1} minWidth={0}>
+            <Text color={COLORS.text} bold wrap="truncate">{t('installed_col_status')}</Text>
+          </Box>
+        )}
       </Box>
 
       {/* Package list */}
@@ -238,18 +255,39 @@ export function InstalledView() {
         {visible.map((item, i) => {
           const idx = start + i;
           const isCurrent = idx === cursor;
+          const hasBadge = item.outdated || item.pinned || item.kegOnly || item.installedAsDependency;
           return (
             <SelectableRow key={item.name} isCurrent={isCurrent}>
-              <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? COLORS.text : COLORS.muted}>
-                {truncate(item.name, nameWidth).padEnd(nameWidth)}
-              </Text>
-              <Text color={COLORS.teal}>{item.version.padEnd(versionWidth)}</Text>
-              {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
-              {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
-              {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
-              {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
-              {!item.outdated && !item.pinned && !item.kegOnly && !item.installedAsDependency && (
-                <Text color={COLORS.textSecondary} dimColor>{truncate(item.desc, descWidth)}</Text>
+              <Box width={nameWidth} flexShrink={1} minWidth={0}>
+                <Text
+                  bold={isCurrent}
+                  inverse={isCurrent}
+                  color={isCurrent ? COLORS.text : COLORS.muted}
+                  // truncate-middle preserves @version / ::tap suffixes that
+                  // identify a formula uniquely (e.g. `python@3.12`).
+                  wrap="truncate-middle"
+                >
+                  {item.name}
+                </Text>
+              </Box>
+              {mode !== 'single' && (
+                <Box width={versionWidth} flexShrink={1} minWidth={0}>
+                  <Text color={COLORS.teal} wrap="truncate">{item.version}</Text>
+                </Box>
+              )}
+              {mode !== 'single' && mode !== 'compact' && (
+                <Box flexGrow={1} flexShrink={1} minWidth={0}>
+                  {hasBadge ? (
+                    <Box gap={SPACING.xs}>
+                      {item.outdated && <StatusBadge label={t('badge_outdated')} variant="warning" />}
+                      {item.pinned && <StatusBadge label={t('badge_pinned')} variant="info" />}
+                      {item.kegOnly && <StatusBadge label={t('badge_kegOnly')} variant="muted" />}
+                      {item.installedAsDependency && <StatusBadge label={t('badge_dep')} variant="muted" />}
+                    </Box>
+                  ) : (
+                    <Text color={COLORS.textSecondary} dimColor wrap="truncate">{item.desc}</Text>
+                  )}
+                </Box>
               )}
             </SelectableRow>
           );

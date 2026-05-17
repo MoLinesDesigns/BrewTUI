@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.2.0] - 2026-05-18
+
+### Fixed
+- **Responsive layout across the TUI**. Tables and rows that used to cut
+  words mid-stride, overlap columns at narrow widths, or pad past the
+  container have been migrated to the canonical flexbox+truncate pattern Ink
+  documents:
+  - `<Box width={n} flexShrink={1} minWidth={0}><Text wrap="truncate"|"truncate-middle">…</Text></Box>`.
+  - `minWidth={0}` is the load-bearing CSS `min-width: 0` analogue that lets
+    a flex item shrink below its content size; without it the cell refused to
+    shrink and pushed siblings out of frame.
+  - String-based layout (`truncate(name, w).padEnd(w)`) is gone from
+    `installed`, `outdated`, `services`, `history`, and `search`. Yoga now
+    does the column math.
+  - Package names use `wrap="truncate-middle"` so `@version` / `::tap`
+    suffixes survive truncation.
+- **Services header/row alignment**: header padded to `svcNameWidth` while
+  rows padded to `svcNameWidth - 2`, off by two characters at every width.
+- **History action column**: the hardcoded `padEnd(12)` clipped Spanish
+  labels like `desinstalación`. Now a fixed-width cell with truncate.
+
+### Added
+- **`BREAKPOINTS` and `getLayoutMode()`** in `src/utils/spacing.ts` (single
+  source of truth for `single | compact | comfortable | wide` decisions).
+  Used by `installed` and `services` to decide how many columns to render.
+  Below `narrow` (50 cols) the views collapse to single-column rows.
+- **`src/test/render-at.tsx`** test harness for responsive snapshots:
+  exposes `stdoutHolder` and a `makeStdout` factory so individual tests can
+  inject controlled terminal dimensions via the existing `vi.mock('ink')`
+  pattern.
+- **Responsive coverage for `<InstalledView>`** at 30 / 60 / 100 / 140
+  columns: each test asserts which columns (name, version, description) are
+  present at that mode.
+
 ## [1.1.0] - 2026-05-17
 
 ### Added
