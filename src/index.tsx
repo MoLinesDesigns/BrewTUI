@@ -184,6 +184,7 @@ async function runCli() {
     const isPro = useLicenseStore.getState().isPro();
     const { installBrewBar } = await import('./lib/brewbar-installer.js');
     try {
+      console.log(t('cli_brewbarInstalling'));
       await installBrewBar(isPro, arg === '--force');
       console.log(t('cli_brewbarInstalled'));
     } catch (err) {

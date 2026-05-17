@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.2] - 2026-05-17
+
+### Fixed
+- **`brew-tui install-brewbar` progress line.** The "Installing BrewBar…" log
+  used to print from inside `lib/brewbar-installer.ts`, violating the CLAUDE.md
+  rule that `lib/` modules must not use bare `console.*`. The log now lives in
+  the CLI subcommand handler (`src/index.tsx`) where stdout is the intended
+  user-facing channel, while the installer stays a pure library that any
+  caller (TUI view, future plugin) can drive without surprise side-effects.
+
+### Coverage
+- 434 tests passing (unchanged from 0.9.1).
+
 ## [0.9.1] - 2026-05-14
 
 ### Changed (UX)

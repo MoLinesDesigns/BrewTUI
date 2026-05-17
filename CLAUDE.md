@@ -53,7 +53,7 @@ Views (React) → Stores (Zustand) → brew-api → Parsers → brew-cli (spawn)
 
 ### Navigation & Keyboard
 
-Global keys live in `src/hooks/use-keyboard.ts` via Ink's `useInput`. **As of 0.9.0**: `m` opens the side menu (focus moves to the menu — `↑`/`↓` move the cursor, `Enter` navigates, `Esc`/`m` close); numbers `1`–`0` and `Tab`/`Shift+Tab` no longer change view. Always-globals: `q` quit, `Esc` back, `S` open Search view, `L` toggle locale.
+Global keys live in `src/hooks/use-keyboard.ts` via Ink's `useInput`. **As of 0.9.1**: the side menu is **active by default on launch** — arrows `↑`/`↓` move its cursor and `Enter` navigates from the first frame. `m` toggles the menu closed/reopened (focus returns to the view when closed, then back to the menu when reopened); `Esc` inside the menu closes it. Numbers `1`–`0` and `Tab`/`Shift+Tab` no longer change view. Always-globals: `q` quit, `Esc` back, `S` open Search view, `L` toggle locale. The blinking orange `M` in the menu indicator (`<BlinkingText>`) marks the toggle without changing hue.
 
 Per-view keys: each view adds its own `useInput` for `j`/`k` scroll, `Enter` select, `/` filter, and action-specific shortcuts. **Numbered actions in the footer** (`1`, `2`, `3`…) trigger those shortcuts directly, while the original letter shortcuts stay as aliases so muscle memory survives. Footer numbering lives in `src/components/layout/footer.tsx` (`VIEW_HINT_DEFS`); each view's `useInput` accepts both the number and the legacy letter (e.g. `if (input === 'A' || input === '1')`).
 
@@ -63,7 +63,7 @@ Per-view keys: each view adds its own `useInput` for `j`/`k` scroll, `Enter` sel
 
 ### Views
 
-12 views routed via `<ViewRouter>` in `src/app.tsx` (switch on `currentView`). License initialization is handled by `<LicenseInitializer>`. Each view manages its own `useInput` handler and fetches data on mount via the brew store or direct API calls. Pro views (profiles, smart-cleanup, history, security-audit) are gated — if not Pro, `UpgradePrompt` renders instead. ProfilesView is decomposed into subcomponents in `src/views/profiles/` (list, detail, create, edit modes).
+16 views routed via `<ViewRouter>` in `src/app.tsx` (switch on `currentView`); `<WelcomeView>` is rendered outside the router on first launch. License initialization is handled by `<LicenseInitializer>`. Each view manages its own `useInput` handler and fetches data on mount via the brew store or direct API calls. Pro views (profiles, smart-cleanup, history, security-audit) are gated — if not Pro, `UpgradePrompt` renders instead. ProfilesView is decomposed into subcomponents in `src/views/profiles/` (list, detail, create, edit modes).
 
 ### UI Components
 

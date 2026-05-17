@@ -6,7 +6,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesDesigns/homebrew-tap)
-[![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-434%20passing-brightgreen)]()
 
 A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
 
@@ -193,7 +193,7 @@ Views (React/Ink) --> Stores (Zustand) --> brew-api --> Parsers --> brew CLI (sp
 - ESM-only, TypeScript strict mode, built with [tsup](https://github.com/egoist/tsup)
 - All streaming operations (install, upgrade) use AsyncGenerators yielding lines in real time
 - Package names validated via regex before passing to `spawn` (no shell injection)
-- 211 tests across 20 suites (Vitest)
+- 434 tests across 59 suites (Vitest)
 
 ---
 
@@ -245,7 +245,7 @@ cd Brew-TUI
 npm install
 npm run dev          # Run with tsx (requires interactive TTY)
 npm run typecheck    # tsc --noEmit
-npm run test         # vitest (211 tests)
+npm run test         # vitest (434 tests)
 npm run lint         # eslint
 npm run build        # Production bundle via tsup
 ```

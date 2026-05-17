@@ -39,8 +39,6 @@ export async function installBrewBar(isPro: boolean, force = false): Promise<voi
     throw new Error(t('cli_brewbarAlreadyInstalled'));
   }
 
-  console.log(t('cli_brewbarInstalling'));
-
   // EP-013: Use unique temp path
   const TMP_ZIP = join(tmpdir(), 'BrewBar-' + randomUUID() + '.zip');
 
