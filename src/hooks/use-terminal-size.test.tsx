@@ -68,4 +68,27 @@ describe('useTerminalSize', () => {
     const { lastFrame } = render(<Probe />);
     expect(lastFrame()).toBe('80x24');
   });
+
+  it('registers at most one resize listener per stdout regardless of how many components mount', () => {
+    // Regression: before useSyncExternalStore, every component that called
+    // useTerminalSize (directly or via useContainerSize / useVisibleRows)
+    // added its own listener. With ~6 views and ~4 StatCards mounted, Node
+    // started emitting MaxListenersExceededWarning at 11 listeners.
+    const stdout = makeStdout({ columns: 100, rows: 30 });
+    stdoutHolder.value = stdout;
+
+    function ManyProbes() {
+      // 12 sibling probes — well over Node's default MaxListeners of 10.
+      return (
+        <>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Probe key={i} />
+          ))}
+        </>
+      );
+    }
+
+    render(<ManyProbes />);
+    expect(stdout.listenerCount('resize')).toBe(1);
+  });
 });

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.1] - 2026-05-18
+
+### Fixed
+- **`MaxListenersExceededWarning: 11 resize listeners`** when mounting
+  Dashboard. The old `useTerminalSize` registered one `stdout.on('resize')`
+  listener per React component call, and every `useContainerSize` /
+  `useVisibleRows` transitively added another. With ~6 views, header, footer
+  and ~4 StatCards mounting at once, Node's default 10-listener cap kicked
+  in. Rewrote the hook around `useSyncExternalStore` with a per-stdout
+  `WeakMap` cache: a single shared listener fans out to all subscribers.
+  Regression test asserts exactly one listener regardless of component
+  count.
+
 ## [1.2.0] - 2026-05-18
 
 ### Fixed
