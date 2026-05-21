@@ -182,6 +182,79 @@ describe('brewbar-installer: installBrewBar happy path (QA-009)', () => {
   });
 });
 
+describe('brewbar-installer: auto-restart on update', () => {
+  it('quits BrewBar before unzip and relaunches it after when it was running', async () => {
+    setPlatform('darwin');
+    // App instalada + force=true para reinstalar en sitio.
+    mockAccess.mockResolvedValue(undefined);
+    const fileBuffer = Buffer.from('zip-bytes');
+    const { createHash } = await import('node:crypto');
+    const realHash = createHash('sha256').update(fileBuffer).digest('hex');
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith('.sha256')) {
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewBar.app.zip` });
+      }
+      return Promise.resolve({
+        ok: true,
+        body: new ReadableStream({ start(c) { c.close(); } }),
+        headers: { get: () => '0' },
+      });
+    });
+    mockReadFile.mockResolvedValue(fileBuffer);
+
+    // pgrep responde con un PID la primera vez (running), luego vacío (ya cerrado).
+    let pgrepCalls = 0;
+    mockExecFile.mockImplementation(async (cmd: string) => {
+      if (cmd === 'pgrep') {
+        pgrepCalls += 1;
+        return pgrepCalls === 1 ? '12345\n' : '';
+      }
+      return '';
+    });
+
+    const { installBrewBar } = await import('./brewbar-installer.js');
+    await installBrewBar(true, true);
+
+    const calls = mockExecFile.mock.calls.map((c) => c[0]);
+    // Debe llamar a osascript (graceful quit), ditto (unzip) y open (relanzar).
+    expect(calls).toEqual(expect.arrayContaining(['osascript', 'ditto', 'open']));
+    const osascriptIdx = calls.indexOf('osascript');
+    const dittoIdx = calls.indexOf('ditto');
+    const openIdx = calls.indexOf('open');
+    expect(osascriptIdx).toBeLessThan(dittoIdx);
+    expect(dittoIdx).toBeLessThan(openIdx);
+  });
+
+  it('does not quit or relaunch when BrewBar is not running', async () => {
+    setPlatform('darwin');
+    mockAccess.mockRejectedValue(new Error('ENOENT'));
+    const fileBuffer = Buffer.from('zip-bytes');
+    const { createHash } = await import('node:crypto');
+    const realHash = createHash('sha256').update(fileBuffer).digest('hex');
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith('.sha256')) {
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewBar.app.zip` });
+      }
+      return Promise.resolve({
+        ok: true,
+        body: new ReadableStream({ start(c) { c.close(); } }),
+        headers: { get: () => '0' },
+      });
+    });
+    mockReadFile.mockResolvedValue(fileBuffer);
+    // pgrep siempre devuelve stdout vacío → "no running".
+    mockExecFile.mockResolvedValue('');
+
+    const { installBrewBar } = await import('./brewbar-installer.js');
+    await installBrewBar(true, false);
+
+    const calls = mockExecFile.mock.calls.map((c) => c[0]);
+    expect(calls).not.toContain('osascript');
+    expect(calls).not.toContain('open');
+    expect(calls).toContain('ditto');
+  });
+});
+
 describe('brewbar-installer: uninstallBrewBar', () => {
   it('rejects when BrewBar is not installed', async () => {
     mockAccess.mockRejectedValue(new Error('ENOENT'));

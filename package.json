@@ -30,7 +30,8 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run test && npm run build && npm run lint",
-    "prepublishOnly": "npm run validate",
+    "check:brewbar-release": "node scripts/check-brewbar-release.mjs",
+    "prepublishOnly": "npm run validate && npm run check:brewbar-release",
     "prepare": "husky"
   },
   "keywords": [

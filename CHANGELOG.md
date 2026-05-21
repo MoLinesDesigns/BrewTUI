@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.3] - 2026-05-21
+
+### Added
+- **Auto-restart de BrewBar al actualizarse**: si BrewBar está corriendo
+  cuando `brew-tui install-brewbar` (o el auto-update del cold-start)
+  reemplaza el bundle, ahora se cierra de forma controlada con
+  AppleScript (`tell application "BrewBar" to quit`), se sustituye
+  `/Applications/BrewBar.app` y se relanza automáticamente. Sin esto el
+  proceso vivo quedaba apuntando a un bundle huérfano hasta el siguiente
+  arranque manual.
+
+### Changed
+- **Guard `prepublishOnly`**: nuevo `scripts/check-brewbar-release.mjs`
+  consulta la GitHub API y aborta `npm publish` si la release `vX.Y.Z`
+  no contiene `BrewBar.app.zip` + `.sha256`. Previene el escenario que
+  rompió 1.2.2 (release publicada sin assets → `install-brewbar` 404).
+  Bypass de emergencia: `SKIP_BREWBAR_CHECK=1 npm publish`.
+
 ## [1.2.2] - 2026-05-21
 
 ### Security
