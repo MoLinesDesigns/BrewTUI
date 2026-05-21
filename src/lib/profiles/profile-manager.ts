@@ -138,7 +138,13 @@ export async function updateProfile(isPro: boolean, oldName: string, newName: st
   await saveProfile(isPro, updated);
 }
 
-// Validation patterns for brew package/tap names to prevent command injection
+// ARQ-004: divergencia INTENCIONAL respecto al PKG_PATTERN canonico de
+// `brew-api.ts` (que es permisivo `/^[\w@./+-]+$/`). Aqui validamos paquetes
+// importados desde un Profile externo (no controlado por nuestra UI), por lo
+// que aplicamos un patron mas estricto: minusculas, sin `/`, sin mayusculas.
+// Razon: un Profile artesanal no deberia poder instalar formulae con nombres
+// poco canonicos. El tradeoff es que algunos nombres validos para brew (taps
+// que incluyen `/`, paquetes con mayusculas) seran rechazados — uso voluntario.
 const TAP_PATTERN = /^[a-z0-9][-a-z0-9]*\/[a-z0-9][-a-z0-9]*$/;
 const PKG_PATTERN = /^[a-z0-9][-a-z0-9_.@+]*$/;
 

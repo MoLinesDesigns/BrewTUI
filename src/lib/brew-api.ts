@@ -1,15 +1,19 @@
 import { spawn } from 'node:child_process';
-import { execBrew, streamBrew } from './brew-cli.js';
+import { execBrew, streamBrew, BREW_BIN } from './brew-cli.js';
 import { parseInstalledJson, parseOutdatedJson, parseServicesJson, parseFormulaInfoJson } from './parsers/json-parser.js';
 import { parseSearchResults, parseDoctorOutput, parseBrewConfig, parseLeavesOutput } from './parsers/text-parser.js';
 import type { Formula, Cask, OutdatedPackage, BrewService, BrewConfig, PackageListItem } from './types.js';
 import { analyzeUpgradeImpact } from './impact/impact-analyzer.js';
 import type { UpgradeImpact } from './impact/types.js';
 
-// EP-011: Package name validation
-const PKG_PATTERN = /^[\w@./+-]+$/;
+// EP-011: Package name validation. Exportada para que cualquier modulo que
+// llame a `streamBrew` con un nombre dinamico (compliance-remediator,
+// brewfile-manager, rollback-engine) pueda blindar el spawn frente a flag
+// injection. PKG_PATTERN sigue siendo el unico patron canonico — cualquier
+// regex divergente en modulos clientes (ARQ-004) debe importarse desde aqui.
+export const PKG_PATTERN = /^[\w@./+-]+$/;
 
-function validatePackageName(name: string): void {
+export function validatePackageName(name: string): void {
   if (!PKG_PATTERN.test(name)) throw new Error('Invalid package name: ' + name);
 }
 
@@ -18,7 +22,7 @@ export async function brewUpdate(): Promise<void> {
   // BK-016: enforce a 120s ceiling — without one, a stalled brew tap fetch
   // could hang fetchAll() indefinitely.
   return new Promise((resolve, reject) => {
-    const proc = spawn('brew', ['update'], { stdio: 'ignore' });
+    const proc = spawn(BREW_BIN, ['update'], { stdio: 'ignore' });
     let settled = false;
     const timeout = setTimeout(() => {
       if (settled) return;
@@ -198,8 +202,16 @@ export function formulaeToListItems(formulae: Formula[]): PackageListItem[] {
 // in the OutdatedView debounce, but a stable list still re-runs deps/uses
 // for the same package every time it gets focus. The version pair guarantees
 // a fresh analysis when a refetch updates the outdated info.
-const impactCache = new Map<string, UpgradeImpact>();
+// ARQ-002: TTL temporal para invalidar entradas si el usuario hace cambios
+// fuera de la app (brew pin, brew upgrade desde otra terminal). Sin TTL un
+// valor cacheado al inicio de la sesion puede quedar stale toda la sesion.
+interface CachedImpact {
+  result: UpgradeImpact;
+  cachedAt: number;
+}
+const impactCache = new Map<string, CachedImpact>();
 const IMPACT_CACHE_LIMIT = 64;
+const IMPACT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
 
 function impactKey(name: string, from: string, to: string, type: 'formula' | 'cask'): string {
   return `${type}::${name}::${from}::${to}`;
@@ -214,7 +226,13 @@ export async function getUpgradeImpact(
   validatePackageName(packageName);
   const key = impactKey(packageName, fromVersion, toVersion, packageType);
   const cached = impactCache.get(key);
-  if (cached) return cached;
+  if (cached && Date.now() - cached.cachedAt < IMPACT_CACHE_TTL_MS) {
+    return cached.result;
+  }
+  if (cached) {
+    // Entrada stale — eliminar para preservar el orden de insercion LRU.
+    impactCache.delete(key);
+  }
 
   const result = await analyzeUpgradeImpact(packageName, fromVersion, toVersion, packageType);
 
@@ -222,7 +240,7 @@ export async function getUpgradeImpact(
     const firstKey = impactCache.keys().next().value;
     if (firstKey !== undefined) impactCache.delete(firstKey);
   }
-  impactCache.set(key, result);
+  impactCache.set(key, { result, cachedAt: Date.now() });
   return result;
 }
 

@@ -1,4 +1,5 @@
 import { streamBrew } from '../brew-cli.js';
+import { validatePackageName } from '../brew-api.js';
 import type { ComplianceViolation } from './types.js';
 
 export async function* remediateViolations(
@@ -13,6 +14,15 @@ export async function* remediateViolations(
 
   for (const v of violations) {
     if (v.type === 'missing') {
+      // SEG-001: validar antes del spawn para que un PolicyFile artesanal no
+      // inyecte flags (`--HEAD`, taps privados) via el nombre del paquete.
+      try {
+        validatePackageName(v.packageName);
+      } catch (err) {
+        yield `  ✗ Rejected ${v.packageName}: ${err instanceof Error ? err.message : String(err)}`;
+        skipped++;
+        continue;
+      }
       yield `Installing ${v.packageName}...`;
       try {
         for await (const line of streamBrew(['install', v.packageName])) {
@@ -24,6 +34,13 @@ export async function* remediateViolations(
         skipped++;
       }
     } else if (v.type === 'wrong-version') {
+      try {
+        validatePackageName(v.packageName);
+      } catch (err) {
+        yield `  ✗ Rejected ${v.packageName}: ${err instanceof Error ? err.message : String(err)}`;
+        skipped++;
+        continue;
+      }
       yield `Upgrading ${v.packageName}${v.required ? ` to ${v.required}+` : ''}...`;
       try {
         for await (const line of streamBrew(['upgrade', v.packageName])) {

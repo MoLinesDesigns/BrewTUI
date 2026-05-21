@@ -34,6 +34,19 @@ if [[ -z "$NOTARY_PROFILE" ]]; then
   exit 1
 fi
 
+# REL-001: preflight check del perfil notary ANTES de archivar.
+# Un 401 aqui significa que el keychain profile ha desaparecido o las
+# credenciales caducaron — vale mas detectarlo en 2 s que tras ~10 min de
+# build + archive.
+echo "→ Verificando salud de NOTARY_PROFILE=${NOTARY_PROFILE}..."
+if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+  echo "✘ notarytool history fallo con NOTARY_PROFILE=${NOTARY_PROFILE}."
+  echo "  Probable causa: el keychain profile expiro o se borro."
+  echo "  Re-ejecuta: xcrun notarytool store-credentials ${NOTARY_PROFILE} ..."
+  exit 1
+fi
+echo "✓ notary profile listo."
+
 # ── Step 1: regenerate workspace ──────────────────────────────────────────
 # Tuist caches the compiled manifest (not just the workspace). Without an
 # explicit clean, `readMarketingVersion()` is NOT re-run when package.json

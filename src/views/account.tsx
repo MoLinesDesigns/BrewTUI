@@ -33,7 +33,7 @@ export function AccountView() {
       return;
     }
 
-    if ((input === 'd' || input === '2') && status === 'pro') {
+    if ((input === 'd' || input === '2') && (status === 'pro' || status === 'team')) {
       setConfirmDeactivate(true);
     }
     if (input === 'p' || input === '1') {
@@ -85,6 +85,7 @@ export function AccountView() {
         <Box gap={SPACING.xs}>
           <Text color={COLORS.muted}>{t('account_statusLabel')}</Text>
           {status === 'pro' && <Text color={COLORS.success} bold>{t('account_pro')}</Text>}
+          {status === 'team' && <Text color={COLORS.success} bold>{t('account_team')}</Text>}
           {status === 'free' && <Text color={COLORS.muted}>{t('account_free')}</Text>}
           {status === 'expired' && <Text color={COLORS.error}>{t('account_expired')}</Text>}
         </Box>

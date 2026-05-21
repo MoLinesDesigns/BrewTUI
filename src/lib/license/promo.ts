@@ -2,7 +2,10 @@ import { readFile, writeFile, rename } from 'node:fs/promises';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { DATA_DIR, ensureDataDirs, getMachineId } from '../data-dir.js';
-import { fetchWithTimeout } from '../fetch-timeout.js';
+// BK-003: usar fetchWithRetry — un 5xx transitorio o un 429 en validate/redeem
+// invalidaba antes el canje sin reintento. La capa de retry ya respeta
+// Retry-After y backoff exponencial.
+import { fetchWithRetry } from '../fetch-timeout.js';
 import { logger } from '../../utils/logger.js';
 
 const PROMO_PATH = join(DATA_DIR, 'promo.json');
@@ -91,7 +94,7 @@ export async function validatePromoCode(code: string): Promise<{
 
   validatePromoApiUrl(`${PROMO_API_URL}/validate`);
   try {
-    const res = await fetchWithTimeout(`${PROMO_API_URL}/validate`, {
+    const res = await fetchWithRetry(`${PROMO_API_URL}/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: normalized }),
@@ -143,7 +146,7 @@ export async function redeemPromoCode(code: string): Promise<{
   // network must not consume the promo twice. The backend dedupes on this.
   const idempotencyKey = randomUUID();
   try {
-    const res = await fetchWithTimeout(`${PROMO_API_URL}/redeem`, {
+    const res = await fetchWithRetry(`${PROMO_API_URL}/redeem`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

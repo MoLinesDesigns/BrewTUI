@@ -34,8 +34,12 @@ jobs:
         run: xcodebuild -version
 
       - name: Install Tuist
+        # GOV-005: pin a una version concreta para que un breaking release de
+        # Tuist no rompa el job silenciosamente. Actualizar manualmente.
+        env:
+          TUIST_VERSION: '4.39.0'
         run: |
-          curl -Ls https://install.tuist.io | bash
+          curl -Ls "https://install.tuist.io" | TUIST_VERSION="$TUIST_VERSION" bash
           tuist version
 
       - name: Generate workspace

@@ -37,3 +37,6 @@ PLAN.md
 !menubar/**/*.png
 !screenshots/**/*.png
 !homebrew/**/*.png
+
+# Playwright MCP session artifacts (no debe trackearse)
+.playwright-mcp/

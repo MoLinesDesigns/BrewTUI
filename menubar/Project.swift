@@ -66,7 +66,12 @@ let project = Project(
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSHumanReadableCopyright": "MoLines Designs",
             ]),
-            sources: ["BrewBar/Sources/**"],
+            // ARQ-005: excluir DesignExploration/ del binario notariado.
+            // BrewBarDesignVariants.swift (991 LOC) es codigo de exploracion
+            // de diseno que no debe entrar al producto firmado.
+            sources: SourceFilesList(globs: [
+                .glob("BrewBar/Sources/**", excluding: ["BrewBar/Sources/DesignExploration/**"]),
+            ]),
             resources: ["BrewBar/Resources/**"],
             settings: .settings(
                 base: [

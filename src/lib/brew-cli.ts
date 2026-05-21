@@ -1,11 +1,25 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const DEFAULT_TIMEOUT_MS = 30_000; // 30 seconds for instant commands
 const STREAM_IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes idle timeout for streaming
 
+// SEG-004: resolver `brew` a ruta absoluta una sola vez al cargar el modulo.
+// Sin esto, `spawn('brew', ...)` hereda PATH del usuario y un PATH hijack
+// (dotfile comprometido, malware) podria suplantar el binario. Probamos las
+// dos rutas canonicas en macOS (Apple Silicon y Intel) y caemos al
+// resolutor del shell solo si ninguna existe.
+function resolveBrewPath(): string {
+  if (existsSync('/opt/homebrew/bin/brew')) return '/opt/homebrew/bin/brew';
+  if (existsSync('/usr/local/bin/brew')) return '/usr/local/bin/brew';
+  return 'brew';
+}
+
+export const BREW_BIN = resolveBrewPath();
+
 export async function execBrew(args: string[], timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('brew', args, { env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' } });
+    const proc = spawn(BREW_BIN, args, { env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' } });
     let stdout = '';
     let stderr = '';
     let killed = false;
@@ -37,7 +51,7 @@ export async function execBrew(args: string[], timeoutMs = DEFAULT_TIMEOUT_MS): 
 }
 
 export async function* streamBrew(args: string[]): AsyncGenerator<string> {
-  const proc = spawn('brew', args, {
+  const proc = spawn(BREW_BIN, args, {
     env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

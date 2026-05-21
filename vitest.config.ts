@@ -3,6 +3,12 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     passWithNoTests: false,
+    // QA-001: bajo el pool paralelo de vitest, los tests que renderizan
+    // varios componentes Ink consecutivos (ConfirmDialog, ResultBanner,
+    // app.test) superan el timeout por defecto de 5 s cuando 60 archivos
+    // compiten por CPU. Aislados tardan menos de 1 s. 15 s deja margen
+    // amplio sin enmascarar tests realmente lentos.
+    testTimeout: 15_000,
     // QA-004: coverage shape is defined here so `npm run test -- --coverage`
     // produces a useful report once the v8 provider is installed. Default
     // runs do NOT collect coverage (provider+excludes are inert without the

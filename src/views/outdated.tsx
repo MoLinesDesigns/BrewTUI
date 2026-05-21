@@ -62,7 +62,11 @@ function ImpactPanel({ impact }: { impact: UpgradeImpact }) {
 }
 
 export function OutdatedView() {
-  const { outdated, loading, errors, fetchOutdated } = useBrewStore();
+  // PERF-001: selectors granulares — evita re-render con cualquier fetch del store.
+  const outdated = useBrewStore((s) => s.outdated);
+  const loading = useBrewStore((s) => s.loading);
+  const errors = useBrewStore((s) => s.errors);
+  const fetchOutdated = useBrewStore((s) => s.fetchOutdated);
   const stream = useBrewStream();
   const [cursor, setCursor] = useState(0);
   const [confirmAction, setConfirmAction] = useState<

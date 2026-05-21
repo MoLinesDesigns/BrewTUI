@@ -31,7 +31,13 @@ function humaniseServiceError(message: string): string {
 }
 
 export function ServicesView() {
-  const { services, loading, errors, fetchServices, serviceAction } = useBrewStore();
+  // PERF-001: selectors granulares — antes el componente se re-renderizaba ante
+  // cualquier cambio de `brew-store` (incluso fetches de paquetes no usados).
+  const services = useBrewStore((s) => s.services);
+  const loading = useBrewStore((s) => s.loading);
+  const errors = useBrewStore((s) => s.errors);
+  const fetchServices = useBrewStore((s) => s.fetchServices);
+  const serviceAction = useBrewStore((s) => s.serviceAction);
   const [cursor, setCursor] = useState(0);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'stop' | 'restart'; name: string } | null>(null);

@@ -102,10 +102,17 @@ describe('activateLicense (QA-007, EP-001)', () => {
     const { activateLicense } = await import('./polar-api.js');
     await activateLicense('test-key-123456');
 
-    // Check that the activate call used the machine UUID, not hostname
+    // BK-009: el label es ahora SHA-256(machineId) truncado a 32 chars hex,
+    // no el UUID en claro. Verificamos: (1) no es el hostname, (2) no es el
+    // UUID en claro, (3) tiene 32 caracteres hex, (4) es derivacion
+    // deterministica del UUID conocido.
+    const { createHash } = await import('node:crypto');
+    const expectedHash = createHash('sha256').update('test-machine-uuid-1234').digest('hex').slice(0, 32);
     const callBody = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
-    expect(callBody.label).toBe('test-machine-uuid-1234');
-    expect(callBody.label).not.toContain('.local'); // not a hostname
+    expect(callBody.label).toBe(expectedHash);
+    expect(callBody.label).toMatch(/^[0-9a-f]{32}$/);
+    expect(callBody.label).not.toContain('.local');
+    expect(callBody.label).not.toBe('test-machine-uuid-1234'); // UUID no debe filtrarse en claro
   });
 });
 

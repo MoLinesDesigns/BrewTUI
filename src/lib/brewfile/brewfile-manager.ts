@@ -5,6 +5,7 @@ import { captureSnapshot, saveSnapshot } from '../state-snapshot/snapshot.js';
 import { diffDesiredActual } from '../diff-engine/diff.js';
 import { serializeBrewfile, parseBrewfile } from './yaml-serializer.js';
 import { streamBrew } from '../brew-cli.js';
+import { validatePackageName } from '../brew-api.js';
 import { logger } from '../../utils/logger.js';
 import type { BrewfileSchema, DriftReport } from './types.js';
 
@@ -102,6 +103,14 @@ export async function* reconcile(
 
   // Install missing packages
   for (const name of report.missingPackages) {
+    // SEG-002: validar antes del spawn — un Brewfile YAML artesanal puede
+    // contener nombres con flags si no se rechaza aqui.
+    try {
+      validatePackageName(name);
+    } catch (err) {
+      yield `✗ Rejected ${name}: ${err instanceof Error ? err.message : String(err)}`;
+      continue;
+    }
     yield `→ Installing ${name}...`;
     try {
       for await (const line of streamBrew(['install', name])) {
@@ -115,6 +124,12 @@ export async function* reconcile(
   // Fix wrong versions
   for (const { name, desired } of report.wrongVersions) {
     const target = `${name}@${desired}`;
+    try {
+      validatePackageName(target);
+    } catch (err) {
+      yield `✗ Rejected ${target}: ${err instanceof Error ? err.message : String(err)}`;
+      continue;
+    }
     yield `→ Installing ${target}...`;
     try {
       for await (const line of streamBrew(['install', target])) {

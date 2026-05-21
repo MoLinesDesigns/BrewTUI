@@ -49,7 +49,10 @@ export interface SyncEnvelope {
   updatedAt: string; // ISO 8601 — plaintext for BrewBar monitoring
 }
 
-export type ConflictResolution = 'use-local' | 'use-remote' | 'merge-union';
+// BK-006: 'merge-union' aparecia en este union pero applyConflictResolutions()
+// nunca implemento la rama; cualquier caller que lo pasara veia el conflicto
+// descartado silenciosamente. Eliminado hasta que exista la logica de merge.
+export type ConflictResolution = 'use-local' | 'use-remote';
 
 export interface SyncConflict {
   packageName: string;

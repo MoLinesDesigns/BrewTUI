@@ -12,7 +12,12 @@ import { SPACING } from '../utils/spacing.js';
 import { useVisibleRows } from '../hooks/use-visible-rows.js';
 
 export function DoctorView() {
-  const { doctorWarnings, doctorClean, loading, errors, fetchDoctor } = useBrewStore();
+  // PERF-001: selectors granulares — evita re-render ante fetches no usados.
+  const doctorWarnings = useBrewStore((s) => s.doctorWarnings);
+  const doctorClean = useBrewStore((s) => s.doctorClean);
+  const loading = useBrewStore((s) => s.loading);
+  const errors = useBrewStore((s) => s.errors);
+  const fetchDoctor = useBrewStore((s) => s.fetchDoctor);
   // Each warning renders as a bordered box of several lines. Treat each warning
   // as one logical row for paging; long multi-line warnings still wrap inside.
   const [cursor, setCursor] = useState(0);

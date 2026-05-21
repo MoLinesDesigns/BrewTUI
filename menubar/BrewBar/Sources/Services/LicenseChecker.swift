@@ -202,14 +202,18 @@ struct LicenseChecker {
                 return .notFound
             }
             let status = evaluate(license)
-            logger.info("License check result: \(String(describing: status), privacy: .public)")
+            // SEG-003: la representacion `String(describing:)` de LicenseStatus
+            // incluye email + license key + instanceId. Loguear solo el case
+            // resumido en .public; el payload completo va en .private para
+            // diagnostico interno via Console con permisos de desarrollador.
+            logger.info("License check result: \(LicenseChecker.summarizeStatus(status), privacy: .public) (\(String(describing: status), privacy: .private))")
             return status
         }
 
         // Fallback: legacy unencrypted format
         if let license = file.license {
             let status = evaluate(license)
-            logger.info("License check result (legacy format): \(String(describing: status), privacy: .public)")
+            logger.info("License check result (legacy format): \(LicenseChecker.summarizeStatus(status), privacy: .public) (\(String(describing: status), privacy: .private))")
             return status
         }
 
@@ -220,6 +224,17 @@ struct LicenseChecker {
     /// Evaluate a license directly (for testing without filesystem access)
     static func checkLicenseWith(_ license: LicenseData) -> LicenseStatus {
         evaluate(license)
+    }
+
+    // SEG-003: resumen no-PII para logging publico. El caso de la enumeracion
+    // y el nivel de degradacion son suficientes para diagnostico sin filtrar
+    // email/license key/instanceId al Unified Log.
+    static func summarizeStatus(_ status: LicenseStatus) -> String {
+        switch status {
+        case .pro(_, let level): return "pro(\(level))"
+        case .expired: return "expired"
+        case .notFound: return "notFound"
+        }
     }
 
     // MARK: - Evaluation

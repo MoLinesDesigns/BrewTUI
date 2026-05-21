@@ -17,6 +17,7 @@ import { useNavigationStore } from '../stores/navigation-store.js';
 import * as api from '../lib/brew-api.js';
 import { SPACING } from '../utils/spacing.js';
 import { useVisibleRows } from '../hooks/use-visible-rows.js';
+import { writeLastAction } from '../lib/data-dir.js';
 
 type SearchResult = {
   name: string;
@@ -36,6 +37,9 @@ export function SearchView() {
   const selectPackage = useNavigationStore((s) => s.selectPackage);
   const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
   const hasRefreshed = useRef(false);
+  // BK-001: nombre del ultimo paquete instalado desde search, para escribir
+  // el handoff IPC a BrewBar cuando el stream finalice exitosamente.
+  const pendingInstallRef = useRef<string | null>(null);
   const resultRows = useVisibleRows({
     reservedRows: searchError ? 8 : 6,
     fallbackReservedRows: searchError ? 18 : 16,
@@ -81,6 +85,18 @@ export function SearchView() {
     if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current) {
       hasRefreshed.current = true;
       void fetchInstalled();
+      // BK-001: notificar a BrewBar via IPC del paquete recien instalado.
+      const installed = pendingInstallRef.current;
+      if (installed) {
+        pendingInstallRef.current = null;
+        void writeLastAction({
+          timestamp: new Date().toISOString(),
+          action: 'install',
+          packages: [installed],
+          remainingOutdated: 0,
+          source: 'brew-tui',
+        });
+      }
     }
   }, [stream.isRunning, stream.error]);
 
@@ -197,6 +213,7 @@ export function SearchView() {
           onConfirm={() => {
             const name = confirmInstall;
             hasRefreshed.current = false;
+            pendingInstallRef.current = name;
             setConfirmInstall(null);
             void stream.run(['install', name]);
           }}

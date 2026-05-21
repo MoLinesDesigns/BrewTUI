@@ -6,6 +6,7 @@ import { useNavigationStore } from '../stores/navigation-store.js';
 import { useDebounce } from '../hooks/use-debounce.js';
 import { useBrewStream } from '../hooks/use-brew-stream.js';
 import { formulaeToListItems, casksToListItems } from '../lib/brew-api.js';
+import { writeLastAction } from '../lib/data-dir.js';
 import { SearchInput } from '../components/common/search-input.js';
 import { StatusBadge } from '../components/common/status-badge.js';
 import { ConfirmDialog } from '../components/common/confirm-dialog.js';
@@ -209,7 +210,18 @@ export function InstalledView() {
           onConfirm={() => {
             const name = confirmUninstall;
             setConfirmUninstall(null);
-            void stream.run(['uninstall', name]).then(() => { fetchInstalled(); });
+            void stream.run(['uninstall', name]).then(() => {
+              fetchInstalled();
+              // BK-001: notificar a BrewBar via IPC del paquete desinstalado
+              // para que su banner y contador de outdated se actualicen.
+              void writeLastAction({
+                timestamp: new Date().toISOString(),
+                action: 'uninstall',
+                packages: [name],
+                remainingOutdated: 0,
+                source: 'brew-tui',
+              });
+            });
           }}
           onCancel={() => setConfirmUninstall(null)}
         />

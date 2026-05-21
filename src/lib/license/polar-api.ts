@@ -1,6 +1,14 @@
+import { createHash } from 'node:crypto';
 import type { PolarActivateResponse, PolarValidateResponse } from './types.js';
 import { fetchWithRetry } from '../fetch-timeout.js';
 import { getMachineId } from '../data-dir.js';
+
+// BK-009: hash truncado SHA-256 del machineId — opacidad adicional frente a
+// correlacion en logs de Polar. El servidor solo necesita un identificador
+// estable por equipo; no requiere el UUID en claro.
+function hashMachineLabel(machineId: string): string {
+  return createHash('sha256').update(machineId).digest('hex').slice(0, 32);
+}
 
 const BASE_URL = 'https://api.polar.sh/v1/customer-portal/license-keys';
 
@@ -60,7 +68,11 @@ interface PolarValidated {
 }
 
 async function post<T>(endpoint: string, body: Record<string, unknown>, expectEmpty = false): Promise<T> {
-  const url = `${BASE_URL}/${endpoint}`;
+  // BK-008: Polar requiere trailing slash en sus rutas. Sin la barra final el
+  // servidor responde 307 y `fetch` con redirect followed pierde la cabecera
+  // Authorization → 405. Aseguramos la barra final aqui para que el caller
+  // pueda seguir usando rutas semanticas sin recordar la convencion.
+  const url = `${BASE_URL}/${endpoint}/`;
   validateApiUrl(url);
 
   const res = await fetchWithRetry(url, {
@@ -92,7 +104,9 @@ export async function activateLicense(key: string): Promise<PolarActivateRespons
   const activation = await post<PolarActivation>('activate', {
     key,
     organization_id: POLAR_ORGANIZATION_ID,
-    label: machineId, // SEG-004: Use machine UUID instead of hostname
+    // SEG-004 + BK-009: identificador estable por equipo, hasheado para
+    // que el UUID en claro no aparezca en logs de Polar.
+    label: hashMachineLabel(machineId),
   });
 
   // EP-001: Runtime validation of activation response

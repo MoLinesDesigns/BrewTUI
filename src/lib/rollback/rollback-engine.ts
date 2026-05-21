@@ -4,6 +4,7 @@ import { captureSnapshot, loadSnapshots, saveSnapshot } from '../state-snapshot/
 import type { BrewSnapshot } from '../state-snapshot/snapshot.js';
 import { diffSnapshots } from '../diff-engine/diff.js';
 import { execBrew, streamBrew } from '../brew-cli.js';
+import { validatePackageName } from '../brew-api.js';
 import { logger } from '../../utils/logger.js';
 import type { RollbackAction, RollbackPlan, RollbackStrategy } from './types.js';
 
@@ -158,6 +159,16 @@ export async function* executeRollbackPlan(
 
     if (action.action === 'remove') {
       yield `[skip] ${action.packageName}: removal skipped for safety — remove manually if needed`;
+      continue;
+    }
+
+    // SEG-001 sister fix: el snapshot proviene de disco; un snapshot manipulado
+    // podria contener nombres con flags. Validar antes de cualquier spawn.
+    try {
+      validatePackageName(action.packageName);
+      if (action.versionedFormula) validatePackageName(action.versionedFormula);
+    } catch (err) {
+      yield `[reject] ${action.packageName}: ${err instanceof Error ? err.message : String(err)}`;
       continue;
     }
 

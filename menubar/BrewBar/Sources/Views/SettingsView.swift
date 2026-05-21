@@ -74,7 +74,11 @@ struct SettingsView: View {
         } message: {
             Text(revalidationError ?? "")
         }
-        .frame(width: 360, height: 540)
+        // DS-002: width fijo para popover, height flexible para que el
+        // contenido pueda crecer con Dynamic Type AX1+ sin cortarse. macOS
+        // recortara con el tamano maximo del popover cuando sea necesario.
+        .frame(width: 360)
+        .frame(minHeight: 540)
         .task {
             await scheduler.syncNotificationPermission()
         }

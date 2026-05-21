@@ -202,6 +202,11 @@ export function RollbackView() {
     return (
       <Box flexDirection="column">
         <ProgressLog lines={streamLines} isRunning={streamRunning} title={t('rollback_executing')} />
+        {/* UX-001: indicar explicitamente que Esc esta suprimido durante la
+            ejecucion para que el usuario no piense que la app se colgo. */}
+        <Box marginTop={SPACING.xs}>
+          <Text color={COLORS.warning}>{t('rollback_executing_no_cancel')}</Text>
+        </Box>
       </Box>
     );
   }

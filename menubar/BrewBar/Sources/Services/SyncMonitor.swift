@@ -45,8 +45,14 @@ actor SyncMonitor: SyncMonitoring {
                 return nil
             }
             let updatedAt = json["updatedAt"] as? String
-            let machines = json["machines"] as? [String: Any]
-            return Snapshot(updatedAt: updatedAt, machineCount: machines?.count ?? 0)
+            // BK-002: `machines` vive en el payload cifrado AES-256-GCM del
+            // envelope (`encrypted`), no en el JSON exterior plaintext. Sin
+            // la license key local no podemos descifrar aqui; el conteo de
+            // maquinas no es accesible desde Swift y siempre era 0. Marcado
+            // -1 para que el caller distinga "desconocido" de "vacio". El
+            // contrato correcto seria exponer un campo `machineCount` en el
+            // plaintext del envelope al escribir desde TS — pendiente.
+            return Snapshot(updatedAt: updatedAt, machineCount: -1)
         } catch {
             syncLogger.debug("readEnvelope error (expected if no sync): \(error.localizedDescription, privacy: .public)")
             return nil
@@ -64,8 +70,12 @@ actor SyncMonitor: SyncMonitoring {
     }
 
     func getKnownMachineCount() async -> Int {
-        guard let snapshot = readEnvelope() else { return 0 }
-        syncLogger.debug("getKnownMachineCount: \(snapshot.machineCount)")
+        // BK-002: el conteo de maquinas no esta accesible aqui (esta en el
+        // payload cifrado). Devolvemos -1 para senalizar "desconocido" hasta
+        // que el plaintext del envelope incluya `machineCount`. Los callers
+        // deben tratar -1 como "no disponible" y no como cero.
+        guard let snapshot = readEnvelope() else { return -1 }
+        syncLogger.debug("getKnownMachineCount: \(snapshot.machineCount) (always -1 — see BK-002)")
         return snapshot.machineCount
     }
 

@@ -72,7 +72,10 @@ export async function readSyncEnvelope(): Promise<SyncEnvelope | null> {
 }
 
 export async function writeSyncEnvelope(envelope: SyncEnvelope): Promise<void> {
-  await mkdir(ICLOUD_SYNC_DIR, { recursive: true });
+  // BK-007: explicito 0o700 — iCloud Drive hereda permisos del sistema y por
+  // defecto pueden ser 0o755. Aunque el contenido del envelope va cifrado, el
+  // listado del directorio no deberia ser legible por otros usuarios locales.
+  await mkdir(ICLOUD_SYNC_DIR, { recursive: true, mode: 0o700 });
   const tmpPath = ICLOUD_SYNC_PATH + '.tmp';
   await writeFile(tmpPath, JSON.stringify(envelope, null, 2), {
     encoding: 'utf-8',
