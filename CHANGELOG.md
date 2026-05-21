@@ -1,5 +1,62 @@
 # Changelog
 
+## [1.2.2] - 2026-05-21
+
+### Security
+- **Flag injection prevention** in `compliance-remediator`,
+  `brewfile-manager` and `rollback-engine`: package names are now validated
+  via `validatePackageName` before being streamed to `brew` (SEG-001,
+  SEG-002).
+- **PII no longer logged** with `privacy: .public` in BrewBar's
+  `LicenseChecker`. Email, license key and instance id pass through a
+  `summarizeStatus` helper that redacts before reaching the unified log
+  (SEG-003).
+- **Path traversal hardening**: `assertSafePath` in `policy-io`, iCloud
+  directories created with `mode 0o700`, and `BREW_BIN` resolved to its
+  absolute path before exec (BK-005, BK-007, SEG-004).
+- **`npm audit fix`**: zero vulnerabilities at publish time (SEG-005).
+- `machineId` is hashed with SHA-256 before being sent to Polar (BK-009).
+
+### Fixed
+- **TUI ⇄ BrewBar IPC**: `writeLastAction` is now invoked after both
+  install (`search.tsx`) and uninstall (`installed.tsx`); the menubar app
+  no longer goes stale after a TUI operation (BK-001).
+- **`SyncMonitor.getKnownMachineCount`** returns `-1` (unknown) instead
+  of `0`. The `machines` field lives inside the encrypted envelope
+  payload, so a `0` was misleading (BK-002).
+- **HTTP resilience**: `promo.ts` uses `fetchWithRetry` and `429` with
+  `Retry-After` is now honoured (BK-003, BK-004).
+- **Polar endpoints** receive their trailing slash consistently (BK-008).
+- **Account view**: the `team` tier is labelled and deactivable in
+  `account.tsx`; `account_team` keys added in EN/ES (UI-001, UI-002).
+
+### Performance
+- **Granular selectors** in `services`, `doctor` and `outdated` views
+  cut unnecessary re-renders (PERF-001).
+- **5-minute TTL** added to `impactCache` to bound memory (ARQ-002).
+
+### Quality
+- `testTimeout` raised to 15s in `vitest.config` to unblock the pre-push
+  gate under CPU contention with ~60 Ink suites (QA-001).
+- `merge-union` removed from `ConflictResolution` (unimplemented branch,
+  BK-006).
+- `async-state.ts` dead module deleted (ARQ-006).
+- `BlinkingText` respects `NO_COLOR` and `REDUCE_MOTION` (DS-001).
+- `SettingsView.frame` gets `minHeight` for Dynamic Type at AX1+ (DS-002).
+- `hint_rollback_executing_no_cancel` shown during the executing phase
+  of a rollback (UX-001).
+- `release.sh` runs a `notarytool history` preflight (REL-001).
+
+### Governance
+- `DesignExploration/` excluded from the notarised BrewBar binary
+  (ARQ-005).
+- `CODEOWNERS` set to `@MoLinesDesigns` (GOV-001).
+- `.playwright-mcp/` removed from the index (198 files, GOV-002).
+- Local `homebrew/` folder removed — the canonical tap at
+  `MoLinesDesigns/homebrew-tap` is now the only source of truth
+  (GOV-003, GOV-004).
+- Tuist pinned to `4.39.0` in CI (GOV-005).
+
 ## [1.2.1] - 2026-05-18
 
 ### Fixed
