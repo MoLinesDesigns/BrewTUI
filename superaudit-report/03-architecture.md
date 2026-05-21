@@ -1,74 +1,94 @@
-# 3. Arquitectura y limites del sistema
+# 3. Arquitectura y límites del sistema
 
-> Auditor: architecture-auditor | Fecha: 2026-05-01
+> Auditor: architecture-auditor | Fecha: 2026-05-21
 
 ## Resumen ejecutivo
 
-La arquitectura de Brew-TUI es solida en sus capas principales: la separacion entre `lib/`, `stores/` y `views/` en TypeScript esta bien mantenida y la convencion de que los modulos `lib/` no importen stores se cumple sin excepcion. En Swift, el modelo de actores (`SecurityMonitor`, `SyncMonitor`) y `@MainActor` esta aplicado correctamente. Los problemas detectados son en su mayoria deuda menor —un import innecesario, un export muerto, un target de compilacion desalineado— con dos excepciones de mayor peso: la divergencia de politica de degradacion de licencia entre los dos codebases (mismo archivo en disco, logica diferente) y la ausencia de seam de DI para `SyncMonitor`, que deja una parte del `SchedulerService` sin cobertura de test.
+La arquitectura de Brew-TUI sigue con coherencia el modelo de capas documentado en `CLAUDE.md` (Views → Stores → brew-api → brew-cli), y el companion BrewBar implementa protocolos de DI explícitos con aislamiento `@MainActor` correcto para la mayoría de sus componentes. Sin embargo, existe un vector de instalación arbitraria de paquetes en `compliance-remediator.ts` que pasa `packageName` extraído de un fichero de política controlado por el usuario directamente a `streamBrew` — cuyo `spawn` usa array de argumentos sin `shell: true`, por lo que no es inyección de shell clásica, sino ejecución de `brew install <nombre-arbitrario>` sin validación del trust boundary. Adicionalmente, un archivo de exploración de diseño de 991 líneas se incluye en el bundle de producción firmado y notariado de BrewBar debido a un glob excesivamente amplio en el manifest de Tuist.
 
 ---
 
-## 3.1 Composicion global
+## 3.1 Composición global
 
 ### Checklist
 
 * [x] Existe composition root claro
-* [x] La inicializacion global esta centralizada
-* [x] No hay inicializacion de servicios dispersa en vistas
-* [x] La navegacion tiene modelo definido
-* [x] La DI es explicita y predecible
+* [x] La inicialización global está centralizada
+* [x] No hay inicialización de servicios dispersa en vistas
+* [x] La navegación tiene modelo definido
+* [x] La DI es explícita y predecible
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| TUI: `app.tsx` como composition root | Conforme | — | `src/app.tsx` contiene `LicenseInitializer` y `ViewRouter`; inicializacion de licencia via `useEffect` sobre la raiz del arbol | — |
-| TUI: navegacion via `VIEWS` tipado | Conforme | — | `src/stores/navigation-store.ts`: `const VIEWS: ViewId[]` define el orden y el ciclo de tabs | — |
-| Swift: `AppDelegate` como composition root | Conforme | — | `menubar/BrewBar/Sources/App/AppDelegate.swift`: `SchedulerService`, `AppState` e `NSStatusBar` inicializados en `AppDelegate`, no en vistas | — |
-| Swift: DI via protocolos | Conforme | — | `BrewChecking` y `SecurityChecking` son protocolos inyectados en `AppState` y `SchedulerService` respectivamente via `init` | — |
+| TUI — entry point y composición | Conforme | — | `src/app.tsx`: `<LicenseInitializer>` extraído, `<ViewRouter>` contiene switch de 16 casos. `src/index.tsx`: subcomandos CLI con `useLicenseStore.getState()` (correcto en contexto no-React). | — |
+| TUI — navigation model | Conforme | — | `src/stores/navigation-store.ts`: `VIEWS` (16 ids) y `MENU_VIEWS` (15 ids, excluye `search` por ser contextual), coherentes con el router. `menuCursor` indexa sobre `MENU_VIEWS`. | — |
+| TUI — DI via Zustand | Conforme | — | No se detectó inyección implícita de stores en Views. Todos los stores accedidos via `useXxxStore()` o `.getState()` en contextos no-React. | — |
+| TUI — modal-store reference counter | Conforme | — | `src/stores/modal-store.ts`: `_count: number`, `openModal` incrementa, `closeModal` decrementa con floor 0. Correcto para supresores anidados. | — |
+| BrewBar — composition root | Conforme | — | `menubar/BrewBar/Sources/App/AppDelegate.swift`: `AppState`, `SchedulerService`, `BadgePreferences` instanciados como propiedades privadas. Secuencia de lanzamiento en un único `Task { }` almacenado y cancelado en `applicationWillTerminate`. | — |
+| BrewBar — DI via protocolos | Conforme | — | `AppState` recibe `any BrewChecking`; `SchedulerService` recibe `any Notifying`, `any BrewChecking`. Protocolos definidos en `Sources/Protocols/`. | — |
 
 ---
 
-## 3.2 Separacion por capas
+## 3.2 Separación por capas
 
 ### Checklist
 
 * [x] UI no conoce detalles de persistencia
 * [x] UI no conoce detalles de red
 * [x] Domain no depende de UI
-* [ ] Data implementa contratos del dominio (parcial — `SyncMonitor` sin protocolo)
-* [x] Shared/Core no se convierte en cajon desastre
-* [x] No hay dependencias ciclicas
+* [ ] Data implementa contratos del dominio — Parcial (ver hallazgos)
+* [ ] Shared/Core no se convierte en cajón desastre — Parcial
+* [x] No hay dependencias cíclicas
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| TUI: `lib/` no importa stores | Conforme | — | Grep exhaustivo de `useLicenseStore\|useBrewStore\|useNavigation` en `src/lib/` retorna cero resultados; `profile-store.ts:20-26` documenta el patron con comentario explicito | — |
-| TUI: `views/` no importa `brew-cli` ni `parsers` | Conforme | — | Grep de `import.*brew-cli\|import.*parsers` en `src/views/` retorna cero resultados | — |
-| Swift: `Services/` sin imports de SwiftUI/AppKit (salvo excepcion) | Parcial | Baja | `menubar/BrewBar/Sources/Models/AppState.swift:2`: `import SwiftUI` presente; sin embargo, ninguna API de SwiftUI se usa en el archivo — `@Observable` pertenece al framework `Observation`, no a SwiftUI | Eliminar `import SwiftUI` de `AppState.swift`; sustituir por `import Observation` si el compilador lo requiere explicitamente |
-| Swift: `SyncMonitor` sin protocolo `SyncMonitoring` | No conforme | Media | `menubar/BrewBar/Sources/Services/SyncMonitor.swift`: `actor SyncMonitor` con `static let shared`; `SecurityMonitor` tiene `SecurityChecking` protocol (`SecurityChecking.swift`) pero `SyncMonitor` carece de equivalente; `SchedulerService.swift:165-166` accede a `.shared` directamente sin seam de DI | Crear protocolo `SyncMonitoring: Sendable` e inyectarlo en `SchedulerService.init` con valor por defecto `SyncMonitor.shared`; anadir mock en `BrewBarTests` |
-| Schemas de licencia duplicados entre TS y Swift | No conforme | Alta | `src/lib/license/types.ts` define `LicenseData` / `LicenseFile`; `menubar/BrewBar/Sources/Services/LicenseChecker.swift` redefine `LicenseData` y `LicenseFile` como structs Swift independientes; cualquier cambio de campo en uno de los lados no se propaga automaticamente al otro | Anadir un test de contrato en `BrewBarTests` que lea un `license.json` de fixture generado por el lado TS y verifique que el decoder Swift lo parsea correctamente; documentar el schema en un archivo compartido fuera del codigo |
+| TUI — Views sin acceso directo a brew-cli | Conforme | — | Grep de `from.*brew-cli` en `src/views/` no arroja resultados. Todas las vistas pasan por stores o `brew-api`. | — |
+| TUI — lib/ no importa stores vía hooks React | Conforme | — | Grep de `from.*stores` en `src/lib/` no arroja resultados. Los módulos lib reciben `isPro: boolean` como parámetro, conforme a `CLAUDE.md`. | — |
+| TUI — `compliance-remediator.ts` llama `streamBrew` sin validar `packageName` | **No conforme** | **Crítica** | `src/lib/compliance/compliance-remediator.ts`: `streamBrew(['install', v.packageName])` y `streamBrew(['upgrade', v.packageName])`. `streamBrew` usa `spawn('brew', args, ...)` — array de argumentos sin `shell: true`, por lo que no es inyección de shell clásica. El vector es: un `PolicyFile` JSON artesanal puede especificar cualquier `packageName` (incluyendo nombres de paquetes maliciosos, taps privados o fórmulas con side-effects), y ese nombre se pasa sin validación a `brew install/upgrade`. `packageName` llega desde una ruta de fichero introducida por el usuario en `src/views/compliance.tsx` (TextInput → `importPolicy(filePath.trim())`). Sin llamada a `validatePackageName()` ni comprobación contra `PKG_PATTERN`. | 1) Llamar `validatePackageName()` de `src/lib/brew-api.ts` sobre cada `v.packageName` antes de pasarlo a `streamBrew`. 2) Restringir la ruta del PolicyFile a subdirectorios de `DATA_DIR` para impedir que ficheros externos controlen la política. |
+| TUI — `async-state.ts` módulo muerto | **No conforme** | Media | `src/lib/async-state.ts` no tiene importadores en código de producción. Único consumidor: `src/lib/async-state.test.ts`. | Eliminar `async-state.ts` y `async-state.test.ts`. |
+| BrewBar — `DesignExploration/BrewBarDesignVariants.swift` en producción | **No conforme** | Alta | `menubar/Project.swift:69`: `sources: ["BrewBar/Sources/**"]`. El glob incluye `BrewBar/Sources/DesignExploration/BrewBarDesignVariants.swift` (991 líneas). Este archivo entra en el binario notariado de producción. | Mover `DesignExploration/` fuera de `BrewBar/Sources/` o agregar exclusión explícita en `Project.swift`. |
+| TUI — tipos Homebrew sin capa de presentación separada | Parcial | Baja | Los tipos de `src/lib/types.ts` (`FormulaInfo`, `OutdatedInfo`, `CaskInfo`) cruzan toda la pila desde el JSON de Homebrew hasta el render en vistas. No existe modelo de presentación intermedio. Aceptable para el tamaño del proyecto pero dificulta cambios de schema. | Documentar explícitamente que estos tipos son DTOs de Homebrew. Si el schema cambia, evaluar `src/lib/types-ui.ts`. |
+
+### Matriz de dependencias
+
+| Módulo | Depende de | Permitido? | Riesgo | Acción |
+|--------|------------|------------|--------|--------|
+| `src/views/*` | `src/stores/*`, `src/hooks/*`, `src/components/*`, `src/i18n`, `src/utils/*` | Sí | — | — |
+| `src/views/compliance.tsx` | `src/lib/compliance/*` (vía store), `src/lib/brew-api` | Sí | Vector package-name injection propagado desde TextInput | Ver ARC-01 |
+| `src/stores/*` Pro stores | `src/stores/brew-store`, `src/stores/license-store` | Parcial | Acoplamiento store↔store | Ver ARC-03 |
+| `src/lib/*` | `src/lib/brew-cli`, `src/lib/parsers` | Sí | — | — |
+| `src/lib/*` | `src/stores/*` (hooks React) | No — pero **no ocurre** | — | Mantener invariante |
+| `BrewBar/Sources/Views/*` | `BrewBar/Sources/Models/*`, `BrewBar/Sources/Services/*` | Sí | — | — |
+| `BrewBar/Sources/Services/*` | `BrewBar/Sources/Protocols/*`, Foundation, CryptoKit | Sí | — | — |
+| `BrewBar/Sources/DesignExploration/*` | `BrewBar/Sources/Views/*` | En producción sin justificación | Dead code en binario firmado | Excluir del target |
 
 ---
 
-## 3.3 Cohesion y acoplamiento
+## 3.3 Cohesión y acoplamiento
 
 ### Checklist
 
-* [x] Cada modulo tiene responsabilidad clara
+* [x] Cada módulo tiene responsabilidad clara
 * [x] No hay god objects
-* [x] No hay view models con demasiadas responsabilidades
-* [x] No hay servicios transversales con logica de negocio escondida
+* [ ] No hay ViewModels con demasiadas responsabilidades — Parcial
+* [x] No hay servicios transversales con lógica de negocio escondida
 * [x] Las features son componibles
+* [ ] Convención `useViewInput` aplicada de forma consistente — Parcial
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| TUI: responsabilidades de modulos bien delimitadas | Conforme | — | `brew-cli.ts` → primitivas de proceso; `parsers/` → transformacion; `brew-api.ts` → API tipada; `stores/` → estado reactivo; separacion respetada | — |
-| Swift: `SchedulerService` acumula responsabilidades mixtas | Parcial | Baja | `menubar/BrewBar/Sources/Services/SchedulerService.swift`: gestiona timer de fondo, permisos de notificaciones del SO, envio de notificaciones UNUserNotificationCenter, orquestacion de CVE y sync. Son 260 lineas con 5 responsabilidades. No es un god object critico pero la cohesion es debil | Extraer `NotificationSender` con los tres metodos `sendNotification`/`sendCVENotification`/`sendSyncNotification`; `SchedulerService` solo decide cuándo notificar, `NotificationSender` gestiona el como |
-| TUI: `security-store.ts` importa dos stores laterales | Parcial | Baja | `src/stores/security-store.ts`: llama a `useBrewStore.getState()` y `useLicenseStore.getState()` directamente — acoplamiento store-a-store. No viola la regla `lib/`; los stores si pueden importarse entre si, pero dificulta tests unitarios de la store | Recibir `isPro` y la lista de paquetes como parametros en las acciones afectadas, o extraer a una store de orquestacion |
+| TUI — `src/views/outdated.tsx` (múltiples responsabilidades) | Parcial | Baja | Vista con selección múltiple, lógica de actualización por lotes, estado de confirmación y stream de progreso colocalizados. Más de 10 `useState` locales. No supera los 800 líneas. | Extraer lógica de selección/actualización a un custom hook `useOutdatedActions`. |
+| TUI — `src/views/search.tsx` | Conforme | — | 257 líneas. Estado local justificado (query, results, cursor, confirmInstall). Sin lógica de negocio escondida. | — |
+| TUI — PKG_PATTERN divergente | **No conforme** | Media | `src/lib/brew-api.ts`: `PKG_PATTERN = /^[\w@./+-]+$/`. `src/lib/profiles/profile-manager.ts`: `PKG_PATTERN = /^[a-z0-9][-a-z0-9_.@+]*$/` (más restrictivo, sin mayúsculas, sin `/`). Los perfiles pueden rechazar nombres que brew-api acepta (p.ej. casks con mayúsculas o paths con `/`). | Centralizar `PKG_PATTERN` en `src/lib/brew-api.ts` y reexportarlo desde `profile-manager.ts`. Decidir explícitamente qué patrón aplica en cada contexto. |
+| TUI — `ConfirmDialog` usa `useInput` directo | **No conforme** | Baja | `src/components/common/confirm-dialog.tsx:2,23`: importa y usa `useInput` de Ink directamente, no `useViewInput`. La supresión del handler durante `menuMode` se realiza via `useModalStore` (el dialog gestiona su propia modal), lo cual es funcionalmente correcto pero viola la convención documentada en `CLAUDE.md`. Si se añaden nuevos componentes siguiendo este mismo patrón sin la guard de modal, el menú lateral podría perder el control de los arrow keys. | Documentar en un comentario de `confirm-dialog.tsx` que el uso de `useInput` directo es intencional y auto-guarded por `useModalStore`. Alternativamente, añadir soporte de `isActive` gate en `useViewInput` para cubrir este caso. |
+| BrewBar — `BrewBarDesignVariants.swift` (991 LOC) | **No conforme** | Alta | Archivo de exploración visual incluido en el target de producción (ver 3.2). Engrosa el binario y su firma. | Excluir del glob de producción. |
+| BrewBar — `SchedulerService.swift` | Conforme | — | Responsabilidades únicas: scheduling de checks periódicos, gestión de permisos de notificaciones. Sin mezcla con lógica de dominio. | — |
 
 ---
 
@@ -76,62 +96,65 @@ La arquitectura de Brew-TUI es solida en sus capas principales: la separacion en
 
 ### Checklist
 
-* [ ] Codigo muerto identificado (hallazgo activo)
+* [ ] Código muerto identificado — No conforme
 * [x] Extensiones utilitarias justificadas
-* [x] Helpers sin semantica reducidos o eliminados
+* [x] Helpers sin semántica reducidos o eliminados
 * [x] Nombres alineados con el dominio
-* [x] No hay duplicacion estructural relevante
+* [ ] No hay duplicación estructural relevante — Parcial
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| `getBuiltinAccountType` export muerto | No conforme | Baja | `src/lib/license/license-manager.ts:13` (comentario): "retained as a stable export but always returns null; remove it once no caller references it". Grep confirma cero callers en produccion. | Eliminar la funcion y el comentario en el siguiente ciclo de limpieza |
-| `CVE_CACHE_PATH` declarado pero nunca consumido en TS | No conforme | Media | `src/lib/data-dir.ts` exporta `CVE_CACHE_PATH = join(DATA_DIR, 'cve-cache.json')`; grep de `CVE_CACHE_PATH` en todo `src/` retorna solo la declaracion — ningun modulo TS la importa. Solo `menubar/BrewBar/Sources/Services/SecurityMonitor.swift` escribe ese archivo. El inventario 01 indicaba cache compartida; en realidad el lado TS usa cache en memoria de 30 min y no persiste a disco | Si la intencion es compartir el cache, implementar lectura/escritura en `src/lib/security/`; si no, documentar que el cache en disco es exclusivo de BrewBar y eliminar `CVE_CACHE_PATH` de `data-dir.ts` |
-| tsup target `node18` vs engines `>=22` | No conforme | Baja | `tsup.config.ts:9`: `target: 'node18'`; `package.json` declara `engines: { "node": ">=22" }`. El bundle puede incluir polyfills innecesarios o no aprovechar APIs nativas de Node 22 | Alinear: `target: 'node22'` en `tsup.config.ts` |
-| `DesignExploration/` en Sources | Conforme | — | `menubar/BrewBar/Sources/DesignExploration/BrewBarDesignVariants.swift:7`: `#if DEBUG` — el archivo completo esta guardado en compilacion Release | — |
-
-### Matriz de dependencias
-
-| Modulo | Depende de | Permitido? | Riesgo | Accion |
-|--------|------------|------------|--------|--------|
-| `src/views/` | `src/stores/`, `src/hooks/`, `src/components/`, `src/i18n/`, `src/utils/` | Si | Ninguno | — |
-| `src/stores/` | `src/lib/`, `src/i18n/`, `src/utils/` | Si | `security-store` importa `useBrewStore` y `useLicenseStore` (store-a-store) | Considerar refactor a parametros |
-| `src/lib/` | `src/utils/`, tipos externos npm | Si | Ninguno — stores ausentes confirmado | — |
-| `src/hooks/` | `src/stores/`, `src/lib/` | Si | Ninguno | — |
-| `Sources/Views/` | `Sources/Models/`, `Sources/Services/` (via protocolos) | Si | Ninguno | — |
-| `Sources/Models/` | `Sources/Services/` (protocolos via `BrewChecking`) | Si | `AppState.swift` importa SwiftUI sin usarlo | Eliminar import |
-| `Sources/Services/` | Foundation, UserNotifications, os | Si | `SchedulerService` accede a `SyncMonitor.shared` sin DI | Crear `SyncMonitoring` protocol |
-| `Sources/Services/` ↔ `Sources/Models/` | `AppState` pasa a `SchedulerService.start(state:)` | Si — flujo correcto | Acoplamiento es debil (referencia `weak`) | — |
+| TUI — `async-state.ts` dead module | **No conforme** | Media | Solo importado en su propio test. Ningún archivo de producción lo referencia. | Eliminar. |
+| BrewBar — clave legacy scrypt en `LicenseChecker.swift` | **No conforme** | Media | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:159-163`: `legacyEncryptionKey` con hex hardcodeado. Comentario TODO dice "delete after 0.6.3". Versión actual: 1.2.0. La clave legacy permanece activa en el path de fallback de desencriptado, manteniendo una superficie con clave fija conocida. | Verificar si existen licencias 0.x en circulación. Si no, eliminar el path legacy. Si sí, establecer fecha de depreciación dura con warning al usuario. |
+| TUI — duplicación de `PKG_PATTERN` | **No conforme** | Media | Dos definiciones con semántica diferente en `brew-api.ts` y `profile-manager.ts`. | Centralizar (ver 3.3). |
+| BrewBar — `DesignExploration/` en Sources/ | **No conforme** | Alta | 991 líneas de código de exploración en el binario notariado. | Mover fuera del glob de producción. |
+| TUI — caché de impactos sin TTL temporal | Parcial | Baja | `src/lib/brew-api.ts`: caché de `analyzeDependencyImpact` usa `Map` con LRU-lite (max 64 entradas), pero sin TTL basado en tiempo. Los datos pueden quedar stale si el proceso vive largo tiempo. | Añadir `expiresAt: Date.now() + 5 * 60 * 1000` por entrada e invalidar en `fetchInstalled`. |
 
 ---
 
 # 4. Estado, concurrencia y flujo de datos
 
-> Auditor: architecture-auditor | Fecha: 2026-05-01
+> Auditor: architecture-auditor | Fecha: 2026-05-21
 
 ## 4.1 Ownership del estado
 
 ### Checklist
 
-* [x] Cada fuente de verdad esta claramente definida
-* [ ] No hay duplicacion de estado (hallazgo activo — license policy divergence)
+* [x] Cada fuente de verdad está claramente definida
+* [ ] No hay duplicación de estado — Parcial (cross-store coupling)
 * [x] `@State` solo para estado local de vista
-* [x] `@Binding` usado solo para proyeccion controlada
-* [x] `@StateObject` en propietarios reales (no aplica — proyecto usa `@Observable`)
-* [x] `@ObservedObject` no recrea ownership accidental (no aplica — proyecto usa `@Observable`)
-* [ ] `@EnvironmentObject` no introduce dependencias invisibles peligrosas (no aplica — no se usa)
-* [x] `@Observable` usado con criterio arquitectonico
+* [x] `@Binding` usado solo para proyección controlada
+* [x] `@StateObject` en propietarios reales
+* [x] `@ObservedObject` no recrea ownership accidental
+* [x] `@EnvironmentObject` no introduce dependencias invisibles peligrosas
+* [x] `@Observable` usado con criterio arquitectónico
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| TUI: Zustand como unica fuente de verdad por feature | Conforme | — | Cada feature tiene exactamente un store; no hay estado duplicado entre stores para la misma entidad | — |
-| TUI: `modal-store` usa contador de referencia | Conforme | — | `src/stores/modal-store.ts`: `_count` en lugar de booleano — patron correcto para supresores anidados | — |
-| Swift: `AppState` como fuente de verdad de paquetes y servicios | Conforme | — | `@Observable @MainActor AppState` centraliza `outdatedPackages`, `services`, `cveAlerts`, `syncActivity`; vistas observan sin duplicar | — |
-| Swift: politica de degradacion de licencia divergente entre TS y Swift | No conforme | Alta | TS (`src/lib/license/license-manager.ts`): grace period de 7 dias, luego degradacion progresiva hasta expirado en 30 dias. Swift (`menubar/BrewBar/Sources/Services/LicenseChecker.swift`): `expiredThreshold = 30` — trata la licencia como Pro plena hasta el dia 30, luego directamente expirada. Un usuario con licencia offline entre 7 y 30 dias recibe estado `degradado/limitado` en el TUI pero `Pro` en BrewBar. Misma fuente de datos (`~/.brew-tui/license.json`), politica inconsistente | Extraer la logica de degradacion a una especificacion compartida (documento de referencia + test de contrato); alinear `expiredThreshold` y los umbrales de degradacion en ambos lados; o simplificar Swift al mismo esquema de 7 dias |
-| TUI: module-level singletons en stores | Parcial | Baja | `src/stores/brew-store.ts`: `let fetchAllInFlight: Promise<void> \| null = null`, `let brewUpdateInFlight`; `src/stores/license-store.ts`: `let _revalidatingPromise`, `let _revalidationInterval` — estas variables persisten entre tests en la misma ejecucion de Vitest si los modulos no se re-importan | Inicializar estas variables dentro del estado de Zustand o limpiar en `afterEach` de los tests relevantes |
+| TUI — Cross-store coupling en stores Pro | **No conforme** | Media | `src/stores/cleanup-store.ts` importa `useBrewStore` y `useLicenseStore` y llama `.getState()` dentro de `analyze()`. El mismo patrón en `history-store.ts`, `security-store.ts`, `profile-store.ts` (importan `useLicenseStore`). Aunque `.getState()` evita violaciones de hooks, crea grafo de dependencias store↔store que dificulta testing y sustitución de stores. | Pasar el estado necesario (`isPro`, `installedFormulae`) como argumentos a las funciones de los stores Pro, igual que hacen los lib/ modules. Alternativamente, centralizar la comprobación de licencia en el selector del caller (view/hook). |
+| BrewBar — `AppState` como `@MainActor @Observable` | Conforme | — | `menubar/BrewBar/Sources/Models/AppState.swift`: `@MainActor @Observable final class AppState`. DI via `any BrewChecking`. Notificación correcta sin `@Published`. | — |
+| BrewBar — `@State` en vistas Swift | Conforme | — | `SettingsView.swift`: `@State private var launchAtLogin`, `@State private var loginError` — estado local de la vista, no compartido. | — |
+| BrewBar — `BadgePreferences` inyectada desde AppDelegate | Conforme | — | Instanciada en `AppDelegate`, pasada a vistas que la necesitan. No hay singletons globales. | — |
+| TUI — fuentes de verdad Zustand | Conforme | — | `brew-store` para datos Homebrew, `navigation-store` para routing, `modal-store` para supresión de input, `license-store` para licencia, stores Pro para sus features. Sin solapamiento. | — |
+
+### Registro de fuentes de verdad
+
+| Feature | Fuente de verdad | Estado derivado | Riesgo detectado | Acción |
+|---------|------------------|-----------------|------------------|--------|
+| Datos Homebrew (formulae, casks, servicios) | `brew-store.ts` (`installed`, `outdated`, `services`) | Listas filtradas/ordenadas en vistas | — | — |
+| Navegación y menú lateral | `navigation-store.ts` (`currentView`, `history`, `menuMode`, `menuCursor`) | Vista activa renderizada por `ViewRouter` | — | — |
+| Supresión de input global | `modal-store.ts` (`_count`, `isOpen`) | `useViewInput` suprime handlers cuando `isOpen` | Reference counter correcto | — |
+| Licencia y tier | `license-store.ts` (`license`, `status`) | `isPro()`, `isTeam()`, feature gating en `app.tsx` | Stores Pro importan `useLicenseStore` directamente | Desacoplar via parámetros |
+| Smart Cleanup | `cleanup-store.ts` | Items sugeridos, estado de análisis | Acoplado a `brew-store` + `license-store` | Recibir datos como argumento |
+| Historial | `history-store.ts` | Entradas filtradas | Acoplado a `license-store` | Desacoplar |
+| Seguridad / OSV | `security-store.ts` | Vulnerabilidades por paquete, nivel de severidad | Acoplado a `license-store` | Desacoplar |
+| Perfiles | `profile-store.ts` | Lista de perfiles, perfil activo | Acoplado a `license-store` | Desacoplar |
+| AppState BrewBar | `AppState.swift` (`@MainActor @Observable`) | Badge counts, last action banner | Fire-and-forget `Task` en init (baja severidad, auto-guarded) | Almacenar handle |
+| BadgePreferences BrewBar | `BadgePreferences.swift` | Badges visibles en menu bar icon | — | — |
 
 ---
 
@@ -141,9 +164,9 @@ La arquitectura de Brew-TUI es solida en sus capas principales: la separacion en
 
 * [x] Aislamiento de actores definido
 * [x] `@MainActor` usado solo donde corresponde
-* [x] No hay trabajo pesado en main thread
-* [ ] Task cancelables y con ciclo de vida claro (hallazgo activo)
-* [ ] No hay fire-and-forget sin control (hallazgo activo)
+* [ ] No hay trabajo pesado en main thread — Parcial (I/O síncrono acotado)
+* [ ] Tasks cancelables y con ciclo de vida claro — Parcial
+* [ ] No hay fire-and-forget sin control — Parcial
 * [x] Errores async propagados correctamente
 * [x] Reentrancy revisada
 * [x] Race conditions analizadas
@@ -151,16 +174,17 @@ La arquitectura de Brew-TUI es solida en sus capas principales: la separacion en
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| Swift: `SecurityMonitor` y `SyncMonitor` como `actor` | Conforme | — | Ambos actores encapsulan estado mutable (cache en disco/memoria) y toda la mutacion ocurre dentro del actor | — |
-| Swift: `@MainActor` en clases de UI y presentacion | Conforme | — | `AppDelegate`, `AppState`, `SchedulerService` son `@MainActor`; `SecurityMonitor`/`SyncMonitor` son `actor` independientes — separacion correcta | — |
-| Swift: trabajo pesado (red, proceso) fuera del main thread | Conforme | — | Llamadas a `URLSession.shared.data(for:)` y `BrewProcess.runString` son `async` y se ejecutan fuera del actor de main; `AppState.refresh()` usa `async let` para paralelismo | — |
-| Swift: `OnceGuard`/`TimeoutBox` en `BrewProcess` | Conforme | — | `menubar/BrewBar/Sources/Services/BrewProcess.swift`: `@unchecked Sendable` con `NSLock` — patron correcto para bridging de continuation con handler de terminacion de `Process` | — |
-| Swift: fire-and-forget en `SchedulerService` | No conforme | Baja | `menubar/BrewBar/Sources/Services/SchedulerService.swift:80`: `Task { await syncNotificationPermission() }` lanzado en `start()` sin almacenar handle; `:192`: `Task { @MainActor in self?.notificationsDenied = false }` en callback de `requestAuthorization` sin handle. El trabajo es acotado (no bucle infinito) pero no se puede cancelar si el servicio se detiene antes de que terminen | Almacenar handle en `private var permissionSyncTask: Task<Void, Never>?`; cancelar en `stop()` |
-| TUI: `streamBrew` con limpieza garantizada | Conforme | — | `src/lib/brew-cli.ts`: `streamBrew()` mata el proceso en bloque `finally` del generador; `src/hooks/use-brew-stream.ts`: `generatorRef.current?.return(undefined)` en cleanup de `useEffect` | — |
-| TUI: `_revalidationInterval` sin limpieza en salida | Parcial | Baja | `src/stores/license-store.ts`: `setInterval` con `.unref()` — el `.unref()` evita que bloquee la salida de Node, por lo que el impacto en produccion es nulo; sin embargo, en tests el intervalo puede no limpiarse si el modulo persiste entre suites | Anadir `clearInterval(_revalidationInterval)` en la funcion de limpieza del store para completitud |
-| TUI: fire-and-forget en `use-brew-stream.ts` | Conforme | — | `src/hooks/use-brew-stream.ts:81,87`: `void logToHistory(...)` y `void import(...).then(...)` son fire-and-forget intencionales de logging/carga perezosa — no modifican estado critico ni causan inconsistencia | — |
+| BrewBar — `Data(contentsOf:)` síncrono en `@MainActor` (`LastActionMonitor`) | **No conforme** | Baja | `menubar/BrewBar/Sources/Services/LastActionMonitor.swift:120`: `Data(contentsOf: path)` llamado en un método `@MainActor`. El fichero `last-action.json` es pequeño y acotado, pero el I/O síncrono en el main thread está desaconsejado. | Mover la lectura a `Task { let data = try Data(contentsOf: path) }` y procesar el resultado de vuelta en `@MainActor`. |
+| BrewBar — `Data(contentsOf:)` síncrono en `actor SyncMonitor` | Parcial | Baja | `menubar/BrewBar/Sources/Services/SyncMonitor.swift`: I/O síncrono dentro del actor. Reconocido internamente como `BK-013`. No bloquea main thread pero bloquea el executor del actor durante la lectura. | Usar `Task.detached { try Data(contentsOf:) }` o API async de `FileHandle`. |
+| BrewBar — Fire-and-forget `Task` en `AppState.swift:116` | **No conforme** | Baja | `Task { await refresh(force: true) }` no almacena el handle. Auto-guarded con `guard force || !isLoading` — llamadas concurrentes son absorbidas. Riesgo bajo, pero la tarea no es cancelable desde exterior. | Almacenar como `private var refreshTask: Task<Void, Never>?` y cancelar en `deinit` o en `invalidate()`. |
+| TUI — `streamBrew` con AsyncGenerator | Conforme | — | `src/lib/brew-cli.ts`: AsyncGenerator. `useBrewStream` almacena referencia y expone `cancel()`. Las vistas llaman `stream.cancel()` en tecla Escape. Ciclo de vida ligado al componente. | — |
+| TUI — `execBrew` timeout de 30s | Conforme | — | Timeout explícito via `AbortController`. Error propagado como `Error` typed throw. | — |
+| TUI — reentrancy en `doSearch` | Conforme | — | `setSearching(true)` previene llamadas paralelas visualmente. | — |
+| BrewBar — `actor SyncMonitor` | Conforme | — | Actor propio, serial executor. Métodos `async`. No accedido desde main actor directamente. | — |
+| BrewBar — `SWIFT_STRICT_CONCURRENCY=complete` | Conforme | — | `menubar/Project.swift`: flag habilitado a nivel de proyecto. Violaciones de aislamiento detectadas en compile time. | — |
+| TUI — `void doSearch(query)` en submit | Parcial | Baja | `src/views/search.tsx:179`: `onSubmit={() => void doSearch(query)}`. Si la vista se desmonta durante la búsqueda, `setResults` actualiza estado de componente desmontado. En React 18 es generalmente inofensivo pero puede producir warnings. | Considerar ref `isMounted` o `AbortController` para abortar la llamada en desmontaje. |
 
 ---
 
@@ -168,56 +192,45 @@ La arquitectura de Brew-TUI es solida en sus capas principales: la separacion en
 
 ### Checklist
 
-* [x] La transformacion de datos ocurre en la capa correcta
-* [x] DTO != modelo de dominio != modelo de presentacion (en la medida del proyecto)
-* [x] El mapping es explicito
-* [x] No hay logica de negocio en la vista
-* [ ] Estados de carga, error y exito estan tipados (hallazgo activo)
+* [x] La transformación de datos ocurre en la capa correcta
+* [ ] DTO != modelo de dominio != modelo de presentación — Parcial
+* [ ] El mapping es explícito — Parcial
+* [ ] No hay lógica de negocio en la vista — Parcial
+* [x] Estados de carga, error y éxito están tipados
 * [x] Cancelaciones y reintentos modelados
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| TUI: transformacion en `parsers/` y `brew-api.ts` | Conforme | — | Parsing de texto/JSON en `src/lib/parsers/`; mapping a tipos de dominio en `src/lib/brew-api.ts`; vistas consumen tipos ya transformados del store | — |
-| TUI: validacion de entrada con `PKG_PATTERN` | Conforme | — | `src/lib/brew-api.ts`: `PKG_PATTERN = /^[\w@./+-]+$/` aplicado antes de pasar nombres al CLI | — |
-| TUI: estados de carga con maps ad-hoc | No conforme | Media | `src/stores/brew-store.ts`: `loading: Record<string, boolean>` y `errors: Record<string, string \| null>` — no hay un tipo discriminado (`LoadingState<T>`) que garantice que loading y error son mutuamente excluyentes. Permite estados inconsistentes (`loading: true` y `error: "..."` simultaneamente) | Introducir `type AsyncState<T> = { status: 'idle' } \| { status: 'loading' } \| { status: 'success'; data: T } \| { status: 'error'; message: string }` para los datos del brew store |
-| TUI: reintentos en OSV API | Conforme | — | `src/lib/security/osv-api.ts`: `fetchWithRetry` con backoff en 5xx y 429; fallback a peticiones individuales en 400 | — |
-| Swift: mapping de JSON a modelos via `Codable` | Conforme | — | `SecurityMonitor.swift` usa `JSONDecoder().decode(CVECache.self, ...)` con manejo de error explicito | — |
+| TUI — `FormulaInfo` / `CaskInfo` usados en vistas directamente | Parcial | Baja | Los tipos de `src/lib/types.ts` cruzan toda la pila desde el JSON de Homebrew hasta el render. No hay modelo de presentación intermedio. Aceptable para este tamaño de proyecto. | Documentar explícitamente que estos tipos son DTOs de Homebrew. Si el schema cambia, evaluar `src/lib/types-ui.ts`. |
+| TUI — `formulaeToListItems` / `casksToListItems` en `brew-api.ts` | Conforme | — | Converters explícitos para transformar `FormulaInfo[]` a `ListItem[]`. Transformación en la capa correcta (lib, no vista). | — |
+| TUI — lógica de derivación en `search.tsx` | Parcial | Baja | `src/views/search.tsx:87-97`: construcción de `allResults` como `SearchResult[]` aplanando formulae y casks, cálculo de ventana de scroll (`start`/`visibleResults`). Suficientemente simple pero podría estar en un hook. | Opcional: extraer a `useSearchResults(results, cursor, resultRows)` para testabilidad. |
+| TUI — estados de carga tipados | Conforme | — | Stores usan `loading: Record<string, boolean>` y `errors: Record<string, string | null>` por key. Pro stores tienen `isLoading: boolean` / `error: string | null`. | — |
+| TUI — cancelación en `useBrewStream` | Conforme | — | `cancel()` llama `AbortController.abort()` propagado al AsyncGenerator. | — |
+| BrewBar — flujo `LastAction` | Conforme | — | `src/lib/data-dir.ts` escribe `last-action.json` atómicamente (tmp + rename). `LastActionMonitor.swift` observa el directorio padre con `DispatchSourceFileSystemObject`. Schema coherente entre TS y Swift (`timestamp`, `action`, `packages`, `remainingOutdated`, `source`). | — |
+| BrewBar — validación de respuestas de API Polar / OSV | Conforme | — | `src/lib/license/` valida respuestas Polar en runtime. `src/lib/security/` valida respuestas OSV. No se usa `as Type` sin validación previa. | — |
 
 ---
 
-## 4.4 Persistencia temporal y cache
+## 4.4 Persistencia temporal y caché
 
 ### Checklist
 
-* [ ] Estrategia de cache documentada (hallazgo activo)
-* [ ] Invalidation policy definida (parcial)
-* [ ] No hay stale state silencioso (hallazgo activo)
+* [ ] Estrategia de caché documentada — Parcial
+* [ ] Invalidation policy definida — Parcial
+* [x] No hay stale state silencioso
 * [x] La UI reacciona bien a datos expirados
 
 ### Hallazgos
 
-| Elemento | Estado | Severidad | Evidencia | Accion |
+| Elemento | Estado | Severidad | Evidencia | Acción |
 |----------|--------|-----------|-----------|--------|
-| Cache de CVE no compartida entre TUI y BrewBar | No conforme | Media | El inventario (`01-inventario.md`) describe el cache CVE como compartido entre ambas apps. El analisis revela: `src/lib/data-dir.ts` exporta `CVE_CACHE_PATH` pero ningun modulo TS lo importa (grep exhaustivo). Solo `menubar/BrewBar/Sources/Services/SecurityMonitor.swift` lee y escribe `~/.brew-tui/cve-cache.json`. El lado TS mantiene cache en memoria de 30 minutos (`CACHE_TTL_MS = 30 * 60 * 1000` en `security-store.ts`) que se pierde al reiniciar. TTL divergente: BrewBar 1 hora en disco, TUI 30 minutos en memoria | Decidir el contrato de cache: (a) TUI lee el archivo escrito por BrewBar y usa `CVE_CACHE_PATH`; (b) TUI escribe su propio cache con TTL documentado; documentar la decision en `data-dir.ts` |
-| BrewBar: invalidation policy con TTL de 1 hora | Conforme | — | `menubar/BrewBar/Sources/Services/SecurityMonitor.swift:11`: `cacheMaxAge = 3600`; el check de `checkForNewVulnerabilities()` retorna vacio si el cache es reciente — correcto | — |
-| BrewBar: cache de CVE sin stale state visible | Conforme | — | Si el cache existe pero es reciente, la UI muestra los datos ya cargados en `AppState.cveAlerts`; el usuario no tiene indicacion de antiguedad, pero el TTL de 1h es suficientemente corto para este dominio | — |
-| TUI: `security-store` sin persistencia entre sesiones | Parcial | Baja | `src/stores/security-store.ts`: cache en memoria pura — al relanzar el TUI, la pantalla de security audit siempre muestra estado inicial hasta completar la peticion OSV, incluso si BrewBar ya tiene datos frescos en disco. No hay stale state falso pero si latencia evitable | Si se unifica el cache en disco, el TUI puede pre-cargar desde `CVE_CACHE_PATH` al iniciar |
-
-### Registro de fuentes de verdad
-
-| Feature | Fuente de verdad | Estado derivado | Riesgo detectado | Accion |
-|---------|------------------|-----------------|------------------|--------|
-| Paquetes outdated (TUI) | `brew-store.ts` (`outdatedPackages`) | Contadores en Header y FooterBar | Ninguno | — |
-| Paquetes outdated (BrewBar) | `AppState.outdatedPackages` (`@Observable`) | `outdatedCount`, icono de badge | Ninguno | — |
-| Licencia (TUI) | `license-store.ts` → `~/.brew-tui/license.json` | `isPro()`, `isTeam()`, degradacion | Politica de gracia diverge con BrewBar | Unificar logica |
-| Licencia (BrewBar) | `LicenseChecker.swift` → `~/.brew-tui/license.json` | `canUpgrade` en AppState | Umbral 30 dias vs 7 dias TS | Alinear umbral |
-| CVE alerts (TUI) | `security-store.ts` (memoria, 30min TTL) | Lista en SecurityAuditView | No persiste entre sesiones | Leer cache de disco |
-| CVE alerts (BrewBar) | `SecurityMonitor` actor → `~/.brew-tui/cve-cache.json` | `AppState.cveAlerts`, badge critico | Es el unico writer del archivo | Documentar exclusividad |
-| Sync status | `SyncMonitor` actor → iCloud `sync.json` | `AppState.syncActivity`, `syncMachineCount` | Sin DI seam para tests | Crear `SyncMonitoring` protocol |
-| Estado de servicios Homebrew | `AppState.services` | `errorServices`, icono de status bar | Ninguno | — |
-| Configuracion scheduler | `UserDefaults` (interval, notificationsEnabled) | `SchedulerService` interval y toggle UI | Ninguno | — |
+| TUI — caché de `analyzeDependencyImpact` sin TTL temporal | Parcial | Baja | `src/lib/brew-api.ts`: `Map` con LRU-lite (max 64 entradas, elimina más antigua al superar límite). Sin TTL basado en tiempo — datos pueden quedar stale si el proceso vive mucho tiempo. | Añadir `expiresAt: Date.now() + 5 * 60 * 1000` por entrada e invalidar en `fetchInstalled`. |
+| TUI — caché OSV (seguridad) con 30min TTL | Conforme | — | `src/lib/security/`: TTL de 30 minutos documentado en `CLAUDE.md`. La UI muestra timestamp de última comprobación. | — |
+| BrewBar — `BadgePreferences` persistidas | Conforme | — | `BadgePreferences` persiste via `UserDefaults`. Invalidación no necesaria (preferencias de usuario). | — |
+| BrewBar — `SchedulerService` respeta interval configurado | Conforme | — | Rastrea `lastCheck: Date?` y respeta el `interval`. Si el interval cambia, el próximo check se recalcula. | — |
+| BrewBar — estado stale en banner de `LastAction` | Conforme | — | Si el proceso TUI no completó el ciclo (error silencioso), el banner simplemente no aparece. No hay stale state visible al usuario. | — |
 
 ---
 
@@ -225,29 +238,29 @@ La arquitectura de Brew-TUI es solida en sus capas principales: la separacion en
 
 | Severidad | Cantidad |
 |-----------|----------|
-| Critica | 0 |
-| Alta | 2 |
-| Media | 3 |
-| Baja | 6 |
+| Crítica   | 1        |
+| Alta      | 1        |
+| Media     | 4        |
+| Baja      | 9        |
 
-**Total hallazgos no conformes o parciales:** 11
+**Total hallazgos no conformes:** 15
 
-### Hallazgos Alta
+### Índice de hallazgos
 
-1. **Schemas de licencia duplicados sin test de contrato** — `src/lib/license/types.ts` vs `LicenseChecker.swift`: structs independientes que leen el mismo archivo en disco; un cambio de campo en un lado no alerta al otro.
-2. **Politica de degradacion de licencia divergente** — TS aplica gracia de 7 dias; Swift expira directamente a los 30 dias. Mismo `license.json`, comportamiento diferente segun que app usa el usuario.
-
-### Hallazgos Media
-
-1. **`CVE_CACHE_PATH` declarado en TS pero nunca consumido** — el inventario asumia cache compartida que no existe en la implementacion actual; la funcionalidad de cache en disco de CVE es exclusiva de BrewBar.
-2. **`SyncMonitor` sin protocolo `SyncMonitoring`** — inconsistencia respecto a `SecurityMonitor`; `SchedulerService` y `AppDelegate` acceden a `.shared` directamente sin seam de DI, impidiendo tests del comportamiento de sync.
-3. **Estados de carga ad-hoc en `brew-store`** — `Record<string, boolean>` en lugar de tipo discriminado permite estados logicamente inconsistentes.
-
-### Hallazgos Baja
-
-1. **`import SwiftUI` innecesario en `AppState.swift`** — no causa error ni behavior incorrecto, pero difumina el limite Models/Views.
-2. **`getBuiltinAccountType` export muerto** — siempre retorna `null`, documentado para eliminar, cero callers en produccion.
-3. **`tsup target: 'node18'`** — desalineado con `engines: >=22`; puede generar polyfills innecesarios.
-4. **Fire-and-forget Tasks en `SchedulerService`** — trabajo acotado pero sin handle de cancelacion.
-5. **Module-level singletons en stores TS** — sin impacto en produccion (Node es single-thread) pero contaminan entre tests.
-6. **`_revalidationInterval` sin `clearInterval` explicito** — `.unref()` mitiga el bloqueo en produccion; incompleto en escenarios de test.
+| ID | Descripción | Severidad | Archivo principal |
+|----|-------------|-----------|-------------------|
+| ARC-01 | `compliance-remediator.ts`: `streamBrew` recibe `packageName` de PolicyFile controlado por el usuario sin pasar por `validatePackageName()` — permite instalar/actualizar paquetes arbitrarios | Crítica | `src/lib/compliance/compliance-remediator.ts` |
+| ARC-02 | `DesignExploration/BrewBarDesignVariants.swift` (991 LOC) incluido en binario notariado de producción via glob `Sources/**` | Alta | `menubar/Project.swift:69` |
+| ARC-03 | Cross-store coupling: `cleanup-store`, `history-store`, `security-store`, `profile-store` importan otros stores via `.getState()` | Media | `src/stores/cleanup-store.ts` et al. |
+| ARC-04 | `async-state.ts` dead module — solo consumido por su propio test, sin callers en producción | Media | `src/lib/async-state.ts` |
+| ARC-05 | Clave legacy scrypt hardcodeada en `LicenseChecker.swift` — TODO pendiente desde 0.6.3, versión actual 1.2.0 | Media | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:159-163` |
+| ARC-06 | `PKG_PATTERN` duplicado con semántica divergente en `brew-api.ts` (permissivo) y `profile-manager.ts` (restrictivo) | Media | `src/lib/brew-api.ts`, `src/lib/profiles/profile-manager.ts` |
+| ARC-07 | `Data(contentsOf:)` síncrono en método `@MainActor` de `LastActionMonitor.swift` | Baja | `menubar/BrewBar/Sources/Services/LastActionMonitor.swift:120` |
+| ARC-08 | Fire-and-forget `Task { await refresh(force:) }` sin handle almacenado en `AppState.swift:116` | Baja | `menubar/BrewBar/Sources/Models/AppState.swift:116` |
+| ARC-09 | `void doSearch(query)` en `search.tsx:179` — actualización de estado en componente potencialmente desmontado | Baja | `src/views/search.tsx:179` |
+| ARC-10 | Caché de `analyzeDependencyImpact` sin TTL temporal (LRU-lite solo por cantidad de entradas) | Baja | `src/lib/brew-api.ts` |
+| ARC-11 | `ConfirmDialog` usa `useInput` directo en lugar de `useViewInput` — intencional pero no documentado, riesgo de replicación incorrecta | Baja | `src/components/common/confirm-dialog.tsx:2,23` |
+| ARC-12 | `outdated.tsx`: >10 `useState` locales, múltiples responsabilidades colocalizadas | Baja | `src/views/outdated.tsx` |
+| ARC-13 | `Data(contentsOf:)` síncrono dentro de `actor SyncMonitor` — bloquea executor del actor (reconocido como BK-013) | Baja | `menubar/BrewBar/Sources/Services/SyncMonitor.swift` |
+| ARC-14 | `FormulaInfo`/`CaskInfo` cruzan toda la pila sin capa de presentación intermedia | Baja | `src/lib/types.ts` |
+| ARC-15 | Lógica de derivación de `allResults` y ventana de scroll colocalizadas en `search.tsx` en lugar de un custom hook | Baja | `src/views/search.tsx:87-97` |

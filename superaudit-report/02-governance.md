@@ -1,10 +1,10 @@
 # 2. Gobierno del proyecto
 
-> Auditor: governance-auditor | Fecha: 2026-05-01
+> Auditor: governance-auditor | Fecha: 2026-05-21
 
 ## Resumen ejecutivo
 
-El proyecto tiene una base de gobierno razonablemente solida: `package.json` incluye un allowlist de `files` que limita el contenido publicado a npm, el pipeline de pre-push ejecuta la suite de validacion completa, y BrewBar configura correctamente Developer ID Application, Hardened Runtime y timestamp para Release. Sin embargo, se identifican **siete hallazgos de severidad Alta**: cuatro son accionables e inmediatos — (1) la pipeline de release de BrewBar es enteramente manual sin ningun step de CI que compile, archive, firme ni notarice la app; (2) los canales Homebrew Formula (`0.5.3`) y Homebrew Cask (`0.1.0`) apuntan a versiones dramaticamente desactualizadas respecto a la version publicada `0.6.1`; (3) `jsr.json` esta en la version `0.5.2` mientras el proyecto es `0.6.1`, lo que publicaria una version obsoleta en JSR en el proximo ciclo; y (4) el `PrivacyInfo.xcprivacy` declara `NSPrivacyAccessedAPICategoryFileTimestamp` sin ninguna llamada a APIs de timestamps de fichero en el codigo Swift. Los tres Alta restantes corresponden a la limitacion arquitectonica documentada de las claves AES de cifrado hardcodeadas en el bundle npm y en `LicenseChecker.swift`, con mitigaciones activas (server-side revalidation + machine binding); se referencian a la seccion 13 para evaluacion completa del modelo de amenaza. La licencia del proyecto es MIT (verificado: `LICENSE:1`).
+El proyecto presenta una base de gobierno solida: CI dual (Ubuntu para TypeScript + macOS para Swift), hook pre-push con validate completo, firma y notarizacion correctamente configuradas para BrewBar, y gestion de secretos sin tokens hardcodeados. Los hallazgos principales son la desincronizacion critica entre la version publicada (1.2.1) y los descriptores del tap local (0.7.0), 198 archivos de artefactos Playwright trackeados en git que deberian eliminarse del indice, y referencias al nombre de organizacion legacy `MoLinesGitHub` activas en `CODEOWNERS` y en el descriptor MacPorts.
 
 ---
 
@@ -15,22 +15,22 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 * [x] Todos los targets tienen proposito claro
 * [x] No existen targets obsoletos
 * [x] Los schemes estan alineados con los entornos reales
-* [x] Debug y Release estan separados correctamente (no se requiere Staging en este proyecto)
-* [x] No hay flags inconsistentes entre entornos
-* [ ] La configuracion de testing no contamina produccion — **Baja**: `exportOptions.plist` comprometido en git con `method: none` (sin firmar)
+* [x] Debug, Release y Staging estan separados correctamente
+* [ ] No hay flags inconsistentes entre entornos — **Baja**: `ENABLE_HARDENED_RUNTIME` se desactiva en Debug para permitir Xcode Preview JIT; comportamiento correcto pero divergente respecto a Release; esta documentado en comentario del manifest
+* [x] La configuracion de testing no contamina produccion
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Target `BrewBar` (Release) | Conforme | — | `Project.swift:44-65`: Developer ID Application, `ENABLE_HARDENED_RUNTIME=YES`, `--timestamp`, `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` | — |
-| Target `BrewBar` (Debug) | Conforme | — | `Project.swift:56-63`: Automatic / Apple Development, Hardened Runtime desactivado para Xcode Previews; documentado en comentario inline | — |
-| Target `BrewBarTests` | Conforme | — | `Project.swift:67-74`: unit tests target separado, `CODE_SIGN_IDENTITY="-"` | — |
-| Target `brew-tui` (npm CLI) | Conforme | — | `package.json`: bin, main, files, engines, prepublishOnly todos correctamente configurados | — |
-| Schemes BrewBar | Conforme | — | Solo Debug y Release; proyecto sin entorno Staging; el CLAUDE.md confirma este modelo de dos configuraciones | — |
-| `exportOptions.plist` en git con `method: none` | No conforme | Baja | `menubar/exportOptions.plist:6`: `<string>none</string>` — comentario indica que se debe cambiar a `developer-id` antes de archivar para distribucion | Cambiar `method` a `developer-id` y anadir `teamID` para release real; o excluir del repo si se genera en CI |
-| CI pipeline Swift (BrewBar) | No conforme | Alta | `.github/workflows/ci.yml`: unico workflow, `ubuntu-latest`, sin ningun step Swift, xcodebuild, archive, codesign ni notarize. La release de BrewBar es completamente manual sin ninguna automatizacion en este repo | Anadir un workflow `release-brewbar.yml` en GitHub Actions con runner `macos-latest` que ejecute `tuist generate`, `xcodebuild archive`, `xcodebuild -exportArchive`, notarizacion con `notarytool` y carga del `.zip` a GitHub Releases |
-| Swift nunca gatillado en CI ni en pre-push | No conforme | Media | `.husky/pre-push`: solo ejecuta `npm run validate`; `ci.yml` ubuntu-only. Cambios en `menubar/` nunca son validados automaticamente | Anadir job macOS al CI con `tuist generate && xcodebuild build -workspace BrewBar.xcworkspace -scheme BrewBar` |
+| Target `BrewBar` (app menubar macOS 14+) | Conforme | — | `menubar/Project.swift:53` | — |
+| Target `BrewBarTests` (XCTest) | Conforme | — | `menubar/Project.swift:93` | — |
+| Target `brew-tui` (npm CLI binary) | Conforme | — | `package.json:6-8`, `bin/brew-tui.js` | — |
+| Configuraciones Debug / Release en Project.swift | Conforme | — | `menubar/Project.swift:47-50` | — |
+| Debug desactiva `ENABLE_HARDENED_RUNTIME` | Parcial | Baja | `menubar/Project.swift:83-89` — deliberado para Xcode Preview; documentado en comentario | Mantener el comentario; verificar periodicamente que no se filtre a Release |
+| Separacion testing / produccion | Conforme | — | `BrewBarTests` usa `bundleId` propio y depende del target `BrewBar` como dependencia de test | — |
+| CI job `brewbar` usa `CODE_SIGN_IDENTITY="-"` | Conforme | — | `.github/workflows/ci.yml:51,63` — correcto para CI sin certificados de firmado | — |
+| Tuist no esta pinado en CI | Parcial | Media | `.github/workflows/ci.yml:38` — `curl -Ls https://install.tuist.io | bash` descarga la version mas reciente sin pinado; un breaking release de Tuist rompe el job `brewbar` silenciosamente | Pinnar Tuist en CI mediante `mise` o `asdf`, o especificando version en el comando curl; documentar version esperada |
 
 ---
 
@@ -38,30 +38,28 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 
 ### Checklist
 
-* [x] Swift language version correcta (6.0)
-* [x] Strict concurrency activada segun politica del proyecto (`SWIFT_STRICT_CONCURRENCY=complete`)
-* [x] Warnings relevantes tratados como errores donde proceda (`GCC_WARN_ABOUT_RETURN_TYPE=YES_ERROR`, `CLANG_WARN_DIRECT_OBJC_ISA_USAGE=YES_ERROR`, `CLANG_WARN_OBJC_ROOT_CLASS=YES_ERROR`)
-* [x] Optimizacion de Release correcta (`SWIFT_OPTIMIZATION_LEVEL=-O`, `SWIFT_COMPILATION_MODE=wholemodule`)
-* [x] No hay linker flags heredados innecesarios
-* [x] No hay paths hardcodeados locales
-* [x] Arquitecturas configuradas correctamente (sin restriccion `ARCHS`; el compilador selecciona arm64/x86_64 segun el SDK)
-* [ ] tsup target alineado con engines.node — **Baja**: `tsup.config.ts:9` declara `target: 'node18'`; `package.json:45` declara `engines.node >=22`
+* [x] Swift language version correcta — `SWIFT_VERSION=6.0` (`menubar/Project.swift:37`)
+* [x] Strict concurrency activada segun politica del proyecto — `SWIFT_STRICT_CONCURRENCY=complete` (`menubar/Project.swift:45`)
+* [ ] Warnings relevantes tratados como errores donde proceda — **Baja**: ESLint sobre TypeScript usa `warn` (no `error`) para `@typescript-eslint/no-unused-vars`; Swift no expone `SWIFT_TREAT_WARNINGS_AS_ERRORS` en el manifest
+* [x] Optimizacion de Release correcta — Swift Release usa configuracion `.release(name: "Release")` con `DEAD_CODE_STRIPPING=YES`; TypeScript bundlea con tsup target `node22` en modo produccion (`process.env.NODE_ENV=production`)
+* [x] No hay linker flags heredados innecesarios — `OTHER_CODE_SIGN_FLAGS` se limpia a `""` en Debug (`menubar/Project.swift:88`); ningun `OTHER_LDFLAGS` inusual detectado
+* [x] No hay paths hardcodeados locales — `/home/linuxbrew/.linuxbrew/bin/brew` en `BrewProcess.swift:29` es ruta canonica de Homebrew Linux (fallback documentado), no una ruta de desarrollador
+* [x] Arquitecturas configuradas correctamente — `destinations: .macOS` en Tuist; `target: 'node22'` en tsup; no se detectan exclusiones de arquitectura inconsistentes
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `SWIFT_VERSION=6.0` (Release y Debug) | Conforme | — | `project.pbxproj:514,613` | — |
-| `SWIFT_STRICT_CONCURRENCY=complete` (Release y Debug) | Conforme | — | `project.pbxproj:513,612` | — |
-| `SWIFT_OPTIMIZATION_LEVEL=-O` Release, `-Onone` Debug | Conforme | — | `project.pbxproj:546,674` | — |
-| `SWIFT_COMPILATION_MODE=wholemodule` Release, `singlefile` Debug | Conforme | — | `project.pbxproj:545,673` | — |
-| `ENABLE_USER_SCRIPT_SANDBOXING=YES` (ambas configuraciones) | Conforme | — | `project.pbxproj:499,591` | — |
-| `DEAD_CODE_STRIPPING=YES` | Conforme | — | `project.pbxproj:495,587` | — |
-| `VALIDATE_PRODUCT=YES` (Release) | Conforme | — | `project.pbxproj:515` | — |
-| `GCC_OPTIMIZATION_LEVEL=0` en Debug (nivel base) | Conforme | — | `project.pbxproj:595`; es el valor correcto para Debug | — |
-| `tsup target: node18` vs `engines.node >=22` | No conforme | Baja | `tsup.config.ts:9`: `target: 'node18'`; `package.json:45`: `"node": ">=22"`. La desincronizacion puede emitir polyfills/downleveling innecesarios | Alinear: cambiar `target` a `'node22'` en `tsup.config.ts` |
-| `OTHER_LDFLAGS` (todos los targets) | Conforme | — | `project.pbxproj:440,538,629,662`: unicamente `$(inherited)` y `-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)` — flag estandar del toolchain Swift | — |
-| `ARCHS` / `EXCLUDED_ARCHS` | Conforme | — | No declarados; se delega al SDK. Sin restricciones que bloqueen arm64 en dispositivos o simuladores | — |
+| `SWIFT_VERSION=6.0` | Conforme | — | `menubar/Project.swift:37` | — |
+| `SWIFT_STRICT_CONCURRENCY=complete` | Conforme | — | `menubar/Project.swift:45` | — |
+| `DEAD_CODE_STRIPPING=YES` | Conforme | — | `menubar/Project.swift:42` | — |
+| `ENABLE_USER_SCRIPT_SANDBOXING=YES` | Conforme | — | `menubar/Project.swift:43` — buena practica de seguridad de build | — |
+| TypeScript `strict: true` en tsconfig | Conforme | — | `tsconfig.json:8` | — |
+| TypeScript target `ES2022` + `NodeNext` | Conforme | — | `tsconfig.json:4-6` | — |
+| `@typescript-eslint/no-unused-vars` como `warn` (no `error`) | Parcial | Baja | `eslint.config.js:36` — variables no usadas no bloquean el build | Elevar a `error` o mantener politica documentada de forma consciente |
+| `tsup` sourcemap `hidden` en produccion | Conforme | — | `tsup.config.ts:12` — sourcemaps generados pero no referenciados en el bundle; correcto para debugging sin exposicion publica | — |
+| `__TEST_MODE__` y `APP_VERSION` definidos en build | Conforme | — | `tsup.config.ts:14-18`; `process.env.APP_VERSION` inyectado desde `package.json` | — |
+| `SWIFT_TREAT_WARNINGS_AS_ERRORS` no declarado | Parcial | Baja | `menubar/Project.swift` — la configuracion por defecto de Tuist no activa esta flag en Release; aumenta el riesgo de warnings silenciados | Valorar `"SWIFT_TREAT_WARNINGS_AS_ERRORS": "YES"` en la configuracion Release |
 
 ---
 
@@ -69,34 +67,28 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 
 ### Checklist
 
-* [x] Info.plist minimal y coherente
-* [x] No hay permisos de sistema innecesarios (`NS*UsageDescription`) — BrewBar no necesita camara, microfono, contactos ni ubicacion
-* [ ] Entitlements minimales — **Baja**: no hay `.entitlements` explicito; configuracion valida para Developer ID sin sandbox, pero no documentada en el repo
-* [x] Capabilities activadas solo si se usan
-* [x] Universal Links / Associated Domains — No aplica (BrewBar no tiene dominio web)
-* [x] App Groups — No aplica (`UserDefaults.standard` sin suiteName; no hay App Groups)
-* [x] Keychain Sharing — No aplica (sin `kSecAttrAccessGroup` en fuentes Swift)
-* [x] Background modes — No aplica; `SMAppService` + `SchedulerService` gestionan el scheduler sin entitlement `background-modes`
-* [ ] `NSPrivacyAccessedAPICategoryFileTimestamp` justificado — **Alta**: declarado en `PrivacyInfo.xcprivacy` sin API de timestamps de fichero en el codigo
+* [x] Info.plist minimo y coherente — generado por Tuist via `infoPlist: .extendingDefault(with:)`; contiene solo claves necesarias
+* [x] Permisos del sistema justificados — BrewBar no declara claves `NS*UsageDescription`; no accede a camara, microfono, ubicacion ni contactos
+* [x] Entitlements minimos necesarios — no existe archivo `.entitlements` separado; app Developer ID no-sandboxed; correcto para el caso de uso
+* [x] Capabilities activadas solo si se usan — `UNUserNotificationCenter` y `SMAppService` no requieren entitlements para apps Developer ID no-sandboxed en macOS
+* [x] Universal Links / Associated Domains — no aplica; no se usa
+* [x] App Groups — no se usan (`UserDefaults(suiteName:)` y `containerURL(forSecurityApplicationGroupIdentifier:)` ausentes en el codebase Swift)
+* [x] Keychain Sharing — no se usa (`kSecAttrAccessGroup` ausente en Swift sources)
+* [x] Background modes — no aplica; `LSUIElement: true` con polling propio; sin BGTaskScheduler
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `LSUIElement=true` | Conforme | — | `Project.swift:34`, `build/.../Info.plist:52`: sin icono Dock, solo menu bar | — |
-| `CFBundleIdentifier=com.molinesdesigns.brewbar` | Conforme | — | `project.pbxproj:542,666` | — |
-| `NSHumanReadableCopyright` | Conforme | — | `Project.swift:41`: `"MoLines Designs"` | — |
-| `CFBundleShortVersionString` | Conforme | — | `Project.swift:38`: `"$(MARKETING_VERSION)"` — valor correcto para produccion | — |
-| `CFBundleShortVersionString` en xcarchive en disco | No conforme | Baja | `menubar/build/BrewBar.xcarchive/Products/.../Info.plist:26`: `0.6.0`; `Project.swift:13` tiene `default=0.6.1`. El xcarchive en disco no fue regenerado tras el bump de version (directorio no esta en git, pero confirma que el ultimo release firmado fue `0.6.0`) | Excluir `menubar/build/` via `.gitignore`; regenerar xcarchive y firmarlo en CI para cada release |
-| `NSPrivacyAccessedAPICategoryFileTimestamp` (razon `C617.1`) | No conforme | Alta | `PrivacyInfo.xcprivacy:14-21`: declara acceso a timestamps de fichero. Busqueda exhaustiva en `menubar/BrewBar/Sources/**`: no se encontro ninguna llamada a `attributesOfItem`, `creationDate`, `modificationDate`, `contentModificationDate` ni `resourceValues(forKeys:)`. Los usos de `Date()` en el codigo son operaciones de tiempo puro, no acceso al filesystem | Eliminar el bloque `NSPrivacyAccessedAPICategoryFileTimestamp` del `PrivacyInfo.xcprivacy`; o anadir la API correspondiente si hay un caso de uso real no detectado |
-| `NSPrivacyAccessedAPICategoryUserDefaults` (razon `1C8F.1`) | Conforme | — | `PrivacyInfo.xcprivacy:7-13`. `UserDefaults.standard` extensamente usado en `SchedulerService.swift`, `AppDelegate.swift:90`, `AppState.swift:34` | — |
-| `NSPrivacyTracking=false` | Conforme | — | `PrivacyInfo.xcprivacy:26`: correcto; BrewBar no hace tracking de usuarios | — |
-| `NSPrivacyCollectedDataTypes=[]` | Conforme | — | `PrivacyInfo.xcprivacy:23-25`: array vacio; la app no declara recopilacion de datos | — |
-| Ausencia de `.entitlements` file para Release | Parcial | Baja | `Project.swift`: no hay `entitlementsPath` definido; `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` en Release. Para Developer ID sin sandbox es configuracion valida. Sin embargo, la ausencia de un archivo `.entitlements` explicito impide auditar capabilities. `SMAppService` en `AppDelegate.swift:94-95` puede requerir `com.apple.developer.login-items` — verificar si Developer ID lo negocia automaticamente | Crear `BrewBar/BrewBar.entitlements` con la lista explicita (aunque minima) y vincularlo en `Project.swift` via el parametro `entitlements:` |
-| `SMAppService` (Login Item) | Conforme | — | `AppDelegate.swift:94-95`, `SettingsView.swift:62-64`: uso correcto de `SMAppService.mainApp` para launch-at-login. API recomendada por Apple desde macOS 13 | — |
-| App Groups | No aplica | — | No hay uso de `UserDefaults(suiteName:)` ni `containerURL(forSecurityApplicationGroupIdentifier:)` | — |
-| Keychain Sharing | No aplica | — | No hay uso de `kSecAttrAccessGroup` en fuentes Swift | — |
-| UserNotifications | Conforme | — | `SchedulerService.swift:2`: import `UserNotifications`; `requestNotificationPermission()` y `UNUserNotificationCenter` en uso; notificaciones con identifier timestamped (fix en `0.6.1`) | — |
+| `LSUIElement: true` | Conforme | — | `menubar/Project.swift:60` — app sin icono en Dock; correcto para menubar | — |
+| `LSApplicationCategoryType: developer-tools` | Conforme | — | `menubar/Project.swift:61` | — |
+| Ausencia de `.entitlements` en app no-sandboxed | Conforme | — | `find menubar/ -name "*.entitlements"` retorna vacio; Developer ID no-sandboxed no requiere entitlements para `UNUserNotificationCenter` ni `SMAppService` | — |
+| `PrivacyInfo.xcprivacy` presente | Conforme | — | `menubar/BrewBar/Resources/PrivacyInfo.xcprivacy` — declara `NSPrivacyAccessedAPICategoryUserDefaults` con razon `1C8F.1`; `NSPrivacyTracking: false`; `NSPrivacyCollectedDataTypes: []` | — |
+| `NSHumanReadableCopyright` sin anio | Parcial | Baja | `menubar/Project.swift:67` — valor `"MoLines Designs"` sin anio de copyright; convenciones de App Store recomiendan incluir anio | Actualizar a `"© 2025 MoLines Designs"` o similar |
+| `ENABLE_HARDENED_RUNTIME=YES` en Release | Conforme | — | `menubar/Project.swift:76` — obligatorio para notarizacion; correcto | — |
+| `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` en Release | Conforme | — | `menubar/Project.swift:77` — correcto para Developer ID Manual signing | — |
+| `--timestamp` en `OTHER_CODE_SIGN_FLAGS` | Conforme | — | `menubar/Project.swift:78` — timestamp de Apple embebido; requerido para notarizacion | — |
+| `exportOptions.plist` existente localmente | Parcial | Baja | Archivo presente en disco pero gitignoreado; un clone limpio no puede ejecutar `release.sh` sin recrearlo manualmente. Contiene `teamID: GD6M44DYPQ` y `method: developer-id` | Documentar la estructura del archivo en `menubar/scripts/release.sh` o proporcionar una plantilla `exportOptions.plist.example` en el repo |
 
 ---
 
@@ -104,36 +96,48 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 
 ### Checklist
 
-* [ ] Secrets fuera del codigo fuente — **Alta**: `ENCRYPTION_SECRET` y `SCRYPT_SALT` hardcodeados en bundle npm; clave AES derivada hardcodeada en Swift
-* [x] Variables por entorno bien separadas (separacion estructural via build configs; no hay variables de entorno en el sentido clasico)
-* [ ] Configuracion local no filtrada al repo — **Media**: `dist-standalone/brew-tui-bun` (65 MB, binario Mach-O arm64) comprometido en git y no gitignoreado
-* [x] Feature flags auditados (implementacion interna via `feature-gate.ts`; sin servicios externos como LaunchDarkly)
-* [ ] Canales de distribucion sincronizados — **Alta**: Homebrew Formula en `0.5.3`, Homebrew Cask en `0.1.0`, JSR en `0.5.2`
+* [x] Secrets fuera del codigo fuente — no se encuentran API keys, tokens de autenticacion ni passwords hardcodeados en `src/`
+* [ ] Variables por entorno bien separadas — **Media**: no hay `.xcconfig`, `.env.example` ni separacion formal de configuracion por entorno; las URLs de produccion (Polar, promo API) estan hardcodeadas en el codigo fuente como constantes
+* [ ] Configuracion local no filtrada al repo — **Alta**: 198 archivos en `.playwright-mcp/` (110 snapshots YAML, 60 PNG, 26 logs, 2 MD) trackeados en git a pesar de estar listados en `.gitignore`; la regla se agregó despues del commit inicial
+* [x] Feature flags auditados — no se usa sistema de feature flags externo (LaunchDarkly, Firebase Remote Config); el gating de features se implementa via `PRO_VIEWS`/`TEAM_VIEWS` en `src/lib/license/feature-gate.ts` (codigo estatico compilado); no hay flags en runtime con estado mutable
+* [ ] Fallbacks seguros cuando falta configuracion — **Baja**: umbrales de cobertura en `vitest.config.ts` (50/60%) no se activan en CI porque `npm run validate` no invoca `--coverage`; configuracion declarada pero sin efecto real
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| `ENCRYPTION_SECRET='brew-tui-license-aes256gcm-v1'` en bundle npm | No conforme | Alta | `src/lib/license/license-manager.ts:78-79`: constantes literales compiladas en el bundle npm. Mitigado por revalidacion server-side (24h, Polar) y machine binding. Limitacion arquitectonica documentada en `license-manager.ts:71-77` y en `00-ficha.md` | Migrar a macOS Keychain (elimina el literal del bundle); ver seccion 13 para evaluacion completa del modelo de amenaza |
-| `ENCRYPTION_SECRET='brew-tui-sync-aes256gcm-v1'` en `sync/crypto.ts` | No conforme | Alta | `src/lib/sync/crypto.ts:6-7`: mismo patron que licencias pero sin machine binding (necesidad de diseno: las maquinas del mismo usuario deben compartir la clave). Cualquier usuario con el bundle puede intentar descifrar archivos de sync de iCloud si los conoce | Documentar explicitamente la limitacion de seguridad del sync. Alternativa: derivar la clave desde una passphrase del usuario o desde el Keychain en macOS |
-| Clave AES derivada hardcodeada en `LicenseChecker.swift:50` | No conforme | Alta | `menubar/BrewBar/Sources/Services/LicenseChecker.swift:50`: `let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"` — clave AES-256-GCM pre-derivada incrustada como hex literal en el binario Swift. Recuperable via `strings BrewBar \| grep 5c3b` sin necesidad del bundle npm | Si la migracion a Keychain no es inmediata, eliminar el valor pre-computado: re-derivar desde los literales en runtime (misma exposicion teorica, pero elimina el hex directo del binario) |
-| `POLAR_ORGANIZATION_ID` en `polar-api.ts:13` | Conforme | — | Comentario GOV-004 confirma que es un ID publico de organizacion Polar, no un secreto API | — |
-| `POLAR_CHECKOUT_URLS` en `polar-api.ts:27-31` y `en.ts:316-317` | Conforme | — | URLs de checkout publicas; exposicion intencional (mostradas al usuario en la UI) | — |
-| `dist-standalone/brew-tui-bun` comprometido en git | No conforme | Media | `git ls-files dist-standalone/brew-tui-bun`: archivo tracked. Binario Mach-O arm64 de 65 MB. No figura en `.gitignore` ni en `.npmignore`. No documentado en README. No hay fuga incremental de secretos (el bundle npm contiene los mismos literales), pero el artefacto ocupa 65 MB en el historial git sin procedencia verificable | Anadir `dist-standalone/` a `.gitignore` y `.npmignore`. Ejecutar `git rm --cached dist-standalone/brew-tui-bun`. Si se distribuye, hacerlo via GitHub Releases con SHA256 verificable |
-| `menubar/build/` no gitignoreado | Parcial | Media | `menubar/build/` contiene `BrewBar.xcarchive` y `derived/` en disco pero no esta comprometido actualmente (`git ls-files menubar/build/` vacio). `.gitignore:14` excluye `menubar/Derived/` y `menubar/DerivedData/` pero no `menubar/build/` — sin barrera para un commit accidental | Anadir `menubar/build/` a `.gitignore` |
-| Homebrew Formula `brew-tui.rb` en version `0.5.3` | No conforme | Alta | `homebrew/Formula/brew-tui.rb:3`: `url` apunta a `brew-tui-0.5.3.tgz`. Desincronizacion de 2 versiones menores respecto a `0.6.1`. Usuarios que instalen via `brew install` reciben version sin los fixes de `0.6.0` y `0.6.1` | Actualizar `url`, `sha256` y el test en `brew-tui.rb` a `0.6.1`. Incluir este paso en el checklist de `publish-all.sh` |
-| Homebrew Cask `brewbar.rb` en version `0.1.0` | No conforme | Alta | `homebrew/Casks/brewbar.rb:2`: `version "0.1.0"`. Brecha de 5 versiones menores respecto a `0.6.1`. Los usuarios del Cask instalan una version dramaticamente obsoleta | Actualizar `version` y `sha256` en `brewbar.rb` a `0.6.1`; verificar que el asset `BrewBar.app.zip` para `v0.6.1` existe en GitHub Releases con el SHA256 correcto |
-| `jsr.json` en version `0.5.2` | No conforme | Alta | `jsr.json:3`: `"version": "0.5.2"`. `publish-all.sh:26-33` ejecuta `jsr publish` o `deno publish` si el binario esta disponible. En el proximo release, JSR publicaria `0.5.2` mientras npm publicaria `0.6.1` | Sincronizar `jsr.json` version con `package.json`. Incluir esta sincronizacion en el script de release o automatizarla en `prepublishOnly` |
-| Repositorio URL mismatch | No conforme | Media | `package.json:17`: `"url": "git+https://github.com/MoLinesGitHub/Brew-TUI.git"`; `git remote -v`: `origin https://github.com/MoLinesDesigns/Brew-TUI.git`. URL en `package.json` apunta a usuario GitHub diferente al del remote real. Tambien afecta a `bugs.url` y `homepage` | Unificar el usuario GitHub (elegir entre `MoLinesGitHub` y `MoLinesDesigns`) y actualizar `package.json`, README, Formula, Cask y cualquier referencia hardcodeada |
-| Token npm en `/Users/molinesmac/Documents/Secrets/npm token.md` | Parcial | Media | `CLAUDE.md (global)` documenta la ubicacion del token npm en texto plano fuera del repositorio. El token no esta en el repo (correcto), pero almacenarlo en Markdown sin cifrar es suboptimo. Si el token expira sin aviso, `npm publish` falla silenciosamente | Almacenar el token en el Keychain de macOS (`security add-generic-password`) o en un gestor de secretos (1Password CLI, Bitwarden) |
-| Feature flags internos en `feature-gate.ts` | Conforme | — | `src/lib/license/feature-gate.ts`: `PRO_VIEWS` y `TEAM_VIEWS` son `Set<ViewId>` estaticos; sin servicio externo ni valores runtime | — |
-| `.env` excluido de git y npm | Conforme | — | `.gitignore:6-8`: `.env`, `.env.*`. `.npmignore:14`: `.env`, `.env.*` | — |
-| Certificados de firma excluidos de git | Conforme | — | `.gitignore:17-21`: `*.p12`, `*.cer`, `*.mobileprovision`, `AuthKey_*.p8` | — |
-| Licencia MIT verificada | Conforme | — | `LICENSE:1`: `MIT License`; `package.json:44`: `"license": "MIT"`; `homebrew/Formula/brew-tui.rb:6`: `license "MIT"` — coherentes | — |
-| `SECURITY.md` presente | Conforme | — | `SECURITY.md`: documenta scope, canal de reporte (GitHub private vulnerability reporting) y proceso de disclosure coordinado | Considerar anadir nota sobre el modelo de amenaza de las claves AES para que investigadores no lo reporten como vulnerabilidad nueva |
-| `.gitattributes` ausente | No conforme | Baja | `find /Volumes/SSD/Projects/Brew-TUI -maxdepth 2 -name ".gitattributes"`: no encontrado. Sin `.gitattributes`, no hay normalizacion de line endings, ni marcadores de binary para PNG, ni `export-ignore` para tarballs de GitHub | Crear `.gitattributes` con: `* text=auto`, binarios (`*.png`, `*.p12`) como `binary`, `export-ignore` para `scripts/`, `superaudit-report/`, `screenshots/` |
-| `exportOptions.plist` case mismatch con `.gitignore` | No conforme | Baja | `menubar/exportOptions.plist` (minuscula `e`) comprometido en git. `.gitignore:21` excluye `ExportOptions.plist` (mayuscula `E`). En filesystem macOS case-insensitive coinciden, pero en Linux CI (case-sensitive) el archivo se rastrea igualmente. Contenido actual (`method: none`) no filtra secretos pero crea confusion | Renombrar a `ExportOptions.plist` para coincidir con la regla del `.gitignore`, o excluir la variante en minuscula explicitamente |
-| `scripts/launch-posts.md` comprometido en git | Parcial | Baja | `git ls-files scripts/launch-posts.md`: tracked. Contiene `<your-jsr-token>` como placeholder (linea 232), no un token real. Es contenido operacional/marketing | Anadir `scripts/launch-posts.md` a `.gitignore` si se considera contenido privado |
+| `.playwright-mcp/` — 198 archivos trackeados en git | No conforme | Alta | `git ls-files .playwright-mcp/` — 110 archivos `.yml` (page snapshots), 60 `.png`, 26 `.log`, 2 `.md`; la regla en `.gitignore:34` existe pero no surte efecto sobre archivos ya indexados | Ejecutar `git rm -r --cached .playwright-mcp/` y hacer commit; la regla `.gitignore` ya existe, solo falta limpiar el indice |
+| `ENCRYPTION_SECRET` y `HKDF_SALT` en bundle publicado | Conforme | — | `src/lib/license/license-manager.ts:82-83` — documentado explicitamente (GOV-004, SEG-002): son publicos; el secreto real es el `machineId` local que nunca sale del dispositivo; la derivacion HKDF mezcla ambos | — |
+| URLs produccion hardcodeadas en codigo fuente | Parcial | Media | `src/lib/license/polar-api.ts:5` (`https://api.polar.sh/v1/...`), `src/lib/license/promo.ts:11` (`https://api.molinesdesigns.com/api/promo`) — constantes en el bundle publicado; no hay mecanismo de override sin recompilar | Aceptable para proyecto open-source sin entornos de staging; documentar que las URLs son constantes de produccion sin override en runtime |
+| No hay `.env.example` ni documentacion de variables de entorno | Parcial | Media | `find . -name ".env.example"` retorna vacio; el unico mecanismo de configuracion de entorno es `NOTARY_PROFILE` (env variable para `release.sh`) y `LOG_LEVEL` (para el logger), ambos sin documentacion de referencia centralizada | Crear `docs/env-vars.md` o seccion en README enumerando las variables de entorno reconocidas |
+| `NOTARY_PROFILE` gestionado via keychain (no env file) | Conforme | — | `menubar/scripts/release.sh:27` — requiere `xcrun notarytool store-credentials`; no se almacena en archivo plano | — |
+| Polar `ORGANIZATION_ID` y `PRODUCT_IDS` publicos en codigo | Conforme | — | `src/lib/license/polar-api.ts:10-19` — comentario GOV-004 los marca explicitamente como publicos (no secretos); son IDs de organizacion del dashboard de Polar | — |
+| Checkout URLs de Polar en codigo | Conforme | — | `src/lib/license/polar-api.ts:24-29` — URLs de checkout publicas; no son secretos | — |
+| npm token almacenado fuera del repo | Conforme | — | Referenciado en `CLAUDE.md` como `/Users/molinesmac/Documents/Secrets/npm token.md`; no trackeado en git | — |
+| `_legacyKey` (scrypt) pendiente de eliminar | Parcial | Baja | `src/lib/license/license-manager.ts:103-106` — comentario `TODO(SEG-003, 0.6.3)` indica que debia eliminarse cuando telemetria confirmara cero fallbacks; la version actual es 1.2.1 y el codigo sigue presente | Verificar telemetria y eliminar `_legacyKey` + `deriveLegacyKey()` si se confirman cero fallbacks; reduce superficie de ataque |
+| Umbrales de cobertura inactivos en CI | Parcial | Baja | `vitest.config.ts:24-31` — umbrales declarados (50/60%) pero `npm run validate` no pasa `--coverage`; el comentario `QA-004` documenta la intencion; el gate nunca dispara | Considerar job separado en CI con `--coverage` o remover los umbrales si no hay plan de activarlos |
+| Feature flags estaticos en `feature-gate.ts` | Conforme | — | `src/lib/license/feature-gate.ts` — `PRO_VIEWS` y `TEAM_VIEWS` como conjuntos estaticos compilados; sin estado mutable en runtime; modelo simple y auditado | — |
+| `.gitignore` excluye correctamente secretos de firma | Conforme | — | `.gitignore:13-29` — excluye `*.p12`, `*.cer`, `*.mobileprovision`, `AuthKey_*.p8`, `BrewBar.app.zip`, `BrewBar.app.zip.sha256`, `exportOptions.plist` | — |
+
+---
+
+## 2.5 Coherencia de versiones y canales de publicacion
+
+> Seccion adicional requerida por el contexto del proyecto dual (TypeScript + Swift) y multiples canales de distribucion.
+
+### Hallazgos
+
+| Elemento | Estado | Severidad | Evidencia | Accion |
+|----------|--------|-----------|-----------|--------|
+| Version coherente entre `package.json`, CHANGELOG y git tag | Conforme | — | `package.json:4` → `1.2.1`; `CHANGELOG.md:3` → `[1.2.1] - 2026-05-18`; ultimo tag → `v1.2.1` | — |
+| `MARKETING_VERSION` de BrewBar leido de `package.json` | Conforme | — | `menubar/Project.swift:11-27` — `readMarketingVersion()` parsea `package.json` en generate-time; fuente unica de verdad entre ambos productos | — |
+| `homebrew/Formula/brew-tui.rb` desactualizado | No conforme | Alta | `homebrew/Formula/brew-tui.rb:4` → version `0.7.0`; version publicada → `1.2.1`; diferencia de 9 releases. Este archivo es una copia local del tap canonical (`MoLinesDesigns/homebrew-tap`), no el archivo publicado, pero induce a error a cualquier contribuidor | Actualizar a 1.2.1 con el SHA256 del tarball publicado, o eliminar el directorio `homebrew/` del repo y documentar que el tap canonical esta en `MoLinesDesigns/homebrew-tap` |
+| `homebrew/Casks/brewbar.rb` desactualizado | No conforme | Alta | `homebrew/Casks/brewbar.rb:2` → version `0.7.0`; version publicada → `1.2.1`; diferencia de 9 releases | Misma accion que Formula: actualizar o eliminar la copia local |
+| `homebrew/macports/brew-tui.tcl` obsoleto y con referencias legacy | No conforme | Media | `homebrew/macports/brew-tui.tcl:7` → version `0.1.0`; checksums invalidos (`0000...`); `homebrew/macports/brew-tui.tcl:12` → `@MoLinesGitHub` (org legacy); `homebrew/macports/brew-tui.tcl:20` → `https://github.com/MoLinesGitHub/Brew-TUI` | Si MacPorts no es un canal activo, eliminar el archivo. Si lo es, actualizar version, checksums, maintainer y homepage |
+| `brew-tui` `DOWNLOAD_URL` en `brewbar-installer.ts` apunta a org correcta | Conforme | — | `src/lib/brewbar-installer.ts:14` → `https://github.com/MoLinesDesigns/Brew-TUI/releases/latest/download/BrewBar.app.zip` | — |
+| `.github/CODEOWNERS` usa handle legacy `@MoLinesGitHub` | No conforme | Alta | `.github/CODEOWNERS:1` → `* @MoLinesGitHub`; la org fue renombrada a `MoLinesDesigns`; las solicitudes de review automaticas fallan silenciosamente o se enrutan a un usuario que puede no tener acceso | Actualizar a `* @MoLinesDesigns` o al usuario/equipo correcto en la organizacion actual |
+| Dependabot no cubre Swift/Tuist | Parcial | Baja | `.github/dependabot.yml` — solo configura el ecosistema `npm`; no hay entrada para `swift` ni para la version de Tuist en CI | Valorar agregar monitoreo de actualizaciones de Tuist; Swift sin SPM externos actualmente no aplica |
+| `release.sh` no tiene paso de actualizacion del tap local | Parcial | Baja | `menubar/scripts/release.sh:91-95` — los "Next steps" son comentarios manuales; no hay automatizacion de bump de version en `homebrew/Formula/` ni `homebrew/Casks/` | Agregar instruccion explicita en release.sh o script auxiliar; mitigacion parcial si se elimina el directorio `homebrew/` local |
 
 ---
 
@@ -142,20 +146,15 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 | Severidad | Cantidad |
 |-----------|----------|
 | Critica | 0 |
-| Alta | 7 |
-| Media | 4 |
-| Baja | 6 |
+| Alta | 4 |
+| Media | 3 |
+| Baja | 8 |
 
-**Total hallazgos no conformes o parciales:** 17
+**Total hallazgos no conformes o parciales:** 15
 
-### Detalle hallazgos Alta (prioridad)
+### Hallazgos Alta por orden de prioridad
 
-Los 7 hallazgos de severidad Alta, distribuidos entre las secciones 2.1, 2.3 y 2.4:
-
-1. **CI pipeline BrewBar inexistente** (seccion 2.1) — `.github/workflows/ci.yml` ubuntu-only, sin ningun step Swift. La release de BrewBar es 100% manual.
-2. **`NSPrivacyAccessedAPICategoryFileTimestamp` sin justificacion** (seccion 2.3) — `PrivacyInfo.xcprivacy:14-21`: declarado sin ninguna llamada a APIs de timestamps de fichero en `menubar/BrewBar/Sources/**`.
-3. **`ENCRYPTION_SECRET` AES en bundle npm (licencias)** (seccion 2.4) — `src/lib/license/license-manager.ts:78-79`. Limitacion documentada; evaluar migracion a Keychain.
-4. **`ENCRYPTION_SECRET` AES en bundle npm (sync)** (seccion 2.4) — `src/lib/sync/crypto.ts:6-7`. Sin machine binding por diseno; limitacion de confidencialidad del sync iCloud.
-5. **Clave AES derivada hex en binario Swift** (seccion 2.4) — `menubar/BrewBar/Sources/Services/LicenseChecker.swift:50`. Recuperable via `strings` en el binario sin necesidad del bundle npm.
-6. **Homebrew Formula y Cask desactualizados** (seccion 2.4) — `brew-tui.rb:3` en `0.5.3` y `brewbar.rb:2` en `0.1.0` vs version publicada `0.6.1`.
-7. **`jsr.json` desactualizado** (seccion 2.4) — `jsr.json:3`: version `0.5.2` vs `0.6.1`; riesgo de publicacion de version obsoleta en proximo ciclo de release.
+1. `.playwright-mcp/` — 198 archivos trackeados en git (sesiones internas Playwright); accion: `git rm -r --cached .playwright-mcp/`
+2. `.github/CODEOWNERS` → `* @MoLinesGitHub`; handle legacy inactivo; reviews automaticos no funcionan
+3. `homebrew/Formula/brew-tui.rb` en repo a version 0.7.0 (publicada: 1.2.1); copia local 9 releases atrasada
+4. `homebrew/Casks/brewbar.rb` en repo a version 0.7.0 (publicada: 1.2.1); copia local 9 releases atrasada
