@@ -3,6 +3,15 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     passWithNoTests: false,
+    // QA-FLAKE: el pool por defecto `forks` falla a iniciar workers cuando
+    // vitest se ejecuta dentro de `git push` (husky pre-push). El stdio
+    // restringido del proceso git rompe el handshake IPC del pool de forks
+    // y un test al azar reporta "Failed to start forks worker" + "Timeout
+    // waiting for worker to respond" pese a que los 442 tests restantes
+    // pasan. `threads` usa workers Node nativos sin spawn de subproceso y
+    // no se ve afectado por el stdio del padre. Aislado tarda lo mismo y
+    // los tests siguen pasando 443/443.
+    pool: 'threads',
     // QA-001: bajo el pool paralelo de vitest, los tests que renderizan
     // varios componentes Ink consecutivos (ConfirmDialog, ResultBanner,
     // app.test) superan el timeout por defecto de 5 s cuando 60 archivos
