@@ -1,5 +1,0 @@
-[    1416ms] [WARNING] Datadog Browser SDK: No storage available for session. We will not send any data. @ https://www.producthunt.com/_next/static/chunks/0uln-8_dfcj_j.js:4
-[    1765ms] [ERROR] Not signed in with the identity provider. @ https://www.producthunt.com/:0
-[    2181ms] [INFO] Clear-Site-Data header on 'https://www.producthunt.com/v4/reset': Cleared data types: "cache". @ https://www.producthunt.com/:0
-[    2528ms] [ERROR] [GSI_LOGGER]: FedCM get() rejects with NetworkError: Error retrieving a token. @ https://accounts.google.com/gsi/client:85
-[   11233ms] [LOG] Download the Apollo DevTools for a better development experience: %s https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm @ https://www.producthunt.com/_next/static/chunks/12taf9njv~g1n.js:1

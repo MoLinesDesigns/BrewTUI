@@ -1,4 +1,0 @@
-[     418ms] [WARNING] Allow attribute will take precedence over 'allowfullscreen'. @ https://dev.to/:1150
-[   37099ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://dev.to/react-dates/lib/css/_datepicker.css:0
-[  328567ms] [WARNING] Allow attribute will take precedence over 'allowfullscreen'. @ :37
-[  328895ms] [ERROR] Permissions policy violation: compute-pressure is not allowed in this document. @ https://www.youtube.com/s/player/8456c9de/player_embed_es6.vflset/es_ES/base.js:5074

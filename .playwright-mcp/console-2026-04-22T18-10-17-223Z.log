@@ -1,3 +1,0 @@
-[     629ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://appleid.apple.com/auth/authorize?client_id=com.reddit.RedditAppleSSO&redirect_uri=https%3A%2F%2Fwww.reddit.com&response_type=code%20id_token&state=493724d03acf14e5570ecfed651effe0&scope=email&response_mode=web_message&frame_id=5de675d9-b6dd-4e89-978b-a56a20f1464c&m=12&v=1.5.6:0
-[   21996ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://appleid.apple.com/appleauth/auth/oauth/authorize:0
-[   23851ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://appleid.apple.com/appleauth/auth/oauth/authorize:0

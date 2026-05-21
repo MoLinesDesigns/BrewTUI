@@ -24,6 +24,12 @@
 * **Areas prioritarias:** Seguridad y privacidad (licencia, cifrado, canaries), calidad y cobertura de tests, gobierno del repo (bloat trackeado), arquitectura y limites de modulos, IPC TUI↔BrewBar
 * **Alcance excluido:** Ninguno (auditoria completa)
 
+## Nota de procedencia
+
+Tres secciones (`10-performance.md`, `12-screens.md`, `13-endpoints.md`) fueron redactadas por el orquestador con verificacion directa (Read/Grep), no por sus agentes especializados (`super-audit:performance-auditor`, `screen-auditor`, `endpoint-auditor`). Causa: el plugin `super-audit` registra el campo `Tools` de esos tres agentes en formato JSON-string (`["Read", ...]`) en lugar de lista plana, lo que les deja sin herramientas de lectura en runtime. Los reportes resultantes son verificados — no inferidos — pero conviene corregir el plugin para uniformizar el flujo en futuras auditorias. Bug pendiente.
+
+Una verificacion adicional post-consolidacion confirmo que SEG-001 del baseline (tokens npm en `.claude/settings.local.json`) **sigue activo** con 4 tokens explotables en lineas 56, 58, 140, 242. El delta (`99-delta-2026-05-01.md`) refleja esa correccion.
+
 ## Escala de severidad
 
 * **Critica**: riesgo de caida, fuga de datos, perdida de negocio o bloqueo de uso
