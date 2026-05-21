@@ -8,13 +8,17 @@ private let schedulerLogger = Logger(subsystem: "com.molinesdesigns.brewbar", ca
 @Observable
 final class SchedulerService {
     enum Interval: Int, CaseIterable, Sendable {
+        case thirtyMinutes = 1800
         case oneHour = 3600
+        case twoHours = 7200
         case fourHours = 14400
         case eightHours = 28800
 
         var label: String {
             switch self {
+            case .thirtyMinutes: String(localized: "Every 30 minutes")
             case .oneHour: String(localized: "Every hour")
+            case .twoHours: String(localized: "Every 2 hours")
             case .fourHours: String(localized: "Every 4 hours")
             case .eightHours: String(localized: "Every 8 hours")
             }

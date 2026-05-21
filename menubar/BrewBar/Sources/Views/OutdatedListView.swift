@@ -4,7 +4,6 @@ struct OutdatedListView: View {
     let appState: AppState
     @State private var showUpgradeAllConfirm = false
     @State private var packageToConfirm: OutdatedPackage?
-    @State private var upgradeTask: Task<Void, Never>?
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
@@ -31,7 +30,9 @@ struct OutdatedListView: View {
                         titleVisibility: .visible
                     ) {
                         Button(String(localized: "Upgrade All"), role: .destructive) {
-                            upgradeTask = Task { await appState.upgradeAll() }
+                            // Sin handle retenido: el popover puede ocultarse
+                            // (click fuera) y el upgrade debe completar igual.
+                            Task { await appState.upgradeAll() }
                         }
                         Button(String(localized: "Cancel"), role: .cancel) {}
                     }
@@ -51,7 +52,6 @@ struct OutdatedListView: View {
                 }
             }
         }
-        .onDisappear { upgradeTask?.cancel() }
     }
 
     private func packageRow(_ pkg: OutdatedPackage) -> some View {
@@ -110,7 +110,9 @@ struct OutdatedListView: View {
                     titleVisibility: .visible
                 ) {
                     Button(String(localized: "Upgrade"), role: .destructive) {
-                        upgradeTask = Task { await appState.upgrade(package: pkg.name) }
+                        // Sin handle retenido: el upgrade debe sobrevivir al
+                        // cierre del popover (click fuera, foco a otra app).
+                        Task { await appState.upgrade(package: pkg.name) }
                     }
                     Button(String(localized: "Cancel"), role: .cancel) {}
                 }

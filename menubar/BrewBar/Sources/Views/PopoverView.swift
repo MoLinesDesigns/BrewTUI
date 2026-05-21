@@ -6,7 +6,6 @@ struct PopoverView: View {
     let badgePreferences: BadgePreferences
 
     @State private var showSettings = false
-    @State private var refreshTask: Task<Void, Never>?
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
@@ -48,7 +47,9 @@ struct PopoverView: View {
         // UI-015: drop the fixed 420 minHeight so users with large Dynamic Type
         // sizes do not get content clipped at the bottom of the popover.
         .frame(minWidth: 340, maxWidth: 340)
-        .onDisappear { refreshTask?.cancel() }
+        // Intencional: no cancelamos tasks en onDisappear. El popover puede
+        // ocultarse (click fuera, foco a otra app) mientras un refresh/upgrade
+        // sigue en marcha; las operaciones viven en AppState y deben completar.
         .sheet(isPresented: $showSettings) {
             SettingsView(
                 scheduler: scheduler,
@@ -136,10 +137,10 @@ struct PopoverView: View {
             }
 
             Button {
-                // UI-008: cancel any in-flight refresh before launching a new
-                // one so two concurrent tasks cannot land in arbitrary order.
-                refreshTask?.cancel()
-                refreshTask = Task { await appState.refresh() }
+                // El guard `!isLoading` en AppState.refresh ya evita dobles
+                // refreshes simultáneos. No retenemos el handle: si el popover
+                // se cierra, el refresh debe terminar en background.
+                Task { await appState.refresh() }
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
@@ -172,10 +173,9 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button("Retry") {
-                // UI-008: cancel any in-flight refresh before launching a new
-                // one so two concurrent tasks cannot land in arbitrary order.
-                refreshTask?.cancel()
-                refreshTask = Task { await appState.refresh() }
+                // Sin handle retenido: si el popover se cierra el retry sigue
+                // en background. El guard `!isLoading` evita reentradas.
+                Task { await appState.refresh() }
             }
             Spacer()
         }

@@ -17,6 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var badgeTimer: Timer?
     private var launchTask: Task<Void, Never>?
     private var hostingController: NSHostingController<PopoverView>?
+    // Red de seguridad sobre `.transient`: en algunos escenarios (popover con
+    // foco forzado vía `makeKey()`, tasks largos corriendo, sheet de Settings
+    // dejando foco residual) el cierre automático en click fuera no dispara.
+    // Este monitor lo garantiza sin tocar el subprocess de brew — `performClose`
+    // solo oculta la UI; los Tasks viven en AppState y siguen ejecutándose.
+    private var clickOutsideMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningForPreviews else { return }
@@ -113,6 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         badgeTimer = nil
         scheduler.stop()
         LastActionMonitor.shared.stop()
+        removeClickOutsideMonitor()
     }
 
     // MARK: - Login item
@@ -300,10 +307,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem.button else { return }
 
         if popover.isShown {
-            popover.performClose(nil)
+            closePopover()
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
+            installClickOutsideMonitor()
+        }
+    }
+
+    private func closePopover() {
+        removeClickOutsideMonitor()
+        if popover.isShown {
+            popover.performClose(nil)
+        }
+    }
+
+    private func installClickOutsideMonitor() {
+        guard clickOutsideMonitor == nil else { return }
+        // Global monitor sólo dispara en clicks fuera de la app, justo lo que
+        // queremos. Clicks dentro del popover llegan como eventos locales y no
+        // entran por aquí — el popover sigue navegable.
+        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.closePopover()
+            }
+        }
+    }
+
+    private func removeClickOutsideMonitor() {
+        if let monitor = clickOutsideMonitor {
+            NSEvent.removeMonitor(monitor)
+            clickOutsideMonitor = nil
         }
     }
 }

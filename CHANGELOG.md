@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.0] - 2026-05-21
+
+### Added
+- **BrewBar: intervalos de verificación más finos** en Ajustes. Ahora ofrece
+  30 minutos y 2 horas además del set previo (1 h / 4 h / 8 h). Los
+  rawValues anteriores se conservan, así las preferencias guardadas siguen
+  mapeando sin migración.
+
+### Fixed
+- **BrewBar: el popover se cierra al hacer click fuera** sin abortar
+  procesos en curso. Se añadió un `NSEvent.addGlobalMonitorForEvents`
+  (`.leftMouseDown` + `.rightMouseDown`) como red de seguridad sobre el
+  `behavior = .transient` existente, que en ocasiones no disparaba el
+  cierre por foco residual de la sheet de Settings o por `makeKey()`.
+- **BrewBar: refresh y upgrade ya no se cancelan al ocultarse el popover.**
+  Se retiraron los `@State Task<Void, Never>?` que se cancelaban en
+  `onDisappear` de `PopoverView` y `OutdatedListView`; ahora las
+  operaciones viven exclusivamente en `AppState` y completan en
+  background. El guard `!isLoading` previene reentradas.
+
 ## [1.2.3] - 2026-05-21
 
 ### Added
