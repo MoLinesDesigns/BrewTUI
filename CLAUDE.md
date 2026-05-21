@@ -108,6 +108,7 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 - SourceKit errors in menubar/ are false positives until `tuist generate` creates the .xcworkspace.
 - After editing `Project.swift` (e.g. bumping `MARKETING_VERSION`), re-run `tuist generate` before building or releasing — the workspace caches build settings and `xcodebuild` will report the previous version otherwise.
 - BrewBar requires Brew-TUI installed; checked on launch via `which brew-tui` and known paths.
+- `installBrewBar()` detecta si BrewBar está corriendo (`pgrep -x BrewBar`), la cierra con `osascript … quit` (graceful, fallback `pkill` tras 3 s) **antes** de `ditto -xk`, y la relanza con `open -g -a` después. Sin esto el bundle se sustituye bajo un proceso vivo y queda en estado degradado. Aplica al subcomando `install-brewbar --force` y al auto-update del cold-start.
 
 ## Naming
 
@@ -175,6 +176,7 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - TUI clears the entire terminal (including scrollback) on startup for a clean display
 - Polar API endpoints require a trailing slash (e.g. `/v1/products/`); without it the API returns 307, and `curl -L` drops `Authorization` on the redirect so you get 405. Use the slash from the start.
 - Polar OpenAPI spec is public at `https://api.polar.sh/openapi.json` — quicker than docs for resolving request schemas.
+- `vitest.config.ts` usa `pool: 'threads'` deliberadamente. El default `forks` falla intermitentemente cuando vitest corre dentro de `git push` (husky pre-push): el stdio del proceso git rompe el handshake IPC de los forks y un test al azar reporta "Failed to start forks worker". `threads` no se ve afectado y además ejecuta el suite ~25× más rápido. No revertir sin entender esto.
 
 ## Commit hygiene
 - Never put specific prices, percentages or old→new price comparisons in commit messages or PR titles — git history is public and immutable. Use generic descriptions like `fix: align upgrade prompt with current pricing`.
@@ -187,7 +189,10 @@ All three channels must be updated on each release, in this order (auto-memory `
 1. `npm version <x.y.z> --no-git-tag-version` → `(cd menubar && tuist generate --no-open)` → commit + tag + push (pre-push runs validate).
 2. `NOTARY_PROFILE=brewbar-notary bash menubar/scripts/release.sh` — produces notarized `menubar/build/BrewBar.app.zip` + `.sha256`. Must run BEFORE the GH Release so the zip is available as an asset.
 3. `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI, attaching `BrewBar.app.zip` and `BrewBar.app.zip.sha256`.
-4. `npm publish` (prepublishOnly runs typecheck + build + lint).
+4. `npm publish` (prepublishOnly runs typecheck + build + lint + asset guard).
+   - **`prepublishOnly` también ejecuta `scripts/check-brewbar-release.mjs`** que aborta si la release `vX.Y.Z` no tiene `BrewBar.app.zip` + `.sha256` adjuntos. Bypass de emergencia: `SKIP_BREWBAR_CHECK=1 npm publish`. Este guard apareció tras 1.2.2 (release publicada sin assets → `install-brewbar` 404).
+   - **npm token**: el paquete tiene 2FA estricto. Los Automation tokens dan `HTTP 403: automation token was specified`. Usar **Granular Access Token sin "Bypass 2FA"**; `npm publish` disparará `npm login --auth-type=web` (passkey/Touch ID).
+   - **Crash libuv en Node 22**: durante `prepublishOnly` vitest puede abortar con `Assertion failed: (r == 1), function uv__stream_osx_interrupt_select`. Workaround: ejecutar a mano `npm run validate && npm run check:brewbar-release` y luego `npm publish --ignore-scripts`. La URL de auth web aparece censurada (`***`) si se ejecuta dentro de Claude Code; lanzar desde terminal nativa.
 5. Bump `MoLinesDesigns/homebrew-tap`: **both** `Formula/brew-tui.rb` (npm tarball SHA via `shasum -a 256` on the published `.tgz`) and `Casks/brewbar.rb` (BrewBar.app.zip SHA).
 - **Local tap clone:** `brew tap` already keeps it at `/opt/homebrew/Library/Taps/molinesdesigns/homebrew-tap`. Edit there and `git push origin main` — no need to clone elsewhere.
 - **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired.
