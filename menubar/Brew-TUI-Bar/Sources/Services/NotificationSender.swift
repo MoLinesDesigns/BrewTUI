@@ -27,7 +27,7 @@ struct NotificationSender: Notifying {
         content.title = String(localized: "Homebrew Updates")
         content.body = String(format: String(localized: "%lld packages can be updated."), Int64(count))
         content.sound = .default
-        post(content, idPrefix: "brewbar-outdated")
+        post(content, idPrefix: "brew-tui-bar-outdated")
     }
 
     func sendSyncNotification(machineCount: Int) {
@@ -39,7 +39,7 @@ struct NotificationSender: Notifying {
             Int64(machineCount)
         )
         content.sound = .default
-        post(content, idPrefix: "brewbar-sync")
+        post(content, idPrefix: "brew-tui-bar-sync")
     }
 
     func sendCVENotification(alerts: [CVEAlert]) {
@@ -66,7 +66,7 @@ struct NotificationSender: Notifying {
                 content.userInfo = ["cveId": worst.id]
             }
         }
-        post(content, idPrefix: "brewbar-cve")
+        post(content, idPrefix: "brew-tui-bar-cve")
     }
 
     private func post(_ content: UNMutableNotificationContent, idPrefix: String) {

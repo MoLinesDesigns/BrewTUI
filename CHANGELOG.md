@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.2.2] - 2026-05-25
+
+### Fixed
+- **Notification IDs internos del rename completados.** `NotificationSender`
+  todavía emitía notificaciones con prefixes `brewbar-outdated`,
+  `brewbar-sync` y `brewbar-cve` — residuo del rename de 2.0.0. Funcionalmente
+  equivalentes, pero los IDs aparecían como huellas legacy en cualquier
+  inspección del UNUserNotificationCenter. Ahora son `brew-tui-bar-*`.
+
+### Docs
+- Auditoría completa de `CLAUDE.md`: corregidos datos contradichos por el
+  código (instalación gratuita ya no exige Pro, 30 tests Swift escritos
+  donde el doc decía 0, `tuist clean` añadido como paso explícito del
+  release runbook), y añadidos los huecos de cobertura detectados
+  (aliases CLI deprecados, comando para ejecutar tests Swift, sección
+  Naming ampliada con Brew-TUI-Bar / brew-tui-bar / bundle ID, lógica
+  `wasEverActive` que discrimina Free vs Expired en el popover, y la
+  semántica de `_isPro` ignorado en `installBrewTUIBar`).
+
 ## [2.2.1] - 2026-05-25
 
 ### Fixed
