@@ -400,6 +400,7 @@ const en = {
   cli_brewtuibarForeignBundle: '\u2718 /Applications/Brew-TUI-Bar.app exists but its bundle ID is `{{id}}`, not com.molinesdesigns.brewtuibar. Refusing to touch a foreign app. Remove or rename it first.',
   postinstall_skipped: 'Note: Brew-TUI-Bar auto-install skipped: {{error}}',
   postinstall_manualHint: 'You can install it manually later with: brew-tui install-brew-tui-bar',
+  cli_versionMismatchWarning: '⚠ Brew-TUI-Bar {{installed}} is out of sync with this CLI ({{expected}}). It will be updated automatically the next time you run `brew-tui` or restart the app.',
   cli_deactivateRemoteFailed: '\u26A0 Warning: Could not reach the server to deactivate remotely. The license was removed locally but may still count as active.',
 
   // ── License degradation (Layer 15) ──

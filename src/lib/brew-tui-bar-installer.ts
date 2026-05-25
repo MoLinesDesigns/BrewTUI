@@ -31,8 +31,9 @@ export async function isBrewTUIBarInstalled(): Promise<boolean> {
 /// Reads CFBundleIdentifier of an installed .app bundle. Used to detect when
 /// another app has claimed a path we care about (e.g. a third-party clone at
 /// /Applications/Brew-TUI-Bar.app, or a foreign app sitting at the legacy
-/// /Applications/BrewBar.app path).
-async function bundleIdAt(appPath: string): Promise<string | null> {
+/// /Applications/BrewBar.app path). Exported so `doctor` can surface the
+/// installed bundle ID in its diagnostic dump.
+export async function bundleIdAt(appPath: string): Promise<string | null> {
   if (process.platform !== 'darwin') return null;
   try {
     const { stdout } = await execFileAsync('defaults', [
@@ -168,6 +169,33 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
   // EP-005: Track downloaded bytes during the stream
   let downloadedBytes = 0;
 
+  // Progress reporting: TTYs get an in-place \r-updated line; non-TTYs (e.g.
+  // brew install captures stdout into a log) get a chunked one-line-per-25%
+  // report so the log stays readable. Either way, callers see the install
+  // is progressing, not hanging.
+  const isTTY = process.stdout.isTTY ?? false;
+  let lastReportedQuarter = -1;
+
+  function reportProgress(): void {
+    const totalMB = contentLength > 0 ? (contentLength / 1024 / 1024).toFixed(1) : null;
+    const doneMB = (downloadedBytes / 1024 / 1024).toFixed(1);
+    const pct = contentLength > 0 ? Math.floor((downloadedBytes / contentLength) * 100) : -1;
+
+    if (isTTY) {
+      // Pad to 60 chars so the previous (possibly longer) line is fully erased.
+      const line = totalMB
+        ? `  ${doneMB} MB / ${totalMB} MB (${pct}%)`
+        : `  ${doneMB} MB`;
+      process.stdout.write('\r' + line.padEnd(60, ' '));
+    } else if (pct >= 0) {
+      const quarter = Math.floor(pct / 25);
+      if (quarter > lastReportedQuarter) {
+        lastReportedQuarter = quarter;
+        console.log(`  ${pct}% (${doneMB} MB / ${totalMB} MB)`);
+      }
+    }
+  }
+
   // Write to tmp file with byte counting
   const fileStream = createWriteStream(TMP_ZIP);
   const transformedBody = new ReadableStream({
@@ -183,6 +211,7 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
             return;
           }
           controller.enqueue(value);
+          reportProgress();
         }
         controller.close();
       } catch (err) {
@@ -191,6 +220,8 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
     },
   });
   await pipeline(transformedBody as unknown as NodeJS.ReadableStream, fileStream);
+  // Newline so the next log line ('✔ installed…') starts clean after the \r line.
+  if (isTTY) process.stdout.write('\n');
 
   // SEG-001: SHA-256 integrity check with proper error handling
   let expectedHash: string | null = null;

@@ -37,10 +37,22 @@ struct BrewChecker: Sendable {
         let data = try await BrewProcess.run(["outdated", "--json=v2"])
         let raw = try JSONDecoder().decode(OutdatedResponse.self, from: data)
         let filteredCasks = raw.casks.filter { !Self.selfCaskNames.contains($0.name) }
-        let result = OutdatedResponse(formulae: raw.formulae, casks: filteredCasks)
+        // Surface the self-update version to AppState so the popover can show
+        // a discrete "↑ self-update" indicator without polluting the outdated
+        // badge. Picks the highest-versioned self-cask in case both
+        // brew-tui-bar and the transitional brewbar coexist briefly.
+        let selfUpdateVersion = raw.casks
+            .filter { Self.selfCaskNames.contains($0.name) }
+            .map { $0.currentVersion }
+            .max()
+        let result = OutdatedResponse(
+            formulae: raw.formulae,
+            casks: filteredCasks,
+            selfUpdateVersion: selfUpdateVersion
+        )
         let suppressed = raw.casks.count - filteredCasks.count
         if suppressed > 0 {
-            brewCheckerLogger.info("Filtered \(suppressed, privacy: .public) self-cask entries from outdated list")
+            brewCheckerLogger.info("Filtered \(suppressed, privacy: .public) self-cask entries from outdated list (selfUpdateVersion=\(selfUpdateVersion ?? "nil", privacy: .public))")
         }
         brewCheckerLogger.info("Found \(result.formulae.count + result.casks.count) outdated packages")
         return result
