@@ -6,7 +6,7 @@
 // Non-fatal by design: any failure here only logs a warning and exits 0. We
 // never want a transient network / disk / permissions issue to break the npm
 // install itself.
-import { installBrewTUIBar, isBrewTUIBarInstalled, launchBrewTUIBar } from './lib/brew-tui-bar-installer.js';
+import { syncAndLaunchBrewTUIBar } from './lib/brew-tui-bar-installer.js';
 import { t } from './i18n/index.js';
 
 async function main(): Promise<void> {
@@ -24,12 +24,10 @@ async function main(): Promise<void> {
   }
 
   try {
-    if (!(await isBrewTUIBarInstalled())) {
-      console.log(t('cli_brewtuibarInstalling'));
-      await installBrewTUIBar(false, false);
-      console.log(t('cli_brewtuibarInstalled'));
-    }
-    await launchBrewTUIBar();
+    // Shared with the CLI cold-start path: installs when missing, reinstalls
+    // when outdated, then launches. So upgrading `brew-tui` (formula or npm)
+    // also brings Brew-TUI-Bar.app up to the matching version automatically.
+    await syncAndLaunchBrewTUIBar();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(t('postinstall_skipped', { error: message }));
