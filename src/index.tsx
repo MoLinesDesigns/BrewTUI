@@ -197,11 +197,7 @@ async function runCli() {
     return;
   }
 
-  if (command === 'install-brew-tui-bar' || command === 'install-brewbar') {
-    if (command === 'install-brewbar') {
-      // Legacy alias kept for one minor version (slated for removal in 2.1.0).
-      console.warn(t('cli_brewtuibarLegacyAlias', { legacy: command, current: 'install-brew-tui-bar' }));
-    }
+  if (command === 'install-brew-tui-bar') {
     const { installBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
     try {
       console.log(t('cli_brewtuibarInstalling'));
@@ -216,10 +212,7 @@ async function runCli() {
     return;
   }
 
-  if (command === 'uninstall-brew-tui-bar' || command === 'uninstall-brewbar') {
-    if (command === 'uninstall-brewbar') {
-      console.warn(t('cli_brewtuibarLegacyAlias', { legacy: command, current: 'uninstall-brew-tui-bar' }));
-    }
+  if (command === 'uninstall-brew-tui-bar') {
     const { uninstallBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
     try {
       await uninstallBrewTUIBar();

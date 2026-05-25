@@ -91,7 +91,9 @@ export async function runDoctor(): Promise<void> {
     console.log(format('Brew-TUI-Bar (macOS companion)', lines));
     console.log('');
 
-    // Legacy bundle from the BrewBar era
+    // Legacy bundle from the BrewBar era. As of 3.0.0 we no longer auto-clean
+    // it (the cask `brewbar` is `disable!` and the in-process cleanup helper
+    // was retired); the doctor still reports it so users can wipe it manually.
     if (await pathExists(LEGACY_APP_PATH)) {
       const legacyId = await bundleIdAt(LEGACY_APP_PATH);
       console.log(format('Legacy BrewBar.app', [
@@ -100,7 +102,7 @@ export async function runDoctor(): Promise<void> {
         {
           label: 'Note',
           value: legacyId === 'com.molinesdesigns.brewbar'
-            ? 'will be cleaned up on next `brew-tui install-brew-tui-bar`'
+            ? 'remove manually: rm -rf /Applications/BrewBar.app'
             : 'foreign app — not ours, not touching',
         },
       ]));
