@@ -294,17 +294,27 @@ struct PopoverView: View {
     }
 
     // UX-008: same Polar checkout the TUI surfaces from `POLAR_CHECKOUT_URLS`.
-    // Yearly Pro chosen as the default funnel — single SKU keeps copy short and
-    // the dropdown of plans lives on the Polar page anyway.
     private static let renewURL = URL(string: "https://buy.polar.sh/polar_cl_yQsiUeDelyyEQznbWffD1j77JAyP24ra7iEVQ22PA4h")!
     private static let monthlyURL = URL(string: "https://buy.polar.sh/polar_cl_QW1ZJ9887bU74drGr7JfujQfm3RKYnn1fuvc53DqD6D")!
-    private static let pricingURL = URL(string: "https://github.com/MoLinesDesigns/Brew-TUI#pro-features")!
+    /// Canonical pricing/landing page. Lives at molinesdesigns.com (formerly
+    /// linked to the GitHub README #pro-features anchor).
+    private static let pricingURL = URL(string: "https://molinesdesigns.com/brewtui/")!
+
+    /// Plan CTA colour family. Yearly is the saturated lila; monthly is a
+    /// lighter shade of the same hue so the secondary plan still reads as
+    /// "in the family" instead of muted gray. Both share the same shape.
+    private static let yearlyTint = Color(red: 0.45, green: 0.30, blue: 0.85)
+    private static let monthlyTint = Color(red: 0.70, green: 0.60, blue: 0.95)
+    private static let planCornerRadius: CGFloat = 30
+    private static let planVerticalPadding: CGFloat = 12
 
     private static let activateCommand = "brew-tui activate <your-license-key>"
 
     private var freeTierView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+        // No ScrollView: the popover is fixed at 340×420 and Free funnel must
+        // fit without the user having to scroll. Dynamic Type at accessibility
+        // sizes can still overflow — see the preview at the bottom for catch.
+        VStack(alignment: .leading, spacing: 10) {
                 // Header
                 HStack(spacing: 8) {
                     Image(systemName: "lock.fill")
@@ -324,8 +334,9 @@ struct PopoverView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isHeader)
 
-                // Features list
-                VStack(alignment: .leading, spacing: 6) {
+                // Features list — tight spacing so all five rows + label
+                // fit inside the fixed-height popover without scrolling.
+                VStack(alignment: .leading, spacing: 4) {
                     Text(String(localized: "Brew-TUI Pro unlocks:"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -336,8 +347,24 @@ struct PopoverView: View {
                     proFeatureRow(systemImage: "exclamationmark.shield", text: String(localized: "Security Audit (CVE)"))
                 }
 
-                // Plans
+                // Plans — monthly on top, yearly below. Both same size + shape;
+                // colour shift signals which is the headline plan without
+                // shouting it (yearly tint is more saturated).
                 VStack(spacing: 8) {
+                    Button {
+                        NSWorkspace.shared.open(Self.monthlyURL)
+                    } label: {
+                        Text(String(localized: "Subscribe Monthly — €9.95"))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Self.planVerticalPadding)
+                            .background(Self.monthlyTint)
+                            .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "Subscribe Monthly, 9 euros 95 cents"))
+
                     Button {
                         NSWorkspace.shared.open(Self.renewURL)
                     } label: {
@@ -346,62 +373,45 @@ struct PopoverView: View {
                                 .fontWeight(.semibold)
                             Text(String(localized: "save 31%"))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .opacity(0.85)
                         }
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, Self.planVerticalPadding)
+                        .background(Self.yearlyTint)
+                        .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(.plain)
                     .accessibilityLabel(String(localized: "Subscribe Yearly, 82 euros, save 31 percent"))
+                }
 
+                // Already have a license — compact one-row layout. The
+                // standalone "Already have a license?" header is gone; the
+                // monospaced box + copy button + the See-all-plans link sit
+                // together below the CTAs to free vertical space.
+                HStack(spacing: 6) {
+                    Text(verbatim: Self.activateCommand)
+                        .font(.system(.caption2, design: .monospaced))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.secondary.opacity(colorSchemeContrast == .increased ? 0.2 : 0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .truncationMode(.tail)
+                        .accessibilityLabel(String(localized: "Activate command"))
+                    Spacer()
                     Button {
-                        NSWorkspace.shared.open(Self.monthlyURL)
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(Self.activateCommand, forType: .string)
                     } label: {
-                        Text(String(localized: "Subscribe Monthly — €9.95"))
-                            .frame(maxWidth: .infinity)
+                        Image(systemName: "doc.on.doc")
+                            .frame(minWidth: 22, minHeight: 22)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
-                    .accessibilityLabel(String(localized: "Subscribe Monthly, 9 euros 95 cents"))
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(String(localized: "Copy activate command"))
                 }
-
-                Divider()
-
-                // Already have a license
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "Already have a license?"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 6) {
-                        Text(verbatim: Self.activateCommand)
-                            .font(.system(.caption, design: .monospaced))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.secondary.opacity(colorSchemeContrast == .increased ? 0.2 : 0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                            // Allow two lines + a tiny shrink before truncating —
-                            // keeps the command readable at large Dynamic Type
-                            // sizes instead of cutting to "brew-tui activ…".
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.85)
-                            .truncationMode(.tail)
-                            .accessibilityLabel(String(localized: "Activate command"))
-                        Spacer()
-                        Button {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(Self.activateCommand, forType: .string)
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                                .frame(minWidth: 22, minHeight: 22)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(String(localized: "Copy activate command"))
-                    }
-                }
-
-                Divider()
 
                 Button {
                     NSWorkspace.shared.open(Self.pricingURL)
@@ -412,15 +422,14 @@ struct PopoverView: View {
                         Image(systemName: "arrow.up.right")
                             .font(.caption)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
-                    .padding(.horizontal, 4)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel(String(localized: "See all plans on the website"))
             }
             .padding(12)
-        }
     }
 
     private func proFeatureRow(systemImage: String, text: String) -> some View {
