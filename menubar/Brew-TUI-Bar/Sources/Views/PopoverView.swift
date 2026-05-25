@@ -378,9 +378,13 @@ struct PopoverView: View {
                             .font(.system(.caption, design: .monospaced))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Color.secondary.opacity(0.1))
+                            .background(Color.secondary.opacity(colorSchemeContrast == .increased ? 0.2 : 0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
-                            .lineLimit(1)
+                            // Allow two lines + a tiny shrink before truncating —
+                            // keeps the command readable at large Dynamic Type
+                            // sizes instead of cutting to "brew-tui activ…".
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
                             .truncationMode(.tail)
                             .accessibilityLabel(String(localized: "Activate command"))
                         Spacer()
@@ -389,6 +393,8 @@ struct PopoverView: View {
                             NSPasteboard.general.setString(Self.activateCommand, forType: .string)
                         } label: {
                             Image(systemName: "doc.on.doc")
+                                .frame(minWidth: 22, minHeight: 22)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel(String(localized: "Copy activate command"))
@@ -406,6 +412,9 @@ struct PopoverView: View {
                         Image(systemName: "arrow.up.right")
                             .font(.caption)
                     }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel(String(localized: "See all plans on the website"))
@@ -608,3 +617,21 @@ struct PopoverView: View {
     )
     .environment(\.locale, Locale(identifier: "es"))
 }
+
+#Preview("Free tier / Accessibility size") {
+    // Visual regression catch for Dynamic Type at accessibility sizes —
+    // makes sure the upgrade funnel still fits / scrolls without clipping
+    // the CTAs or activate command box.
+    PopoverView(
+        appState: PreviewData.makeAppStateFreeTier(),
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
+    )
+    .environment(\.dynamicTypeSize, .accessibility3)
+}
+
+// Note: there's no public way to inject \.colorSchemeContrast in a preview
+// (the key path is read-only — SwiftUI derives it from the system). To
+// validate the high-contrast accent + activate-box background tweaks,
+// enable "Increase contrast" in System Settings > Accessibility > Display
+// and re-open the popover in the running app.
