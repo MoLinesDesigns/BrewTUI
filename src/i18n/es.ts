@@ -397,6 +397,8 @@ const es: Translations = {
   cli_brewtuibarVersionMismatch: '\u26A0 Brew-TUI-Bar {{installed}} no coincide con Brew-TUI {{expected}}. Ejecuta: brew-tui install-brew-tui-bar --force',
   cli_brewtuibarLegacyAlias: '\u26A0 `{{legacy}}` est\u00E1 obsoleto y se eliminar\u00E1 en 2.1.0. Usa `brew-tui {{current}}` en su lugar.',
   cli_brewtuibarForeignBundle: '\u2718 /Applications/Brew-TUI-Bar.app existe pero su bundle ID es `{{id}}`, no com.molinesdesigns.brewtuibar. No se tocar\u00E1 una app ajena. Elim\u00EDnala o ren\u00F3mbrala primero.',
+  postinstall_skipped: 'Nota: instalaci\u00F3n autom\u00E1tica de Brew-TUI-Bar saltada: {{error}}',
+  postinstall_manualHint: 'Puedes instalarla manualmente m\u00E1s tarde con: brew-tui install-brew-tui-bar',
   cli_deactivateRemoteFailed: '\u26A0 Advertencia: No se pudo contactar al servidor para desactivar remotamente. La licencia se elimin\u00F3 localmente pero puede seguir contando como activa.',
 
   // ── License degradation (Layer 15) ──
