@@ -67,9 +67,15 @@ launch_app() {
 
 cmd_status() {
   if [[ -f "$SENTINEL" ]]; then
-    local backup
-    backup=$(/usr/bin/grep -m1 'backup_path' "$SENTINEL" | sed -E 's/.*"backup_path": *"([^"]+)".*/\1/')
-    warn "Preview ACTIVE. Stashed license: $backup"
+    local raw_line backup
+    raw_line=$(/usr/bin/grep -m1 'backup_path' "$SENTINEL" || true)
+    backup=$(printf '%s' "$raw_line" | sed -E 's/.*"backup_path": *"([^"]*)".*/\1/')
+    if [[ "$backup" == "$raw_line" ]]; then backup=""; fi
+    if [[ -n "$backup" ]]; then
+      warn "Preview ACTIVE. Stashed license: $backup"
+    else
+      warn "Preview ACTIVE. No license was stashed (you were already Free)."
+    fi
     warn "Run \`$0 restore\` to roll back."
   else
     ok "No preview active — your real state is intact."
@@ -136,22 +142,36 @@ cmd_restore() {
     return 0
   fi
 
-  local backup
-  backup=$(/usr/bin/grep -m1 'backup_path' "$SENTINEL" | sed -E 's/.*"backup_path": *"([^"]+)".*/\1/')
+  # Parse backup_path from the sentinel. The regex permits an empty string
+  # (the case where `preview` was run while no license existed in the first
+  # place, so nothing was stashed). When the captured value is the original
+  # line unchanged, sed couldn't match — treat that as empty.
+  local raw_line backup
+  raw_line=$(/usr/bin/grep -m1 'backup_path' "$SENTINEL" || true)
+  backup=$(printf '%s' "$raw_line" | sed -E 's/.*"backup_path": *"([^"]*)".*/\1/')
+  if [[ "$backup" == "$raw_line" ]]; then
+    # sed didn't substitute — the line shape was unexpected.
+    backup=""
+  fi
 
   if [[ -n "$backup" && -f "$backup" ]]; then
     /bin/mv "$backup" "$LICENSE_PATH"
     ok "License restored from $backup → $LICENSE_PATH"
   elif [[ -n "$backup" ]]; then
     warn "Sentinel pointed at $backup but the file is missing."
-    warn "Searching $DATA_DIR for the most recent license.json.bak.* …"
+    warn "Searching $DATA_DIR for any license.json.bak* …"
+    # Match both license.json.bak.YYYYMMDD-HHMMSS (script-generated) and
+    # the bare license.json.bak (older manual flow).
     local newest
-    newest=$(/bin/ls -t "$DATA_DIR"/license.json.bak.* 2>/dev/null | /usr/bin/head -1 || true)
+    newest=$(/bin/ls -t "$DATA_DIR"/license.json.bak* 2>/dev/null | /usr/bin/head -1 || true)
     if [[ -n "$newest" ]]; then
       /bin/mv "$newest" "$LICENSE_PATH"
       ok "Recovered from $newest → $LICENSE_PATH"
     else
-      warn "No backup found. Your license is gone. Run \`brew-tui activate <key>\` to re-enter Pro."
+      warn "No backup found in $DATA_DIR."
+      warn "If you DID have Pro before running this, check Time Machine /"
+      warn "iCloud for license.json. Otherwise nothing was lost — you were"
+      warn "in Free state to begin with."
     fi
   else
     log "No license was stashed (you were already Free) — nothing to put back."
