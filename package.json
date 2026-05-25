@@ -1,6 +1,6 @@
 {
   "name": "brew-tui",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Brew-TUI — Visual TUI for Homebrew package management",
   "type": "module",
   "bin": {
