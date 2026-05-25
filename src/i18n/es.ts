@@ -390,7 +390,6 @@ const es: Translations = {
   cli_brewtuibarAlreadyInstalled: 'Brew-TUI-Bar ya est\u00E1 instalado. Usa --force para reinstalar.',
   cli_brewtuibarUninstalled: '\u2714 Brew-TUI-Bar eliminado de /Applications.',
   cli_brewtuibarNotInstalled: 'Brew-TUI-Bar no est\u00E1 instalado.',
-  cli_brewtuibarProRequired: '\u2718 Brew-TUI-Bar requiere una licencia Pro.\n  Ejecuta: brew-tui activate <clave>',
   cli_brewtuibarMacOnly: '\u2718 Brew-TUI-Bar solo est\u00E1 disponible en macOS.',
   cli_brewtuibarDownloadFailed: '\u2718 Error al descargar Brew-TUI-Bar: {{error}}',
   cli_brewtuibarAutoFailed: '\u26A0 No se pudo lanzar Brew-TUI-Bar automáticamente: {{error}}',

@@ -73,4 +73,14 @@ enum PreviewData {
         state.servicesError = servicesError
         return state
     }
+
+    /// AppState that mirrors the runtime configuration for a Free user
+    /// (license file missing). Used by the popover Free-tier preview.
+    @MainActor
+    static func makeAppStateFreeTier() -> AppState {
+        let state = AppState()
+        state.canUpgrade = false
+        state.licenseSummary = LicenseSummary(from: .notFound)
+        return state
+    }
 }

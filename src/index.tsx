@@ -188,12 +188,12 @@ async function runCli() {
       // Legacy alias kept for one minor version (slated for removal in 2.1.0).
       console.warn(t('cli_brewtuibarLegacyAlias', { legacy: command, current: 'install-brew-tui-bar' }));
     }
-    await useLicenseStore.getState().initialize();
-    const isPro = useLicenseStore.getState().isPro();
     const { installBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
     try {
       console.log(t('cli_brewtuibarInstalling'));
-      await installBrewTUIBar(isPro, arg === '--force');
+      // 2.1.0: no Pro gate — Free users get the bundle too and see the
+      // upgrade prompt in the popover.
+      await installBrewTUIBar(false, arg === '--force');
       console.log(t('cli_brewtuibarInstalled'));
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
@@ -245,8 +245,10 @@ async function runCli() {
 async function ensureBrewTUIBarRunning() {
   if (process.platform !== 'darwin') return;
 
+  // 2.1.0: install + launch for everyone on macOS (Free users see the upgrade
+  // prompt inside the app). The license store is still initialised so the
+  // version check below can read the right state, but no longer gates here.
   await useLicenseStore.getState().initialize();
-  if (!useLicenseStore.getState().isPro()) return;
 
   const { isBrewTUIBarInstalled, installBrewTUIBar, launchBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
   const { checkBrewTUIBarVersion } = await import('./lib/version-check.js');
@@ -254,7 +256,7 @@ async function ensureBrewTUIBarRunning() {
   try {
     if (!await isBrewTUIBarInstalled()) {
       console.log(t('cli_brewtuibarInstalling'));
-      await installBrewTUIBar(true, false);
+      await installBrewTUIBar(false, false);
       console.log(t('cli_brewtuibarInstalled'));
     } else {
       // Cross-platform contract: Brew-TUI-Bar must match Brew-TUI's version so
@@ -264,7 +266,7 @@ async function ensureBrewTUIBarRunning() {
       const status = await checkBrewTUIBarVersion();
       if (status.kind === 'outdated') {
         console.log(t('cli_brewtuibarUpdating', { installed: status.installed, expected: status.expected }));
-        await installBrewTUIBar(true, true);
+        await installBrewTUIBar(false, true);
         console.log(t('cli_brewtuibarInstalled'));
       }
     }

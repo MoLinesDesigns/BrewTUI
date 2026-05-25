@@ -59,6 +59,11 @@ struct LicenseSummary: Sendable, Equatable {
     }
 
     let tier: Tier
+    /// True when this user has had an active license at some point (current
+    /// or expired). Used by the popover to distinguish "never activated" (show
+    /// the upgrade funnel) from "expired" (show the smaller renewal banner on
+    /// top of the regular app UI).
+    let wasEverActive: Bool
     let email: String?
     let plan: String?
     let activatedAt: Date?
@@ -88,14 +93,25 @@ extension LicenseSummary {
         switch status {
         case let .pro(data, level):
             self.tier = .pro
+            self.wasEverActive = true
             self.email = data.customerEmail
             self.plan = data.plan
             self.activatedAt = LicenseChecker.parsePublicDate(data.activatedAt)
             self.expiresAt = data.expiresAt.flatMap(LicenseChecker.parsePublicDate)
             self.lastValidatedAt = LicenseChecker.parsePublicDate(data.lastValidatedAt)
             self.degradation = .init(level)
-        case .expired, .notFound:
+        case .expired:
             self.tier = .basic
+            self.wasEverActive = true
+            self.email = nil
+            self.plan = nil
+            self.activatedAt = nil
+            self.expiresAt = nil
+            self.lastValidatedAt = nil
+            self.degradation = .expired
+        case .notFound:
+            self.tier = .basic
+            self.wasEverActive = false
             self.email = nil
             self.plan = nil
             self.activatedAt = nil
