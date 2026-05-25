@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.1] - 2026-05-25
+
+### Fixed
+- **CLI `--version` reportaba `2.0.1` en 2.1.0.** El `npm publish` previo se
+  ejecutó con `--ignore-scripts` (para esquivar el crash libuv de Node 22
+  durante `prepublishOnly`), lo que también saltó el rebuild de `build/`.
+  Resultado: el tarball publicado tenía `package.json` v2.1.0 pero
+  `build/index.js` con `APP_VERSION="2.0.1"` hardcoded por `tsup` desde una
+  build anterior. 2.1.1 rebuilda manualmente antes del publish para
+  asegurar que el version string embebido coincide con el del paquete.
+
+### Internal
+- Sin cambios de código. Solo regenerar artefacto.
+
 ## [2.1.0] - 2026-05-25
 
 ### Changed
