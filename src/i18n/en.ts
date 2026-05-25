@@ -396,7 +396,6 @@ const en = {
   cli_brewtuibarAutoFailed: '\u26A0 Brew-TUI-Bar auto-launch failed: {{error}}',
   cli_brewtuibarUpdating: 'Updating Brew-TUI-Bar from {{installed}} to {{expected}} to match Brew-TUI...',
   cli_brewtuibarVersionMismatch: '\u26A0 Brew-TUI-Bar {{installed}} is out of sync with Brew-TUI {{expected}}. Run: brew-tui install-brew-tui-bar --force',
-  cli_brewtuibarLegacyAlias: '\u26A0 `{{legacy}}` is deprecated and will be removed in 2.1.0. Use `brew-tui {{current}}` instead.',
   cli_brewtuibarForeignBundle: '\u2718 /Applications/Brew-TUI-Bar.app exists but its bundle ID is `{{id}}`, not com.molinesdesigns.brewtuibar. Refusing to touch a foreign app. Remove or rename it first.',
   postinstall_skipped: 'Note: Brew-TUI-Bar auto-install skipped: {{error}}',
   postinstall_manualHint: 'You can install it manually later with: brew-tui install-brew-tui-bar',
