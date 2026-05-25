@@ -1,5 +1,48 @@
 # Changelog
 
+## [3.0.0] - 2026-05-26
+
+### Breaking
+- **Cask `brewbar` disabled.** El cask transicional que envolvía la migración
+  desde el rename de 2.0.0 (BrewBar → Brew-TUI-Bar) pasa de `deprecate!` a
+  `disable!`. Instalaciones existentes siguen funcionales hasta que el
+  usuario ejecute `brew uninstall --cask brewbar`; nuevos `brew install
+  --cask brewbar` quedan bloqueados con un mensaje que dirige al cask
+  canónico (`molinesdesigns/tap/brew-tui-bar`).
+- **Subcomandos CLI legacy retirados.** `brew-tui install-brewbar` y
+  `brew-tui uninstall-brewbar` (alias deprecados que llevaban un warning
+  desde 2.0.0) ya no se aceptan. La key i18n `cli_brewtuibarLegacyAlias`
+  y el branching `command === 'install-brewbar'` se han eliminado. Usa
+  `install-brew-tui-bar` / `uninstall-brew-tui-bar`.
+- **Auto-cleanup de `/Applications/BrewBar.app` retirado.** La función
+  `removeLegacyBundleIfOurs()` del instalador y los `LEGACY_APP_PATH /
+  LEGACY_BUNDLE_ID / LEGACY_PROCESS_NAME` se han eliminado. Cualquier
+  usuario que aún tenga `/Applications/BrewBar.app` lo verá listado por
+  `brew-tui doctor` con la instrucción `rm -rf /Applications/BrewBar.app`
+  para limpiarlo a mano; el TUI ya no la toca en cada install.
+
+### Added
+- **Deep-link `#pricing`** en el botón "See all plans" del popover Free
+  de Brew-TUI-Bar. El usuario aterriza directamente en los badges de
+  precios (Pro + Team) en lugar de tener que recorrer la cuadrícula de
+  features primero. Anchor añadido al article del Pro card en el repo
+  Website.
+- **Script de maintainer `scripts/polar-set-regional-prices.mjs`** para
+  alinear los prices regionales (USD/GBP/CAD/AUD) en Polar dashboard
+  via API. Tres modos: `list`, `plan` (dry-run), `apply`. Requiere
+  `POLAR_ACCESS_TOKEN` con permisos `products:read,write`. Reemplaza
+  el flujo manual click-a-click del dashboard.
+
+### Internal
+- `doctor` actualizado: la sección "Legacy BrewBar.app" sigue listando
+  el bundle viejo si existe pero la nota dice "remove manually:
+  rm -rf /Applications/BrewBar.app" en lugar de "will be cleaned up on
+  next install" (que ya no es cierto en 3.0.0).
+- `LegacyMigrator.swift` permanece intacto: la migración one-shot de
+  UserDefaults + Login Item del bundle ID viejo al nuevo sigue siendo
+  útil para cualquier usuario que llegue desde una versión 1.x sin
+  haber abierto Brew-TUI-Bar desde 2.0.0.
+
 ## [2.3.2] - 2026-05-26
 
 ### Changed
