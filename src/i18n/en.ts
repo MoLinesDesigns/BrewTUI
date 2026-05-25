@@ -391,7 +391,6 @@ const en = {
   cli_brewtuibarAlreadyInstalled: 'Brew-TUI-Bar is already installed. Use --force to reinstall.',
   cli_brewtuibarUninstalled: '\u2714 Brew-TUI-Bar removed from /Applications.',
   cli_brewtuibarNotInstalled: 'Brew-TUI-Bar is not installed.',
-  cli_brewtuibarProRequired: '\u2718 Brew-TUI-Bar requires a Pro license.\n  Run: brew-tui activate <key>',
   cli_brewtuibarMacOnly: '\u2718 Brew-TUI-Bar is only available on macOS.',
   cli_brewtuibarDownloadFailed: '\u2718 Failed to download Brew-TUI-Bar: {{error}}',
   cli_brewtuibarAutoFailed: '\u26A0 Brew-TUI-Bar auto-launch failed: {{error}}',

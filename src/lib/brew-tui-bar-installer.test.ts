@@ -84,10 +84,22 @@ describe('brew-tui-bar-installer: installBrewTUIBar gating', () => {
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/cli_brewtuibarMacOnly/);
   });
 
-  it('rejects when isPro is false', async () => {
+  // 2.1.0: Pro gate removed. Free users get the bundle and see the in-app
+  // upgrade prompt. We keep this test to pin that behaviour explicitly.
+  it('does not gate on isPro (Free users install the same bundle)', async () => {
     setPlatform('darwin');
+    mockAccess.mockRejectedValue(new Error('ENOENT')); // not installed
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: new ReadableStream({ start(c) { c.close(); } }),
+      headers: { get: () => '0' },
+    });
+    mockReadFile.mockResolvedValue(Buffer.from('zip-bytes'));
+    mockExecFile.mockResolvedValue('');
     const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
-    await expect(installBrewTUIBar(false, false)).rejects.toThrow(/cli_brewtuibarProRequired/);
+    // No throw on integrity guard alone — the SHA-256 check kicks in next,
+    // so we only assert that the early "ProRequired" guard is gone.
+    await expect(installBrewTUIBar(false, false)).rejects.not.toThrow(/cli_brewtuibarProRequired/);
   });
 
   it('rejects when already installed and force is false', async () => {

@@ -9,34 +9,46 @@ struct PopoverView: View {
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
+    /// True when the user has never activated Pro — show the upgrade funnel
+    /// instead of the regular Homebrew UI. Expired Pro licenses keep the full
+    /// UI plus the smaller renewal banner (basicModeView).
+    private var showsFreeFunnel: Bool {
+        guard let summary = appState.licenseSummary else { return false }
+        return summary.tier == .basic && !summary.wasEverActive
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
             Divider()
 
-            if let message = appState.lastActionMessage {
-                lastActionBanner(message)
-                Divider()
-            }
-
-            if appState.isLoading && appState.outdatedPackages.isEmpty {
-                loadingView
-            } else if let error = appState.error {
-                errorView(error)
-            } else if appState.outdatedPackages.isEmpty {
-                upToDateView
+            if showsFreeFunnel {
+                freeTierView
             } else {
-                OutdatedListView(appState: appState)
-            }
+                if let message = appState.lastActionMessage {
+                    lastActionBanner(message)
+                    Divider()
+                }
 
-            if !appState.errorServices.isEmpty || appState.servicesError != nil {
-                Divider()
-                servicesErrorView
-            }
+                if appState.isLoading && appState.outdatedPackages.isEmpty {
+                    loadingView
+                } else if let error = appState.error {
+                    errorView(error)
+                } else if appState.outdatedPackages.isEmpty {
+                    upToDateView
+                } else {
+                    OutdatedListView(appState: appState)
+                }
 
-            if !appState.canUpgrade {
-                Divider()
-                basicModeView
+                if !appState.errorServices.isEmpty || appState.servicesError != nil {
+                    Divider()
+                    servicesErrorView
+                }
+
+                if !appState.canUpgrade {
+                    Divider()
+                    basicModeView
+                }
             }
 
             Divider()
@@ -274,6 +286,135 @@ struct PopoverView: View {
     // Yearly Pro chosen as the default funnel — single SKU keeps copy short and
     // the dropdown of plans lives on the Polar page anyway.
     private static let renewURL = URL(string: "https://buy.polar.sh/polar_cl_yQsiUeDelyyEQznbWffD1j77JAyP24ra7iEVQ22PA4h")!
+    private static let monthlyURL = URL(string: "https://buy.polar.sh/polar_cl_QW1ZJ9887bU74drGr7JfujQfm3RKYnn1fuvc53DqD6D")!
+    private static let pricingURL = URL(string: "https://github.com/MoLinesDesigns/Brew-TUI#pro-features")!
+
+    private static let activateCommand = "brew-tui activate <your-license-key>"
+
+    private var freeTierView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                        .font(.title2)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "Unlock Brew-TUI-Bar"))
+                            .font(.headline)
+                            .fontWeight(legibilityWeight == .bold ? .bold : .semibold)
+                        Text(String(localized: "Brew-TUI-Bar is part of Brew-TUI Pro"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+
+                // Features list
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(String(localized: "Brew-TUI Pro unlocks:"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    proFeatureRow(systemImage: "menubar.rectangle", text: String(localized: "Brew-TUI-Bar (this menu bar app)"))
+                    proFeatureRow(systemImage: "doc.on.doc", text: String(localized: "Package Profiles"))
+                    proFeatureRow(systemImage: "trash.slash", text: String(localized: "Smart Cleanup"))
+                    proFeatureRow(systemImage: "clock.arrow.circlepath", text: String(localized: "Action History"))
+                    proFeatureRow(systemImage: "exclamationmark.shield", text: String(localized: "Security Audit (CVE)"))
+                }
+
+                // Plans
+                VStack(spacing: 8) {
+                    Button {
+                        NSWorkspace.shared.open(Self.renewURL)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text(String(localized: "Subscribe Yearly — €82"))
+                                .fontWeight(.semibold)
+                            Text(String(localized: "save 31%"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .accessibilityLabel(String(localized: "Subscribe Yearly, 82 euros, save 31 percent"))
+
+                    Button {
+                        NSWorkspace.shared.open(Self.monthlyURL)
+                    } label: {
+                        Text(String(localized: "Subscribe Monthly — €9.95"))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .accessibilityLabel(String(localized: "Subscribe Monthly, 9 euros 95 cents"))
+                }
+
+                Divider()
+
+                // Already have a license
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(String(localized: "Already have a license?"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Text(verbatim: Self.activateCommand)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.secondary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .accessibilityLabel(String(localized: "Activate command"))
+                        Spacer()
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(Self.activateCommand, forType: .string)
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(String(localized: "Copy activate command"))
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    NSWorkspace.shared.open(Self.pricingURL)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(String(localized: "See all plans"))
+                            .font(.caption)
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(String(localized: "See all plans on the website"))
+            }
+            .padding(12)
+        }
+    }
+
+    private func proFeatureRow(systemImage: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.caption)
+            Spacer()
+        }
+    }
 
     private var basicModeView: some View {
         HStack(spacing: 6) {
@@ -397,6 +538,23 @@ struct PopoverView: View {
 #Preview("Spanish / Up to Date") {
     PopoverView(
         appState: PreviewData.makeAppState(packages: []),
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
+    )
+    .environment(\.locale, Locale(identifier: "es"))
+}
+
+#Preview("Free tier") {
+    PopoverView(
+        appState: PreviewData.makeAppStateFreeTier(),
+        scheduler: PreviewData.makeScheduler(),
+        badgePreferences: BadgePreferences()
+    )
+}
+
+#Preview("Spanish / Free tier") {
+    PopoverView(
+        appState: PreviewData.makeAppStateFreeTier(),
         scheduler: PreviewData.makeScheduler(),
         badgePreferences: BadgePreferences()
     )

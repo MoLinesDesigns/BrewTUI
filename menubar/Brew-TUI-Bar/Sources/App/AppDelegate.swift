@@ -58,7 +58,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 showVersionMismatch(brewTui: brewTui, brewBar: brewBar)
             }
 
-            // Check Pro license
+            // Check Pro license. 2.1.0: .notFound no longer terminates — the
+            // popover shows an in-app upgrade prompt instead, so Free users
+            // get the same menu bar presence and click flow as Pro users.
             let licenseStatus = LicenseChecker.checkLicense()
             switch licenseStatus {
             case .pro:
@@ -70,8 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 showLicenseExpired()
                 // Continue in degraded mode — app stays open without Pro badge
             case .notFound:
-                showProRequired()
-                return
+                appState.canUpgrade = false
+                // No alert, no terminate. PopoverView renders freeTierView
+                // when licenseSummary.tier == .basic && !wasEverActive.
             }
 
             // Snapshot the license for the popover tier badge + Settings panel.
@@ -209,16 +212,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSPasteboard.general.setString("npm install -g brew-tui", forType: .string)
         }
 
-        NSApp.terminate(nil)
-    }
-
-    private func showProRequired() {
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Brew-TUI-Bar requires Pro")
-        alert.informativeText = String(localized: "Brew-TUI-Bar is a Pro feature. Activate your license with:\n\n  brew-tui activate <your-key>\n\nThen relaunch Brew-TUI-Bar.")
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: String(localized: "Quit"))
-        alert.runModal()
         NSApp.terminate(nil)
     }
 

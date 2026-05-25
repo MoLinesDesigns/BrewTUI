@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.1.0] - 2026-05-25
+
+### Changed
+- **Brew-TUI-Bar ahora se instala y ejecuta para usuarios Free.** Antes la
+  app exigía Pro y se cerraba al abrirla sin licencia. Ahora cualquier
+  usuario macOS la recibe automáticamente al primer `brew-tui` o
+  `brew-tui activate`, vive en la barra de menú igual que para Pro, y al
+  hacer click muestra un funnel de upgrade dentro del popover con la
+  lista de features Pro (Brew-TUI-Bar, Profiles, Smart Cleanup, History,
+  Security Audit), CTA destacado "Subscribe Yearly — €82 (save 31%)",
+  opción secundaria "Subscribe Monthly — €9.95", caja con el comando
+  `brew-tui activate <your-license-key>` y botón de copia, y enlace
+  "See all plans".
+- **Eliminados los gates Pro del CLI installer.** `installBrewTUIBar()` y
+  `ensureBrewTUIBarRunning()` ya no rechazan a Free users. El gate vive
+  exclusivamente dentro de la app, que ahora arranca en modo upgrade en
+  lugar de terminar con `NSApp.terminate(nil)`.
+- **`LicenseSummary` discrimina never-Pro vs expired** vía nuevo campo
+  `wasEverActive`. Free user (`.notFound`) ve el funnel completo;
+  Pro user con licencia caducada (`.expired`) sigue viendo la UI normal
+  con el banner pequeño de renovación al fondo.
+
+### Internal
+- 18 nuevas entradas en `Localizable.xcstrings` con traducciones EN+ES
+- `cli_brewtuibarProRequired` retirado de i18n (gate eliminado)
+- 2 previews Xcode nuevos para la vista Free (EN y ES)
+- `PreviewData.makeAppStateFreeTier()` helper para tests visuales
+
 ## [2.0.1] - 2026-05-25
 
 ### Changed

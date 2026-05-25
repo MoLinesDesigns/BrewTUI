@@ -128,15 +128,14 @@ async function quitBrewTUIBar(): Promise<void> {
   }
 }
 
-export async function installBrewTUIBar(isPro: boolean, force = false): Promise<void> {
+/// Install Brew-TUI-Bar. As of 2.1.0 we no longer gate on Pro: Free users get
+/// the bundle too and see the in-app upgrade prompt when they click the menu
+/// bar icon. The `_isPro` parameter is kept for backwards compatibility with
+/// existing call sites but is ignored.
+export async function installBrewTUIBar(_isPro: boolean, force = false): Promise<void> {
   // macOS only
   if (process.platform !== 'darwin') {
     throw new Error(t('cli_brewtuibarMacOnly'));
-  }
-
-  // Pro check
-  if (!isPro) {
-    throw new Error(t('cli_brewtuibarProRequired'));
   }
 
   // If an app already exists at our install path, verify it's ours before
