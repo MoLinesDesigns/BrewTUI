@@ -13,9 +13,6 @@ const execFileAsync = promisify(execFile);
 const BREWTUIBAR_APP_PATH = '/Applications/Brew-TUI-Bar.app';
 const BREWTUIBAR_BUNDLE_ID = 'com.molinesdesigns.brewtuibar';
 const BREWTUIBAR_PROCESS_NAME = 'Brew-TUI-Bar';
-const LEGACY_APP_PATH = '/Applications/BrewBar.app';
-const LEGACY_BUNDLE_ID = 'com.molinesdesigns.brewbar';
-const LEGACY_PROCESS_NAME = 'BrewBar';
 const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/Brew-TUI/releases/latest/download/Brew-TUI-Bar.app.zip';
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
@@ -49,49 +46,6 @@ export async function bundleIdAt(appPath: string): Promise<string | null> {
 
 async function installedBundleId(): Promise<string | null> {
   return bundleIdAt(BREWTUIBAR_APP_PATH);
-}
-
-/// Cleans up the legacy BrewBar.app bundle if present and owned by us. The
-/// cask transitional path handles this for `brew upgrade` users; this covers
-/// `brew-tui install-brew-tui-bar` and the npm cold-start auto-install. We
-/// only touch the bundle when its CFBundleIdentifier matches the legacy ID,
-/// so a foreign app at the same path is left alone.
-async function removeLegacyBundleIfOurs(): Promise<void> {
-  if (process.platform !== 'darwin') return;
-  try {
-    await access(LEGACY_APP_PATH);
-  } catch {
-    return;
-  }
-
-  const legacyId = await bundleIdAt(LEGACY_APP_PATH);
-  if (legacyId !== LEGACY_BUNDLE_ID) return; // not ours, leave it
-
-  // Quit the legacy process if it's running, then remove the bundle.
-  try {
-    const { stdout } = await execFileAsync('pgrep', ['-x', LEGACY_PROCESS_NAME]);
-    if (stdout.trim().length > 0) {
-      try {
-        await execFileAsync('osascript', ['-e', `tell application "${LEGACY_PROCESS_NAME}" to quit`]);
-      } catch { /* fall through to pkill */ }
-      for (let i = 0; i < 15; i++) {
-        try {
-          const { stdout: s } = await execFileAsync('pgrep', ['-x', LEGACY_PROCESS_NAME]);
-          if (s.trim().length === 0) break;
-        } catch {
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 200));
-      }
-      try {
-        await execFileAsync('pkill', ['-x', LEGACY_PROCESS_NAME]);
-      } catch { /* nothing to kill */ }
-    }
-  } catch {
-    /* pgrep exits 1 when no match — legacy app not running */
-  }
-
-  await rm(LEGACY_APP_PATH, { recursive: true, force: true });
 }
 
 /// Returns true if the Brew-TUI-Bar process is currently running.
@@ -260,10 +214,6 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
   if (wasRunning) {
     await quitBrewTUIBar();
   }
-
-  // Clean up the legacy BrewBar.app bundle if it's ours. The cask transitional
-  // path handles this on the brew upgrade side; this covers npm and cold-start.
-  await removeLegacyBundleIfOurs();
 
   // Remove old app if force reinstall
   if (force && await isBrewTUIBarInstalled()) {

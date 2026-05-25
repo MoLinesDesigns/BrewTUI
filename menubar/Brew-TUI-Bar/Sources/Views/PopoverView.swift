@@ -298,7 +298,10 @@ struct PopoverView: View {
     private static let monthlyURL = URL(string: "https://buy.polar.sh/polar_cl_QW1ZJ9887bU74drGr7JfujQfm3RKYnn1fuvc53DqD6D")!
     /// Canonical pricing/landing page. Lives at molinesdesigns.com (formerly
     /// linked to the GitHub README #pro-features anchor).
-    private static let pricingURL = URL(string: "https://molinesdesigns.com/brewtui/")!
+    // Deep-link to the pricing cards (Pro + Team) anchor on the landing page,
+    // so the user lands directly at the badges instead of having to scroll
+    // through the feature grid first.
+    private static let pricingURL = URL(string: "https://molinesdesigns.com/brewtui/#pricing")!
 
     /// Plan CTA colour family. Yearly is the saturated lila; monthly is a
     /// lighter shade of the same hue so the secondary plan still reads as
