@@ -165,13 +165,19 @@ export const useBrewStore = create<BrewState>((set, get) => ({
     }
 
     const store = get();
+    // PERF: keep fetchAll to the data Dashboard renders on the first frame.
+    // `brew doctor` (~4 s) and `brew leaves` (~1 s) were here historically
+    // but Dashboard reads neither — `doctorWarnings/doctorClean` is only
+    // consumed by `views/doctor.tsx` (lazy-fetched in its own useEffect),
+    // and `leaves` had no in-store consumer at all. Moving them out drops
+    // cold-start time from ~5 s to <1 s (dominated now by `brew config`
+    // at ~0.9 s). If a future view starts reading either from the store,
+    // restore its `fetchX()` call here or lazy-fetch from that view.
     fetchAllInFlight = Promise.all([
       store.fetchInstalled(),
       store.fetchOutdated(),
       store.fetchServices(),
       store.fetchConfig(),
-      store.fetchLeaves(),
-      store.fetchDoctor(),
     ]).then(() => undefined)
       .finally(() => {
         fetchAllInFlight = null;
