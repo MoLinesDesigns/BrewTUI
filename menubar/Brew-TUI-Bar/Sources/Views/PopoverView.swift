@@ -89,6 +89,18 @@ struct PopoverView: View {
             Text(verbatim: "Brew-TUI-Bar v\(bundleVersion)")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+            if let newVersion = appState.selfUpdateVersion {
+                Button {
+                    runSelfUpgrade()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                }
+                .buttonStyle(.borderless)
+                .help(String(format: String(localized: "Brew-TUI-Bar %@ is available — click to upgrade"), newVersion))
+                .accessibilityLabel(String(format: String(localized: "Self-update available, version %@"), newVersion))
+            }
             Text(verbatim: "·")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -102,8 +114,7 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(format: String(localized: "Brew-TUI-Bar version %@, tier %@"), bundleVersion, tierLabel))
+        .accessibilityElement(children: .contain)
     }
 
     private func lastActionBanner(_ message: String) -> some View {
@@ -476,6 +487,43 @@ struct PopoverView: View {
             ofItemAtPath: scriptURL.path
         )
         return scriptURL
+    }
+
+    /// Opens Terminal with `brew upgrade --cask brew-tui-bar`. Shares the
+    /// same .command-script pattern as `openBrewTUI` so the user sees the
+    /// brew output and we don't need to drive the upgrade in-process
+    /// (which would require quitting the app mid-upgrade).
+    private func runSelfUpgrade() {
+        do {
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("brew-tui-bar-upgrade", isDirectory: true)
+            try FileManager.default.createDirectory(at: tempURL, withIntermediateDirectories: true, attributes: nil)
+            let scriptURL = tempURL.appendingPathComponent("brew-tui-bar-upgrade.command")
+            let script = """
+            #!/bin/zsh
+            echo "Upgrading Brew-TUI-Bar via Homebrew..."
+            brew upgrade --cask brew-tui-bar
+            """
+            try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o755],
+                ofItemAtPath: scriptURL.path
+            )
+            guard NSWorkspace.shared.open(scriptURL) else {
+                throw NSError(
+                    domain: "Brew-TUI-Bar",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: String(localized: "Could not launch the upgrade in your terminal app.")]
+                )
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Could not upgrade Brew-TUI-Bar")
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: String(localized: "Continue"))
+            alert.runModal()
+        }
     }
 }
 

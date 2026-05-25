@@ -1,5 +1,57 @@
 # Changelog
 
+## [2.3.0] - 2026-05-25
+
+### Added
+- **Subcomando `brew-tui doctor`**: dump diagnóstico plano para soporte y
+  troubleshooting. Reporta versión del CLI, plataforma + Node, estado de
+  Brew-TUI-Bar (instalada, versión, sync vs CLI, bundle ID match, proceso
+  corriendo), legacy BrewBar.app si sigue ahí, estado de licencia (tier,
+  email, fechas, degradación), brew binary en PATH, presencia de machine-id.
+- **`brew-tui --version` ahora detecta mismatch** con Brew-TUI-Bar.app y emite
+  un warning a **stderr** (stdout sigue siendo solo la versión limpia, así
+  los scripts que parsean `$(brew-tui --version)` no se rompen).
+- **Progress bar durante el download de Brew-TUI-Bar.app.zip.** En TTYs
+  interactivos sobreescribe la línea con `\r` (`1.4 MB / 3.0 MB (47%)`);
+  en non-TTY (e.g. `brew install` capturando stdout) emite una línea
+  cada 25%. Antes el usuario veía "Downloading Brew-TUI-Bar..." y
+  silencio durante 3-15 segundos.
+- **Indicador `↑` de self-update en el popover de Brew-TUI-Bar.** Cuando
+  `brew outdated` reporta una versión nueva del propio cask (que se filtra
+  del badge para no confundir al usuario), el versionFooter del popover
+  muestra un icono pequeño junto a la versión actual. Click → abre Terminal
+  con `brew upgrade --cask brew-tui-bar`. Patrón mismo que "Open Brew-TUI".
+
+### Changed
+- **`LegacyMigrator` refactorizado para testabilidad.** `migrateUserDefaultsIfNeeded`
+  y `completePendingLoginItemMigration` aceptan dependencias inyectables
+  (UserDefaults, login-item closures) con defaults idénticos al comportamiento
+  de producción. Las constantes `migratedFlagKey` / `pendingLoginItemFlagKey` /
+  `legacyBundleId` / `migratedKeys` ahora son `nonisolated static let` para
+  poder usarse en default args sin Swift 6 isolation warnings.
+- **`OutdatedResponse.selfUpdateVersion`**: nuevo campo opcional poblado en
+  proceso por `BrewChecker.checkOutdated()` con la versión más alta de los
+  self-casks detectados (`brew-tui-bar` o el transicional `brewbar`).
+  Excluido del decoder JSON vía `CodingKeys`; AppState lo expone para el
+  indicador del popover.
+
+### Internal
+- **Tests del `LegacyMigrator`** (Swift Testing): 10 tests cubriendo legacy
+  plist presente/ausente, ya migrado, partial recovery sin clobber, flag
+  de login item set/unset, register success / already-enabled / throws.
+  Todos usan suite-name UUIDs aislados con teardown de
+  `removePersistentDomain` — no tocan los defaults reales del maintainer.
+- **Tests del `postinstall.ts`** (vitest): 6 tests cubriendo el gate
+  `npm_config_global`, el guard non-darwin, ejecución correcta, fallo
+  non-fatal con coerción de Error/string.
+- `src/postinstall.ts` refactorizado para exportar `runPostinstall()`
+  (testeable) con guard `import.meta.url === argv[1]` para invocación
+  como entry point.
+- `bundleIdAt(path)` ahora es exported desde `src/lib/brew-tui-bar-installer.ts`
+  para que `doctor` pueda reutilizarlo sin duplicar la lógica de
+  `defaults read … CFBundleIdentifier`.
+- Nuevo módulo `src/lib/doctor.ts` con la lógica del subcomando.
+
 ## [2.2.2] - 2026-05-25
 
 ### Fixed

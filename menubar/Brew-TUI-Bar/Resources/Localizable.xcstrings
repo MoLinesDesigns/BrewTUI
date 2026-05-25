@@ -1904,6 +1904,74 @@
           }
         }
       }
+    },
+    "Brew-TUI-Bar %@ is available — click to upgrade": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brew-TUI-Bar %@ is available — click to upgrade"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brew-TUI-Bar %@ disponible — haz click para actualizar"
+          }
+        }
+      }
+    },
+    "Self-update available, version %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Self-update available, version %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualización disponible, versión %@"
+          }
+        }
+      }
+    },
+    "Could not launch the upgrade in your terminal app.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not launch the upgrade in your terminal app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo lanzar la actualización en tu app de terminal."
+          }
+        }
+      }
+    },
+    "Could not upgrade Brew-TUI-Bar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not upgrade Brew-TUI-Bar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo actualizar Brew-TUI-Bar"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

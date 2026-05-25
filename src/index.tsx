@@ -15,8 +15,22 @@ const [,, command, arg] = process.argv;
 async function runCli() {
   // --version / -v: print and exit before any TUI/Ink/data-dir setup so that
   // Brew-TUI-Bar (and any tooling) can read the version cheaply via execFile.
+  // stdout stays a single bare version string for script compatibility; any
+  // diagnostics about a Brew-TUI-Bar version mismatch go to stderr only.
   if (command === '--version' || command === '-v' || command === 'version') {
-    process.stdout.write((process.env.APP_VERSION ?? '0.0.0') + '\n');
+    const cliVersion = process.env.APP_VERSION ?? '0.0.0';
+    process.stdout.write(cliVersion + '\n');
+    if (process.platform === 'darwin') {
+      try {
+        const { readBrewTUIBarVersion } = await import('./lib/version-check.js');
+        const appVersion = await readBrewTUIBarVersion();
+        if (appVersion && appVersion !== cliVersion) {
+          process.stderr.write(t('cli_versionMismatchWarning', { installed: appVersion, expected: cliVersion }) + '\n');
+        }
+      } catch {
+        // Best-effort. Never block --version on this.
+      }
+    }
     return;
   }
 
@@ -214,6 +228,12 @@ async function runCli() {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
+    return;
+  }
+
+  if (command === 'doctor') {
+    const { runDoctor } = await import('./lib/doctor.js');
+    await runDoctor();
     return;
   }
 

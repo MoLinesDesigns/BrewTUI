@@ -30,6 +30,12 @@ final class AppState {
     /// Version of the brew-tui CLI on PATH. Populated alongside the license at
     /// launch; shown in SettingsView's About section.
     var brewTuiCliVersion: String?
+    /// New Brew-TUI-Bar version detected by `brew outdated`. Surfaced as a
+    /// discrete `↑` indicator in the popover footer when non-nil; clicking
+    /// opens Terminal with `brew upgrade --cask brew-tui-bar`. Kept separate
+    /// from `outdatedPackages` so the self-cask never inflates the user-facing
+    /// outdated count.
+    var selfUpdateVersion: String?
 
     private let checker: any BrewChecking
 
@@ -69,6 +75,7 @@ final class AppState {
         do {
             let result = try await outdatedResult
             outdatedPackages = result.formulae + result.casks
+            selfUpdateVersion = result.selfUpdateVersion
             lastChecked = Date()
         } catch {
             appStateLogger.error("Outdated check failed: \(error.localizedDescription, privacy: .public) | \(String(describing: error), privacy: .public)")

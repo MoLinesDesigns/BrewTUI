@@ -22,14 +22,17 @@ private let migratorLogger = Logger(subsystem: "com.molinesdesigns.brewtuibar", 
 /// scheduler tries to send one.
 @MainActor
 enum LegacyMigrator {
-    private static let migratedFlagKey = "didMigrateFromLegacyBrewBar"
-    private static let pendingLoginItemFlagKey = "pendingLoginItemMigrationFromLegacyBrewBar"
-    private static let legacyBundleId = "com.molinesdesigns.brewbar"
+    // `nonisolated` so the default arguments below (which expand at the call
+    // site, possibly outside a MainActor context) can reference them without
+    // Swift 6 isolation warnings.
+    nonisolated static let migratedFlagKey = "didMigrateFromLegacyBrewBar"
+    nonisolated static let pendingLoginItemFlagKey = "pendingLoginItemMigrationFromLegacyBrewBar"
+    nonisolated static let legacyBundleId = "com.molinesdesigns.brewbar"
 
     /// All UserDefaults keys BrewBar wrote under the legacy bundle ID. Kept as
     /// a flat list (not derived from constants in each service) so removing a
     /// service in the future does not silently drop its key from migration.
-    private static let migratedKeys: [String] = [
+    nonisolated static let migratedKeys: [String] = [
         "checkInterval",
         "notificationsEnabled",
         "hasLaunchedBefore",
@@ -44,11 +47,18 @@ enum LegacyMigrator {
     ]
 
     /// Phase 1: UserDefaults. Safe to call from a stored-property initializer.
-    static func migrateUserDefaultsIfNeeded() {
-        let standard = UserDefaults.standard
+    ///
+    /// `standard` and `legacy` are injectable so tests can drive the migrator
+    /// against isolated suite-name domains without touching `.standard` or
+    /// the real legacy plist on disk. Default arguments preserve the
+    /// production contract — callers in the app pass nothing.
+    static func migrateUserDefaultsIfNeeded(
+        standard: UserDefaults = .standard,
+        legacy: UserDefaults? = UserDefaults(suiteName: legacyBundleId)
+    ) {
         guard !standard.bool(forKey: migratedFlagKey) else { return }
 
-        guard let legacy = UserDefaults(suiteName: legacyBundleId) else {
+        guard let legacy else {
             standard.set(true, forKey: migratedFlagKey)
             return
         }
@@ -86,13 +96,20 @@ enum LegacyMigrator {
 
     /// Phase 2: Login Item re-registration. Must be called after NSApp has
     /// been initialised — i.e. from `applicationDidFinishLaunching`.
-    static func completePendingLoginItemMigration() {
-        let standard = UserDefaults.standard
+    ///
+    /// `isLoginItemEnabled` + `registerLoginItem` are injectable so tests can
+    /// observe the call without touching `SMAppService.mainApp` (which would
+    /// affect the user's actual Login Items list).
+    static func completePendingLoginItemMigration(
+        standard: UserDefaults = .standard,
+        isLoginItemEnabled: () -> Bool = { SMAppService.mainApp.status == .enabled },
+        registerLoginItem: () throws -> Void = { try SMAppService.mainApp.register() }
+    ) {
         guard standard.bool(forKey: pendingLoginItemFlagKey) else { return }
 
         do {
-            if SMAppService.mainApp.status != .enabled {
-                try SMAppService.mainApp.register()
+            if !isLoginItemEnabled() {
+                try registerLoginItem()
                 migratorLogger.info("Re-registered Login Item under new bundle ID")
             }
             // Always clear the flag once we've tried successfully or the
