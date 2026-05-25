@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.2] - 2026-05-26
+
+### Changed
+- **Popover Free funnel — iteración visual.** El botón mensual pasa
+  arriba (era el secundario abajo); ambos comparten ahora forma, tamaño
+  y familia de color (variantes lila saturada / clara) en lugar del par
+  prominente + outlined del flow anterior. Corner radius 30. El layout
+  vertical se compacta para entrar en el popover de 340×420 sin scroll:
+  fuera el `ScrollView`, el header "Already have a license?" como bloque
+  separado, y el divider entre el comando y el "See all plans" link.
+- **Precios de Pro alineados con los productos vigentes en Polar.** La
+  copy del TUI (`upgrade_pricing`, `upgrade_proLabel`, account label) y
+  la del popover de Brew-TUI-Bar (CTA mensual + CTA anual + savings tag
+  + accessibility labels) ahora reflejan el pricing actual. Polar
+  checkout URLs intactas (apuntan a los mismos product IDs); el
+  maintainer mantiene los valores dentro de Polar.
+
 ## [2.3.1] - 2026-05-25
 
 ### Performance
