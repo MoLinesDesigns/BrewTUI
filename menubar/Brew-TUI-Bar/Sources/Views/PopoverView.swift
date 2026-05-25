@@ -354,7 +354,7 @@ struct PopoverView: View {
                     Button {
                         NSWorkspace.shared.open(Self.monthlyURL)
                     } label: {
-                        Text(String(localized: "Subscribe Monthly — €9.95"))
+                        Text(String(localized: "Subscribe Monthly — €5.45"))
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -363,15 +363,15 @@ struct PopoverView: View {
                             .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Subscribe Monthly, 9 euros 95 cents"))
+                    .accessibilityLabel(String(localized: "Subscribe Monthly, 5 euros 45 cents"))
 
                     Button {
                         NSWorkspace.shared.open(Self.renewURL)
                     } label: {
                         VStack(spacing: 2) {
-                            Text(String(localized: "Subscribe Yearly — €82"))
+                            Text(String(localized: "Subscribe Yearly — €48"))
                                 .fontWeight(.semibold)
-                            Text(String(localized: "save 31%"))
+                            Text(String(localized: "save 27%"))
                                 .font(.caption2)
                                 .opacity(0.85)
                         }
@@ -382,7 +382,7 @@ struct PopoverView: View {
                         .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Subscribe Yearly, 82 euros, save 31 percent"))
+                    .accessibilityLabel(String(localized: "Subscribe Yearly, 48 euros, save 27 percent"))
                 }
 
                 // Already have a license — compact one-row layout. The
