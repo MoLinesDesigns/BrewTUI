@@ -15,10 +15,10 @@ npm run lint         # eslint src/
 
 After build: `node bin/brew-tui.js` or `./bin/brew-tui.js` launches the TUI.
 
-**BrewBar (menubar/):**
+**Brew-TUI-Bar (menubar/):**
 ```bash
 cd menubar && tuist generate   # Generate Xcode project
-xcodebuild -workspace BrewBar.xcworkspace -scheme BrewBar build  # CLI build
+xcodebuild -workspace Brew-TUI-Bar.xcworkspace -scheme Brew-TUI-Bar build  # CLI build
 ```
 
 CLI subcommands (run without launching TUI):
@@ -27,9 +27,9 @@ brew-tui activate <key>    # Activate Pro license via Polar
 brew-tui revalidate        # Revalidate the current Pro license
 brew-tui deactivate        # Deactivate license on this machine
 brew-tui status            # Show evaluated license status
-brew-tui install-brewbar       # Download & install BrewBar menubar app (Pro only)
-brew-tui install-brewbar --force  # Reinstall BrewBar
-brew-tui uninstall-brewbar     # Remove BrewBar from /Applications
+brew-tui install-brew-tui-bar       # Download & install Brew-TUI-Bar menubar app (Pro only)
+brew-tui install-brew-tui-bar --force  # Reinstall Brew-TUI-Bar
+brew-tui uninstall-brew-tui-bar     # Remove Brew-TUI-Bar from /Applications
 brew-tui delete-account        # Remove all local data (~/.brew-tui/)
 ```
 
@@ -59,7 +59,7 @@ Per-view keys: each view adds its own `useInput` for `j`/`k` scroll, `Enter` sel
 
 **Critical seam — `useViewInput`** (`src/hooks/use-view-input.ts`): every view-level `useInput` MUST go through this wrapper. It suppresses the handler while `menuMode === true` so the side menu owns arrow keys without each view re-implementing the gate. Adding a new view? Use `useViewInput`, not bare `useInput`.
 
-**BrewBar handoff** (`src/lib/data-dir.ts:writeLastAction`): after every `brew upgrade`/`install`/`uninstall` from the TUI, call this with `{ timestamp, action, packages, remainingOutdated, source: 'brew-tui' }`. It writes `~/.brew-tui/last-action.json` atomically (tmp + rename) so BrewBar's `LastActionMonitor` (`menubar/BrewBar/Sources/Services/LastActionMonitor.swift`) picks it up via `DispatchSourceFileSystemObject` and fires `AppState.applyLastAction`. The watcher targets the parent directory (not the file) because rename invalidates a file-level descriptor.
+**Brew-TUI-Bar handoff** (`src/lib/data-dir.ts:writeLastAction`): after every `brew upgrade`/`install`/`uninstall` from the TUI, call this with `{ timestamp, action, packages, remainingOutdated, source: 'brew-tui' }`. It writes `~/.brew-tui/last-action.json` atomically (tmp + rename) so Brew-TUI-Bar's `LastActionMonitor` (`menubar/Brew-TUI-Bar/Sources/Services/LastActionMonitor.swift`) picks it up via `DispatchSourceFileSystemObject` and fires `AppState.applyLastAction`. The watcher targets the parent directory (not the file) because rename invalidates a file-level descriptor.
 
 ### Views
 
@@ -100,15 +100,15 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **Owner Pro accounts** are instead provisioned via a private free recurring "comp" product in Polar carrying the same `license_keys` benefit (see auto-memory `polar_perpetual_pro.md` for IDs).
 - **Promo codes:** `src/lib/license/promo.ts` — promotional code redemption via brewtui-api backend
 
-## BrewBar (menubar/)
+## Brew-TUI-Bar (menubar/)
 
 macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent from the TypeScript codebase — both call `brew` directly.
 - `menubar/Project.swift` — Tuist manifest. `LSUIElement: true` (no Dock icon).
 - `Tuist.swift` goes at `menubar/Tuist.swift` (root, not `Tuist/Config.swift` — deprecated).
 - SourceKit errors in menubar/ are false positives until `tuist generate` creates the .xcworkspace.
 - After editing `Project.swift` (e.g. bumping `MARKETING_VERSION`), re-run `tuist generate` before building or releasing — the workspace caches build settings and `xcodebuild` will report the previous version otherwise.
-- BrewBar requires Brew-TUI installed; checked on launch via `which brew-tui` and known paths.
-- `installBrewBar()` detecta si BrewBar está corriendo (`pgrep -x BrewBar`), la cierra con `osascript … quit` (graceful, fallback `pkill` tras 3 s) **antes** de `ditto -xk`, y la relanza con `open -g -a` después. Sin esto el bundle se sustituye bajo un proceso vivo y queda en estado degradado. Aplica al subcomando `install-brewbar --force` y al auto-update del cold-start.
+- Brew-TUI-Bar requires Brew-TUI installed; checked on launch via `which brew-tui` and known paths.
+- `installBrew-TUI-Bar()` detecta si Brew-TUI-Bar está corriendo (`pgrep -x Brew-TUI-Bar`), la cierra con `osascript … quit` (graceful, fallback `pkill` tras 3 s) **antes** de `ditto -xk`, y la relanza con `open -g -a` después. Sin esto el bundle se sustituye bajo un proceso vivo y queda en estado degradado. Aplica al subcomando `install-brew-tui-bar --force` y al auto-update del cold-start.
 
 ## Naming
 
@@ -126,11 +126,11 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 7. Add the label in `src/components/layout/header.tsx`
 8. If Pro-only: add the ViewId to `PRO_VIEWS` set in `src/lib/license/feature-gate.ts`. If Team-only: add to `TEAM_VIEWS` instead (separate tier from Pro)
 9. Add all user-facing strings to `src/i18n/en.ts` and `src/i18n/es.ts`
-10. If the view triggers a `brew upgrade`/`install`/`uninstall`, call `writeLastAction()` from `src/lib/data-dir.ts` after the stream succeeds so BrewBar's banner reflects it.
+10. If the view triggers a `brew upgrade`/`install`/`uninstall`, call `writeLastAction()` from `src/lib/data-dir.ts` after the stream succeeds so Brew-TUI-Bar's banner reflects it.
 
 ## Internationalization (i18n)
 
-Both Brew-TUI and BrewBar support English (en) and Spanish (es).
+Both Brew-TUI and Brew-TUI-Bar support English (en) and Spanish (es).
 
 ### TypeScript TUI
 - **Module:** `src/i18n/` — custom lightweight i18n (no external library)
@@ -143,15 +143,15 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - **Confirm dialog** accepts `y`/`Y` in English and `s`/`S` in Spanish for "yes"
 - Test locale: `LANG=es_ES.UTF-8 npm run dev`
 
-### Swift BrewBar
-- **String Catalog:** `menubar/BrewBar/Resources/Localizable.xcstrings` (en + es)
+### Swift Brew-TUI-Bar
+- **String Catalog:** `menubar/Brew-TUI-Bar/Resources/Localizable.xcstrings` (en + es)
 - SwiftUI views (`Text`, `Button`, `Label`, etc.) are auto-extracted — no code changes needed
 - Non-SwiftUI strings (NSAlert, notifications, error messages) use `String(localized:)`
 - Plurals use String Catalog plural variations (not manual ternary)
 
 ### Adding a new string
 1. **TUI:** Add key to `en.ts`, add translation to `es.ts`, use `t('key')` in code. `npm run typecheck` catches missing keys.
-2. **BrewBar:** For SwiftUI views, just write `Text("New string")`. For non-SwiftUI, use `String(localized: "New string")`. Add Spanish translation in `.xcstrings`.
+2. **Brew-TUI-Bar:** For SwiftUI views, just write `Text("New string")`. For non-SwiftUI, use `String(localized: "New string")`. Add Spanish translation in `.xcstrings`.
 
 ## Pre-push gate (Husky)
 
@@ -164,7 +164,7 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 - **Coverage:** parsers, license manager (degradation, AES round-trip, rate limiting, built-in accounts), canary functions, profile validation, Polar API (mocked), OSV API (mocked), brew-api validation, stores
 - **Mocking:** `vi.mock()` for modules, `vi.fn()` for functions, `vi.useFakeTimers()` for time-dependent tests
 - **UI tests:** `ink-testing-library` available but not yet in use for component rendering tests
-- **BrewBar:** Test target `BrewBarTests` defined in `Project.swift` — no tests written yet
+- **Brew-TUI-Bar:** Test target `Brew-TUI-BarTests` defined in `Project.swift` — no tests written yet
 
 ## Gotchas
 
@@ -187,14 +187,14 @@ Both Brew-TUI and BrewBar support English (en) and Spanish (es).
 
 All three channels must be updated on each release, in this order (auto-memory `release_pipeline.md` has the full step list):
 1. `npm version <x.y.z> --no-git-tag-version` → `(cd menubar && tuist generate --no-open)` → commit + tag + push (pre-push runs validate).
-2. `NOTARY_PROFILE=brewbar-notary bash menubar/scripts/release.sh` — produces notarized `menubar/build/BrewBar.app.zip` + `.sha256`. Must run BEFORE the GH Release so the zip is available as an asset.
-3. `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI, attaching `BrewBar.app.zip` and `BrewBar.app.zip.sha256`.
+2. `NOTARY_PROFILE=brewbar-notary bash menubar/scripts/release.sh` — produces notarized `menubar/build/Brew-TUI-Bar.app.zip` + `.sha256`. Must run BEFORE the GH Release so the zip is available as an asset.
+3. `gh release create vX.Y.Z` on MoLinesDesigns/Brew-TUI, attaching `Brew-TUI-Bar.app.zip` and `Brew-TUI-Bar.app.zip.sha256`.
 4. `npm publish` (prepublishOnly runs typecheck + build + lint + asset guard).
-   - **`prepublishOnly` también ejecuta `scripts/check-brewbar-release.mjs`** que aborta si la release `vX.Y.Z` no tiene `BrewBar.app.zip` + `.sha256` adjuntos. Bypass de emergencia: `SKIP_BREWBAR_CHECK=1 npm publish`. Este guard apareció tras 1.2.2 (release publicada sin assets → `install-brewbar` 404).
+   - **`prepublishOnly` también ejecuta `scripts/check-brewbar-release.mjs`** que aborta si la release `vX.Y.Z` no tiene `Brew-TUI-Bar.app.zip` + `.sha256` adjuntos. Bypass de emergencia: `SKIP_BREWBAR_CHECK=1 npm publish`. Este guard apareció tras 1.2.2 (release publicada sin assets → `install-brew-tui-bar` 404).
    - **npm token**: el paquete tiene 2FA estricto. Los Automation tokens dan `HTTP 403: automation token was specified`. Usar **Granular Access Token sin "Bypass 2FA"**; `npm publish` disparará `npm login --auth-type=web` (passkey/Touch ID).
    - **Crash libuv en Node 22**: durante `prepublishOnly` vitest puede abortar con `Assertion failed: (r == 1), function uv__stream_osx_interrupt_select`. Workaround: ejecutar a mano `npm run validate && npm run check:brewbar-release` y luego `npm publish --ignore-scripts`. La URL de auth web aparece censurada (`***`) si se ejecuta dentro de Claude Code; lanzar desde terminal nativa.
-5. Bump `MoLinesDesigns/homebrew-tap`: **both** `Formula/brew-tui.rb` (npm tarball SHA via `shasum -a 256` on the published `.tgz`) and `Casks/brewbar.rb` (BrewBar.app.zip SHA). El cask trae stanzas `uninstall_preflight` + `preflight` + `postflight` que cierran BrewBar viva y la relanzan tras `brew upgrade --cask brewbar` / `brew reinstall --cask brewbar` — **no tocar a la ligera**:
-   - Usar **flag file** (`/tmp/.brewbar-was-running.flag`) para pasar estado entre uninstall e install — `brew reinstall` los ejecuta en transacciones separadas y las variables de instancia del cask NO sobreviven.
+5. Bump `MoLinesDesigns/homebrew-tap`: **both** `Formula/brew-tui.rb` (npm tarball SHA via `shasum -a 256` on the published `.tgz`) and `Casks/brew-tui-bar.rb` (Brew-TUI-Bar.app.zip SHA). El cask trae stanzas `uninstall_preflight` + `preflight` + `postflight` que cierran Brew-TUI-Bar viva y la relanzan tras `brew upgrade --cask brew-tui-bar` / `brew reinstall --cask brew-tui-bar` — **no tocar a la ligera**:
+   - Usar **flag file** (`/tmp/.brew-tui-bar-was-running.flag`) para pasar estado entre uninstall e install — `brew reinstall` los ejecuta en transacciones separadas y las variables de instancia del cask NO sobreviven.
    - La fase uninstall usa el cask del **Caskroom** (versión instalada previamente), la fase install usa el cask del **tap**. Cambios al `uninstall_preflight` solo cobran efecto completo en el upgrade SIGUIENTE al que los introduce. `preflight` cubre el gap (idempotente con el flag check).
    - `system_command` por defecto trae `must_succeed: true`. Para `pgrep`/`pkill` (que pueden retornar exit 1 legítimamente) usar **`must_succeed: false`** o la stanza falla con `Failure while executing` y deja el cask roto a medias.
 - **Local tap clone:** `brew tap` already keeps it at `/opt/homebrew/Library/Taps/molinesdesigns/homebrew-tap`. Edit there and `git push origin main` — no need to clone elsewhere.

@@ -11,8 +11,8 @@ export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
 export const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 export const ONBOARDING_FLAG_PATH = join(DATA_DIR, 'onboarding-completed');
 export const ANALYTICS_CONSENT_PATH = join(DATA_DIR, 'analytics-consent');
-// Cross-process notification surface for BrewBar. Brew-TUI writes here after a
-// brew action completes; BrewBar watches the file with DispatchSource and shows
+// Cross-process notification surface for Brew-TUI-Bar. Brew-TUI writes here after a
+// brew action completes; Brew-TUI-Bar watches the file with DispatchSource and shows
 // a banner with the result + remaining outdated count.
 export const LAST_ACTION_PATH = join(DATA_DIR, 'last-action.json');
 

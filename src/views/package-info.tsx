@@ -84,7 +84,7 @@ export function PackageInfoView() {
         .then((f) => { if (mountedRef.current) { setFormula(f); } })
         .catch(() => { /* ignore refresh errors */ });
 
-      // BrewBar handoff for upgrade/install/uninstall actions started here.
+      // Brew-TUI-Bar handoff for upgrade/install/uninstall actions started here.
       // Refetch the outdated list so remainingOutdated is accurate, then write.
       const action = activeActionRef.current;
       if (action === 'upgrade' || action === 'install' || action === 'uninstall') {

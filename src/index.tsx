@@ -14,7 +14,7 @@ const [,, command, arg] = process.argv;
 
 async function runCli() {
   // --version / -v: print and exit before any TUI/Ink/data-dir setup so that
-  // BrewBar (and any tooling) can read the version cheaply via execFile.
+  // Brew-TUI-Bar (and any tooling) can read the version cheaply via execFile.
   if (command === '--version' || command === '-v' || command === 'version') {
     process.stdout.write((process.env.APP_VERSION ?? '0.0.0') + '\n');
     return;
@@ -179,14 +179,18 @@ async function runCli() {
     return;
   }
 
-  if (command === 'install-brewbar') {
+  if (command === 'install-brew-tui-bar' || command === 'install-brewbar') {
+    if (command === 'install-brewbar') {
+      // Legacy alias kept for one minor version (slated for removal in 2.1.0).
+      console.warn(t('cli_brewtuibarLegacyAlias', { legacy: command, current: 'install-brew-tui-bar' }));
+    }
     await useLicenseStore.getState().initialize();
     const isPro = useLicenseStore.getState().isPro();
-    const { installBrewBar } = await import('./lib/brewbar-installer.js');
+    const { installBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
     try {
-      console.log(t('cli_brewbarInstalling'));
-      await installBrewBar(isPro, arg === '--force');
-      console.log(t('cli_brewbarInstalled'));
+      console.log(t('cli_brewtuibarInstalling'));
+      await installBrewTUIBar(isPro, arg === '--force');
+      console.log(t('cli_brewtuibarInstalled'));
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
@@ -194,11 +198,14 @@ async function runCli() {
     return;
   }
 
-  if (command === 'uninstall-brewbar') {
-    const { uninstallBrewBar } = await import('./lib/brewbar-installer.js');
+  if (command === 'uninstall-brew-tui-bar' || command === 'uninstall-brewbar') {
+    if (command === 'uninstall-brewbar') {
+      console.warn(t('cli_brewtuibarLegacyAlias', { legacy: command, current: 'uninstall-brew-tui-bar' }));
+    }
+    const { uninstallBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
     try {
-      await uninstallBrewBar();
-      console.log(t('cli_brewbarUninstalled'));
+      await uninstallBrewTUIBar();
+      console.log(t('cli_brewtuibarUninstalled'));
     } catch (err) {
       console.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
@@ -220,9 +227,9 @@ async function runCli() {
     return;
   }
 
-  // Auto-install + auto-launch BrewBar for Pro users on macOS.
+  // Auto-install + auto-launch Brew-TUI-Bar for Pro users on macOS.
   // Runs before the TUI clears the screen so progress messages are visible on cold install.
-  await ensureBrewBarRunning();
+  await ensureBrewTUIBarRunning();
 
   // Default: launch TUI. Mark TUI mode so the logger redirects to a file
   // instead of stdout/stderr (which would corrupt the Ink-rendered frame).
@@ -231,36 +238,36 @@ async function runCli() {
   render(<App />);
 }
 
-async function ensureBrewBarRunning() {
+async function ensureBrewTUIBarRunning() {
   if (process.platform !== 'darwin') return;
 
   await useLicenseStore.getState().initialize();
   if (!useLicenseStore.getState().isPro()) return;
 
-  const { isBrewBarInstalled, installBrewBar, launchBrewBar } = await import('./lib/brewbar-installer.js');
-  const { checkBrewBarVersion } = await import('./lib/version-check.js');
+  const { isBrewTUIBarInstalled, installBrewTUIBar, launchBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
+  const { checkBrewTUIBarVersion } = await import('./lib/version-check.js');
 
   try {
-    if (!await isBrewBarInstalled()) {
-      console.log(t('cli_brewbarInstalling'));
-      await installBrewBar(true, false);
-      console.log(t('cli_brewbarInstalled'));
+    if (!await isBrewTUIBarInstalled()) {
+      console.log(t('cli_brewtuibarInstalling'));
+      await installBrewTUIBar(true, false);
+      console.log(t('cli_brewtuibarInstalled'));
     } else {
-      // Cross-platform contract: BrewBar must match Brew-TUI's version so
+      // Cross-platform contract: Brew-TUI-Bar must match Brew-TUI's version so
       // license decryption and any future IPC stay compatible. If the user's
-      // BrewBar is older than this CLI (e.g. they upgraded brew-tui via
-      // Homebrew/npm but never re-ran install-brewbar), reinstall in place.
-      const status = await checkBrewBarVersion();
+      // Brew-TUI-Bar is older than this CLI (e.g. they upgraded brew-tui via
+      // Homebrew/npm but never re-ran install-brew-tui-bar), reinstall in place.
+      const status = await checkBrewTUIBarVersion();
       if (status.kind === 'outdated') {
-        console.log(t('cli_brewbarUpdating', { installed: status.installed, expected: status.expected }));
-        await installBrewBar(true, true);
-        console.log(t('cli_brewbarInstalled'));
+        console.log(t('cli_brewtuibarUpdating', { installed: status.installed, expected: status.expected }));
+        await installBrewTUIBar(true, true);
+        console.log(t('cli_brewtuibarInstalled'));
       }
     }
-    await launchBrewBar();
+    await launchBrewTUIBar();
   } catch (err) {
     // Non-fatal: log a single line and continue to TUI so brew-tui stays usable.
-    console.warn(t('cli_brewbarAutoFailed', { error: err instanceof Error ? err.message : String(err) }));
+    console.warn(t('cli_brewtuibarAutoFailed', { error: err instanceof Error ? err.message : String(err) }));
   }
 }
 
