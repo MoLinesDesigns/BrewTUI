@@ -42,13 +42,11 @@ describe('brew-store fetchAll', () => {
     const outdated = deferred<{ formulae: never[]; casks: never[] }>();
     const services = deferred<never[]>();
     const config = deferred<{ HOMEBREW_VERSION: string; HOMEBREW_PREFIX: string; coreUpdated: string }>();
-    const leaves = deferred<never[]>();
 
     mockGetInstalled.mockReturnValueOnce(installed.promise);
     mockGetOutdated.mockReturnValueOnce(outdated.promise);
     mockGetServices.mockReturnValueOnce(services.promise);
     mockGetConfig.mockReturnValueOnce(config.promise);
-    mockGetLeaves.mockReturnValueOnce(leaves.promise);
 
     const { useBrewStore } = await import('./brew-store.js');
 
@@ -60,13 +58,14 @@ describe('brew-store fetchAll', () => {
     expect(mockGetOutdated).toHaveBeenCalledTimes(1);
     expect(mockGetServices).toHaveBeenCalledTimes(1);
     expect(mockGetConfig).toHaveBeenCalledTimes(1);
-    expect(mockGetLeaves).toHaveBeenCalledTimes(1);
+    // PERF: getLeaves was moved out of fetchAll because no view consumed
+    // the store value. It is now lazy-fetched if a future caller needs it.
+    expect(mockGetLeaves).not.toHaveBeenCalled();
 
     installed.resolve({ formulae: [], casks: [] });
     outdated.resolve({ formulae: [], casks: [] });
     services.resolve([]);
     config.resolve({ HOMEBREW_VERSION: '1.0.0', HOMEBREW_PREFIX: '/opt/homebrew', coreUpdated: 'today' });
-    leaves.resolve([]);
 
     await Promise.all([first, second]);
   });
@@ -82,6 +81,6 @@ describe('brew-store fetchAll', () => {
     expect(mockGetOutdated).toHaveBeenCalledTimes(2);
     expect(mockGetServices).toHaveBeenCalledTimes(2);
     expect(mockGetConfig).toHaveBeenCalledTimes(2);
-    expect(mockGetLeaves).toHaveBeenCalledTimes(2);
+    expect(mockGetLeaves).not.toHaveBeenCalled();
   });
 });
