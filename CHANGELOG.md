@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.2.0] - 2026-05-25
+
+### Added
+- **Instalación + lanzamiento automático de Brew-TUI-Bar en macOS al instalar
+  el CLI globalmente.** Ahora `brew install brew-tui` (que internamente hace
+  `npm install --global`) o `npm install -g brew-tui` ejecutan un script
+  `postinstall` que descarga `/Applications/Brew-TUI-Bar.app` desde la GH
+  Release y lo lanza con `open -g -a`. El usuario ve el icono en la barra
+  de menú sin pasos extras.
+  - No-op fuera de macOS (`process.platform !== 'darwin'` → return)
+  - No-op en instalaciones locales (`npm_config_global !== 'true'` → return),
+    así que clonar el repo para desarrollo no toca `/Applications`
+  - Non-fatal por diseño: cualquier fallo de red, permisos o disco solo
+    imprime un warning con el comando `brew-tui install-brew-tui-bar` como
+    fallback, nunca rompe el install
+  - Se ejecuta para usuarios Free y Pro (2.1.0 quitó el gate Pro en el
+    installer); Free users ven la vista de upgrade en el popover
+
+### Internal
+- Nuevo entry `src/postinstall.ts` añadido a `tsup.config.ts`. tsup genera
+  `build/postinstall.js` separado del `build/index.js` del CLI
+- `package.json` declara `"postinstall": "node build/postinstall.js"`
+- Dos nuevas i18n keys (en + es): `postinstall_skipped`, `postinstall_manualHint`
+
 ## [2.1.1] - 2026-05-25
 
 ### Fixed

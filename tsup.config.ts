@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
-  entry: ['src/index.tsx'],
+  entry: ['src/index.tsx', 'src/postinstall.ts'],
   format: ['esm'],
   target: 'node22',
   outDir: 'build',
