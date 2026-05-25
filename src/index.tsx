@@ -36,6 +36,10 @@ async function runCli() {
       if (license.expiresAt) {
         console.log(t('cli_expires', { date: formatDate(license.expiresAt) }));
       }
+      // The user just became Pro — install + launch Brew-TUI-Bar now instead
+      // of waiting for the next `brew-tui` invocation. No-op on non-macOS and
+      // safe on failure (the cold-start path on the next run will retry).
+      await ensureBrewTUIBarRunning();
     } catch (err) {
       console.error(t('cli_activationFailed', { error: err instanceof Error ? err.message : String(err) }));
       process.exit(1);
