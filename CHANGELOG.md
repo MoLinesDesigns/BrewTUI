@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.3.1] - 2026-05-25
+
+### Performance
+- **Cold-start del TUI ~4 s más rápido.** `fetchAll()` arrancaba `brew doctor`
+  (~4 s) y `brew leaves` (~1 s) en paralelo con el resto, aunque la pantalla
+  inicial (Dashboard) no leía ninguno de los dos del store. Ahora solo se
+  lanzan los cuatro que Dashboard renderiza (`installed`, `outdated`,
+  `services`, `config`); `doctor.tsx` ya hacía su propio `useEffect →
+  fetchDoctor()` al montar, así que no hay regresión funcional. `leaves`
+  no tenía consumidor del store — sigue disponible vía `fetchLeaves()` si
+  algún futuro view lo necesita.
+
+### Accessibility
+- **Free funnel del popover Brew-TUI-Bar** auditado y refinado:
+  - El comando `brew-tui activate <your-license-key>` ya no se trunca a
+    `brew-tui activ…` con Dynamic Type grande (`lineLimit(2)` +
+    `minimumScaleFactor(0.85)`).
+  - El background del bloque del comando dobla su opacidad bajo "Increase
+    Contrast" para seguir siendo visible.
+  - Botones secundarios (Copy command, See all plans) ganan `frame(min: 22)`
+    + `contentShape(Rectangle())` para llegar al 22 pt mínimo que Apple HIG
+    recomienda en macOS.
+  - Nuevo preview en Xcode Canvas a `dynamicTypeSize(.accessibility3)` como
+    regression catch visual.
+
 ## [2.3.0] - 2026-05-25
 
 ### Added
