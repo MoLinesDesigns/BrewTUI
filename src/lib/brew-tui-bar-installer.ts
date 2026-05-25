@@ -268,6 +268,37 @@ export async function launchBrewTUIBar(): Promise<void> {
   }
 }
 
+/// One-shot "install if missing, update if outdated, launch" flow shared by
+/// the CLI cold-start (`ensureBrewTUIBarRunning`) and the npm postinstall.
+/// All errors are swallowed and logged as warnings — callers should never
+/// have their install/launch fail just because the menu bar app is unhappy.
+export async function syncAndLaunchBrewTUIBar(): Promise<void> {
+  if (process.platform !== 'darwin') return;
+
+  const { checkBrewTUIBarVersion } = await import('./version-check.js');
+
+  try {
+    if (!(await isBrewTUIBarInstalled())) {
+      console.log(t('cli_brewtuibarInstalling'));
+      await installBrewTUIBar(false, false);
+      console.log(t('cli_brewtuibarInstalled'));
+    } else {
+      // Reinstall in place when the installed bundle is older than the CLI.
+      // Same contract enforced by `checkBrewTUIBarVersion`, so the menubar
+      // app and CLI always agree on the license/IPC schema.
+      const status = await checkBrewTUIBarVersion();
+      if (status.kind === 'outdated') {
+        console.log(t('cli_brewtuibarUpdating', { installed: status.installed, expected: status.expected }));
+        await installBrewTUIBar(false, true);
+        console.log(t('cli_brewtuibarInstalled'));
+      }
+    }
+    await launchBrewTUIBar();
+  } catch (err) {
+    console.warn(t('cli_brewtuibarAutoFailed', { error: err instanceof Error ? err.message : String(err) }));
+  }
+}
+
 export async function uninstallBrewTUIBar(): Promise<void> {
   if (!await isBrewTUIBarInstalled()) {
     throw new Error(t('cli_brewtuibarNotInstalled'));

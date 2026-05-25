@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.2.1] - 2026-05-25
+
+### Fixed
+- **Postinstall ahora actualiza Brew-TUI-Bar.app cuando está desactualizada,
+  no solo cuando falta.** En 2.2.0 el postinstall solo bajaba el bundle si
+  `/Applications/Brew-TUI-Bar.app` no existía; si el usuario tenía una
+  versión vieja se quedaba ahí, y `brew upgrade brew-tui` no actualizaba la
+  app. Ahora invoca el mismo helper `syncAndLaunchBrewTUIBar()` que la ruta
+  cold-start del TUI: install si falta, reinstall si outdated, launch.
+- **Brew-TUI-Bar ya no se cuenta a sí misma como paquete outdated en el
+  badge de la barra.** `brew outdated --json=v2` lista todos los casks con
+  versión nueva en el tap; cuando se publicaba una release de Brew-TUI-Bar,
+  la propia app aparecía como "1 update available", confundiendo al usuario
+  ("¿qué paquete?"). `BrewChecker.checkOutdated()` filtra los casks
+  `brew-tui-bar` y `brewbar` antes de retornar al popover. El postinstall +
+  cold-start ya mantienen el bundle al día sin intervención.
+
+### Internal
+- `syncAndLaunchBrewTUIBar()` nuevo helper exportado desde
+  `src/lib/brew-tui-bar-installer.ts`. Centraliza la lógica antes duplicada
+  entre `ensureBrewTUIBarRunning()` (cold-start) y el `postinstall.ts`
+- `BrewChecker.selfCaskNames` set con los nombres de los casks propios
+
 ## [2.2.0] - 2026-05-25
 
 ### Added

@@ -246,35 +246,12 @@ async function ensureBrewTUIBarRunning() {
   if (process.platform !== 'darwin') return;
 
   // 2.1.0: install + launch for everyone on macOS (Free users see the upgrade
-  // prompt inside the app). The license store is still initialised so the
-  // version check below can read the right state, but no longer gates here.
+  // prompt inside the app). The license store is still initialised so any
+  // downstream reads see the right state.
   await useLicenseStore.getState().initialize();
 
-  const { isBrewTUIBarInstalled, installBrewTUIBar, launchBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
-  const { checkBrewTUIBarVersion } = await import('./lib/version-check.js');
-
-  try {
-    if (!await isBrewTUIBarInstalled()) {
-      console.log(t('cli_brewtuibarInstalling'));
-      await installBrewTUIBar(false, false);
-      console.log(t('cli_brewtuibarInstalled'));
-    } else {
-      // Cross-platform contract: Brew-TUI-Bar must match Brew-TUI's version so
-      // license decryption and any future IPC stay compatible. If the user's
-      // Brew-TUI-Bar is older than this CLI (e.g. they upgraded brew-tui via
-      // Homebrew/npm but never re-ran install-brew-tui-bar), reinstall in place.
-      const status = await checkBrewTUIBarVersion();
-      if (status.kind === 'outdated') {
-        console.log(t('cli_brewtuibarUpdating', { installed: status.installed, expected: status.expected }));
-        await installBrewTUIBar(false, true);
-        console.log(t('cli_brewtuibarInstalled'));
-      }
-    }
-    await launchBrewTUIBar();
-  } catch (err) {
-    // Non-fatal: log a single line and continue to TUI so brew-tui stays usable.
-    console.warn(t('cli_brewtuibarAutoFailed', { error: err instanceof Error ? err.message : String(err) }));
-  }
+  const { syncAndLaunchBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
+  await syncAndLaunchBrewTUIBar();
 }
 
 runCli().catch((err) => {
