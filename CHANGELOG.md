@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.1] - 2026-05-25
+
+### Changed
+- **`brew-tui activate` ahora instala y lanza Brew-TUI-Bar inmediatamente.**
+  Tras una activación exitosa se dispara la misma ruta de auto-install y
+  auto-launch que antes solo se ejecutaba en el siguiente arranque del TUI.
+  En macOS + Pro, el bundle aparece en `/Applications/Brew-TUI-Bar.app` y se
+  lanza en la barra de menú sin necesidad de re-invocar `brew-tui`. No-op
+  en Linux/Windows y libre de fallos (la ruta de cold-start del siguiente
+  run sigue cubriendo cualquier error transitorio).
+
 ## [2.0.0] - 2026-05-25
 
 ### Changed
