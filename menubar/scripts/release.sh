@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BrewBar release pipeline — sign, archive, export and notarize.
+# Brew-TUI-Bar release pipeline — sign, archive, export and notarize.
 #
 # Status: SCAFFOLD. Fill in the credentials section before first use; the
 # notarytool calls below intentionally fail loudly if NOTARY_PROFILE is
@@ -13,14 +13,16 @@
 #     --password "app-specific-password-from-appleid.apple.com"
 #
 # Then export NOTARY_PROFILE=brewbar-notary in your shell rc.
+# The profile name is kept as `brewbar-notary` for backwards compatibility
+# with existing maintainer keychains — it's a credential alias, not branding.
 
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────
-SCHEME="BrewBar"
-WORKSPACE="$(cd "$(dirname "$0")/.." && pwd)/BrewBar.xcworkspace"
+SCHEME="Brew-TUI-Bar"
+WORKSPACE="$(cd "$(dirname "$0")/.." && pwd)/Brew-TUI-Bar.xcworkspace"
 BUILD_DIR="$(cd "$(dirname "$0")/.." && pwd)/build"
-ARCHIVE_PATH="${BUILD_DIR}/BrewBar.xcarchive"
+ARCHIVE_PATH="${BUILD_DIR}/Brew-TUI-Bar.xcarchive"
 EXPORT_DIR="${BUILD_DIR}/export"
 EXPORT_OPTIONS="$(cd "$(dirname "$0")/.." && pwd)/exportOptions.plist"
 TEAM_ID="GD6M44DYPQ"
@@ -52,7 +54,7 @@ echo "✓ notary profile listo."
 # explicit clean, `readMarketingVersion()` is NOT re-run when package.json
 # changes — so the .app keeps shipping the previous release's version while
 # the npm tarball already advanced. This breaks the cross-platform version
-# contract silently (the user sees a stale BrewBar even after `brew upgrade`).
+# contract silently (the user sees a stale Brew-TUI-Bar even after `brew upgrade`).
 # Always `tuist clean` before `tuist generate` during release.
 ( cd "$(dirname "$0")/.." && tuist clean && tuist generate --no-open )
 
@@ -103,5 +105,5 @@ echo "  SHA256: $(awk '{print $1}' "${ZIP_PATH}.sha256")"
 echo ""
 echo "Next steps (manual):"
 echo "  1. Upload \$ZIP_PATH to GitHub Release v\$(plutil -extract CFBundleShortVersionString raw \"\$APP_PATH/Contents/Info.plist\")"
-echo "  2. Update homebrew/Casks/brewbar.rb with the new version + SHA256"
+echo "  2. Update homebrew/Casks/brew-tui-bar.rb with the new version + SHA256"
 echo "  3. Open PR against MoLinesDesigns/homebrew-tap"

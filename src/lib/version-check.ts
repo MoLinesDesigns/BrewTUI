@@ -3,15 +3,15 @@ import { promisify } from 'node:util';
 import { access } from 'node:fs/promises';
 
 const execFileAsync = promisify(execFile);
-const BREWBAR_INFO_PLIST = '/Applications/BrewBar.app/Contents/Info.plist';
+const BREWTUIBAR_INFO_PLIST = '/Applications/Brew-TUI-Bar.app/Contents/Info.plist';
 
 // CONTRACT_VERSION is bumped only when the cross-platform contract changes
 // (license schema, encryption scheme, IPC). Marketing version drifts often;
-// contract version drifts rarely. BrewBar must embed the same number.
+// contract version drifts rarely. Brew-TUI-Bar must embed the same number.
 // TODO: surface this number from a shared file once the next contract bump lands.
 export const CONTRACT_VERSION = 1;
 
-export type BrewBarVersionStatus =
+export type BrewTUIBarVersionStatus =
   | { kind: 'ok'; installed: string; expected: string }
   | { kind: 'outdated'; installed: string; expected: string }
   | { kind: 'newer'; installed: string; expected: string }
@@ -22,16 +22,16 @@ export function expectedVersion(): string {
   return process.env.APP_VERSION ?? '0.0.0';
 }
 
-export async function readBrewBarVersion(): Promise<string | null> {
+export async function readBrewTUIBarVersion(): Promise<string | null> {
   try {
-    await access(BREWBAR_INFO_PLIST);
+    await access(BREWTUIBAR_INFO_PLIST);
   } catch {
     return null;
   }
   try {
     const { stdout } = await execFileAsync(
       '/usr/bin/defaults',
-      ['read', BREWBAR_INFO_PLIST.replace(/\.plist$/, ''), 'CFBundleShortVersionString'],
+      ['read', BREWTUIBAR_INFO_PLIST.replace(/\.plist$/, ''), 'CFBundleShortVersionString'],
       { timeout: 5000 },
     );
     return stdout.trim() || null;
@@ -55,15 +55,15 @@ export function compareSemver(a: string, b: string): number {
   return 0;
 }
 
-export async function checkBrewBarVersion(): Promise<BrewBarVersionStatus> {
+export async function checkBrewTUIBarVersion(): Promise<BrewTUIBarVersionStatus> {
   if (process.platform !== 'darwin') {
     return { kind: 'unknown', reason: 'not-macos' };
   }
-  const installed = await readBrewBarVersion();
+  const installed = await readBrewTUIBarVersion();
   if (installed === null) {
     // Distinguish "not present" from "present but unreadable"
     try {
-      await access(BREWBAR_INFO_PLIST);
+      await access(BREWTUIBAR_INFO_PLIST);
       return { kind: 'unknown', reason: 'plist-unreadable' };
     } catch {
       return { kind: 'not-installed' };

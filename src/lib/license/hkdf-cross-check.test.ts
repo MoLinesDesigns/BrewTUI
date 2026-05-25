@@ -4,12 +4,12 @@ import { hkdfSync } from 'node:crypto';
 /**
  * Cross-platform anchor test for the HKDF parameters used by both
  * src/lib/license/license-manager.ts and
- * menubar/BrewBar/Sources/Services/LicenseChecker.swift (CryptoKit's
+ * menubar/Brew-TUI-Bar/Sources/Services/LicenseChecker.swift (CryptoKit's
  * HKDF<SHA256>.deriveKey).
  *
  * Both implementations follow RFC 5869, so they produce identical output
  * for identical inputs. If this test ever drifts from the Swift code path,
- * BrewBar will silently fall back to its legacy scrypt key — and PR
+ * Brew-TUI-Bar will silently fall back to its legacy scrypt key — and PR
  * reviewers should treat any change here as cross-platform contract change.
  */
 describe('HKDF cross-platform contract', () => {
@@ -23,7 +23,7 @@ describe('HKDF cross-platform contract', () => {
 
     // Anchor: re-running this test must produce the same hex. If the algo
     // or any input string changes, this assertion catches it before users
-    // ship a license.json that BrewBar can't decrypt.
+    // ship a license.json that Brew-TUI-Bar can't decrypt.
     expect(key).toBe(
       '7f0ee6ba78781861984cc7c1e21559279671743ee7a8d29997af68401064cb0a',
     );

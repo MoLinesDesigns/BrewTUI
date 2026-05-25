@@ -13,7 +13,7 @@ Assets referenced by the project README and used across launch channels.
 | `screenshots/doctor.png` | README | `vhs scripts/screenshots.tape` |
 | `screenshots/smart-cleanup.png` | README | `vhs scripts/screenshots.tape` |
 | `screenshots/security-audit.png` | README | `vhs scripts/screenshots.tape` |
-| `screenshots/brewbar.png` | TODO — README BrewBar section | Manual: `Cmd+Shift+4` + `Space` over the popover |
+| `screenshots/brewbar.png` | TODO — README Brew-TUI-Bar section | Manual: `Cmd+Shift+4` + `Space` over the popover |
 
 ## Capture rules
 
@@ -30,11 +30,11 @@ brew install vhs pngquant ffmpeg
 
 ## Notes on `brewbar.png`
 
-The BrewBar popover screenshot has to be captured manually because `screencapture` requires Screen Recording permission. To produce it:
+The Brew-TUI-Bar popover screenshot has to be captured manually because `screencapture` requires Screen Recording permission. To produce it:
 
-1. Open BrewBar in your menu bar (it's running if you're a Pro user).
+1. Open Brew-TUI-Bar in your menu bar (it's running if you're a Pro user).
 2. Click its menu bar icon to open the popover.
 3. `Cmd+Shift+4`, then press `Space`, then click the popover window.
 4. Save to `assets/screenshots/brewbar.png`.
 5. Run `pngquant --quality=80-95 assets/screenshots/brewbar.png --ext .png --force`.
-6. Re-add the BrewBar row to the README screenshots grid.
+6. Re-add the Brew-TUI-Bar row to the README screenshots grid.

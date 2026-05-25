@@ -28,7 +28,7 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 | `brew outdated` → wall of text → grep | Press **3** → list with version arrows → `Enter` to upgrade |
 | `brew services list` → restart by hand | Press **4** → toggle services with one key |
 | Vulnerable packages? | Press **9** → cross-checked against [OSV.dev](https://osv.dev) (Pro) |
-| Forgot to update? | **BrewBar** lives in your menu bar and tells you (Pro) |
+| Forgot to update? | **Brew-TUI-Bar** lives in your menu bar and tells you (Pro) |
 
 ---
 
@@ -68,14 +68,14 @@ npx brew-tui
 |---------|----------------|
 | **Smart Rollback** | Auto-snapshots after every install/upgrade/uninstall/pin; revert with bottle/versioned/pin strategies. Press `R` from a flagged CVE to jump straight to the rollback plan |
 | **Cross-machine Sync** | iCloud Drive backend, AES-256-GCM encrypted client-side. Brewfile and snapshots stay aligned across all your Macs with interactive conflict resolution |
-| **CVE Real-time** | BrewBar polls [OSV.dev](https://osv.dev) hourly. Critical/high CVEs trigger native macOS notifications and a badge count |
+| **CVE Real-time** | Brew-TUI-Bar polls [OSV.dev](https://osv.dev) hourly. Critical/high CVEs trigger native macOS notifications and a badge count |
 | **Declarative Brewfile** | YAML desired state, drift score 0-100, interactive reconciliation. Closer to a lightweight Nix-flake than `brew bundle` |
 | **Impact Analysis** | Pre-upgrade risk panel (low/medium/high) with dependency tree and reverse-deps that will be affected, surfaced before each upgrade |
 | **Profiles** | Replicate your exact setup on a new Mac in one command |
 | **Smart Cleanup** | Reclaim gigabytes by listing orphans ranked by size |
 | **Action History** | "What did I install last week?" — answered |
 | **Security Audit** | Cross-checks every installed package against [OSV.dev](https://osv.dev) live |
-| **BrewBar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
+| **Brew-TUI-Bar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
 
 ### Team Tier — €8/seat/mo or €81,60/seat/year (-15%, min 3 seats)
 
@@ -141,9 +141,9 @@ Brew-TUI supports **English** and **Spanish**. Language is detected from your sy
 
 ---
 
-## BrewBar (Pro)
+## Brew-TUI-Bar (Pro)
 
-BrewBar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
+Brew-TUI-Bar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
 
 - Shows a badge with outdated package count
 - Sends push notifications when updates are available
@@ -152,13 +152,13 @@ BrewBar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
 - Configurable check interval (1h / 4h / 8h)
 - Supports Launch at Login
 
-### Install BrewBar
+### Install Brew-TUI-Bar
 
 ```bash
 # Via Brew-TUI CLI (Pro license required)
-brew-tui install-brewbar
-brew-tui install-brewbar --force   # Reinstall / update
-brew-tui uninstall-brewbar         # Remove
+brew-tui install-brew-tui-bar
+brew-tui install-brew-tui-bar --force   # Reinstall / update
+brew-tui uninstall-brew-tui-bar         # Remove
 
 # Via Homebrew Cask
 brew install --cask MoLinesDesigns/tap/brewbar
@@ -169,7 +169,7 @@ brew install --cask MoLinesDesigns/tap/brewbar
 ```bash
 cd menubar
 tuist generate
-xcodebuild -workspace BrewBar.xcworkspace -scheme BrewBar build
+xcodebuild -workspace Brew-TUI-Bar.xcworkspace -scheme Brew-TUI-Bar build
 ```
 
 Requires [Tuist](https://tuist.io), Xcode, and macOS 14+.
@@ -200,7 +200,7 @@ Views (React/Ink) --> Stores (Zustand) --> brew-api --> Parsers --> brew CLI (sp
 ## Security
 
 - License data encrypted with AES-256-GCM, machine-bound via UUID
-- SHA-256 verification on BrewBar binary downloads
+- SHA-256 verification on Brew-TUI-Bar binary downloads
 - Bundle integrity check at startup (fail-closed)
 - Runtime validation of all external API responses (Polar, OSV)
 - Rate limiting on license activation (5 attempts / 15min lockout)
@@ -232,7 +232,7 @@ src/
     parsers/       # JSON and text parsers for brew output
   i18n/            # English + Spanish translations
   utils/           # Colors, spacing, logger, formatting
-menubar/           # BrewBar (Swift 6 / SwiftUI / Tuist)
+menubar/           # Brew-TUI-Bar (Swift 6 / SwiftUI / Tuist)
 ```
 
 ---

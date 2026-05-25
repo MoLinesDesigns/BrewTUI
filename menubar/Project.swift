@@ -27,7 +27,7 @@ private func readMarketingVersion() -> String {
 private let marketingVersion = readMarketingVersion()
 
 let project = Project(
-    name: "BrewBar",
+    name: "Brew-TUI-Bar",
     options: .options(
         defaultKnownRegions: ["en", "es"],
         developmentRegion: "en"
@@ -51,30 +51,37 @@ let project = Project(
     ),
     targets: [
         .target(
-            name: "BrewBar",
+            name: "Brew-TUI-Bar",
             destinations: .macOS,
             product: .app,
-            bundleId: "com.molinesdesigns.brewbar",
+            bundleId: "com.molinesdesigns.brewtuibar",
             deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "LSUIElement": true,
                 "LSApplicationCategoryType": "public.app-category.developer-tools",
                 "NSMainStoryboardFile": "",
-                "CFBundleDisplayName": "BrewBar",
+                "CFBundleDisplayName": "Brew-TUI-Bar",
                 "CFBundleDevelopmentRegion": "en",
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSHumanReadableCopyright": "MoLines Designs",
             ]),
             // ARQ-005: excluir DesignExploration/ del binario notariado.
-            // BrewBarDesignVariants.swift (991 LOC) es codigo de exploracion
+            // BrewTUIBarDesignVariants.swift es codigo de exploracion
             // de diseno que no debe entrar al producto firmado.
             sources: SourceFilesList(globs: [
-                .glob("BrewBar/Sources/**", excluding: ["BrewBar/Sources/DesignExploration/**"]),
+                .glob("Brew-TUI-Bar/Sources/**", excluding: ["Brew-TUI-Bar/Sources/DesignExploration/**"]),
             ]),
-            resources: ["BrewBar/Resources/**"],
+            resources: ["Brew-TUI-Bar/Resources/**"],
             settings: .settings(
                 base: [
+                    // Xcode sanitises hyphens out of PRODUCT_NAME when derived from the
+                    // target name, which would emit Brew_TUI_Bar.app. The cask + installer
+                    // scripts look for the hyphenated bundle, so force the brand name
+                    // explicitly while keeping PRODUCT_MODULE_NAME identifier-safe.
+                    "PRODUCT_NAME": "Brew-TUI-Bar",
+                    "EXECUTABLE_NAME": "Brew-TUI-Bar",
+                    "PRODUCT_MODULE_NAME": "Brew_TUI_Bar",
                     "DEVELOPMENT_TEAM": "GD6M44DYPQ",
                     "CODE_SIGN_STYLE": "Manual",
                     "CODE_SIGN_IDENTITY": "Developer ID Application",
@@ -96,13 +103,22 @@ let project = Project(
             )
         ),
         .target(
-            name: "BrewBarTests",
+            name: "Brew-TUI-BarTests",
             destinations: .macOS,
             product: .unitTests,
-            bundleId: "com.molinesdesigns.brewbar.tests",
+            bundleId: "com.molinesdesigns.brewtuibar.tests",
             deploymentTargets: .macOS("14.0"),
-            sources: ["BrewBarTests/Sources/**"],
-            dependencies: [.target(name: "BrewBar")]
+            sources: ["Brew-TUI-BarTests/Sources/**"],
+            dependencies: [.target(name: "Brew-TUI-Bar")],
+            // Tuist derives TEST_HOST from the sanitised host name (Brew_TUI_Bar),
+            // but the host target overrides EXECUTABLE_NAME to keep the hyphens.
+            // Override here to point at the actual binary path.
+            settings: .settings(
+                base: [
+                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Brew-TUI-Bar.app/Contents/MacOS/Brew-TUI-Bar",
+                    "BUNDLE_LOADER": "$(TEST_HOST)",
+                ]
+            )
         ),
     ]
 )

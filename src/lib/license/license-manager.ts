@@ -76,7 +76,7 @@ function recordAttempt(success: boolean): void {
 // secret is the user's local machineId, which never leaves the machine.
 //
 // HKDF-SHA256 was chosen over scrypt because Swift's CryptoKit (used by
-// BrewBar to read the same license.json) ships HKDF natively but not scrypt.
+// Brew-TUI-Bar to read the same license.json) ships HKDF natively but not scrypt.
 // machineId is a UUIDv4 with 122 bits of entropy, so the cost-hardening of
 // scrypt is not what's protecting the key — the secrecy of the machineId is.
 const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
