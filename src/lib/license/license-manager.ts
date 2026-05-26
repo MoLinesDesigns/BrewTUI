@@ -191,7 +191,11 @@ export async function loadLicense(): Promise<LicenseData | null> {
       const fileRecord = file as unknown as Record<string, unknown>;
       if (fileRecord.machineId) {
         const currentMachineId = await getMachineId();
-        if (fileRecord.machineId !== currentMachineId) {
+        // SEC-L2: randomUUID() yields lowercase UUIDs, but a manually edited
+        // machine-id or license.json could carry mixed case. Normalise both
+        // sides before comparing so case alone is never the rejection reason.
+        if (typeof fileRecord.machineId !== 'string'
+            || fileRecord.machineId.toLowerCase() !== currentMachineId.toLowerCase()) {
           throw new Error('License was activated on a different machine');
         }
       }
@@ -275,7 +279,11 @@ export function getDegradationLevel(license: LicenseData): DegradationLevel {
   const lastValidated = new Date(license.lastValidatedAt).getTime();
   if (isNaN(lastValidated)) return 'expired'; // corrupted date → deny access
   const elapsed = Date.now() - lastValidated;
-  if (elapsed < 0) return 'none'; // clock skew: future timestamp → treat as fresh
+  // SEC-L1: a negative elapsed means lastValidatedAt is in the future. This
+  // is almost always a clock-skew exploit (set system clock forward to keep
+  // Pro features forever). Fail-closed instead of granting full access. The
+  // next revalidate() against Polar will reset things if the skew is benign.
+  if (elapsed < 0) return 'expired';
   const days = elapsed / (24 * 60 * 60 * 1000);
 
   if (days <= 7) return 'none';

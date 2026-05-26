@@ -42,7 +42,9 @@ function validateApiUrl(url: string): void {
   if (parsed.protocol !== 'https:') {
     throw new Error('HTTPS required for license API');
   }
-  if (!parsed.hostname.endsWith('polar.sh')) {
+  // SEC-M1: `endsWith('polar.sh')` would let `evilpolar.sh` pass. Match the
+  // exact apex OR a true subdomain via the leading-dot variant.
+  if (parsed.hostname !== 'polar.sh' && !parsed.hostname.endsWith('.polar.sh')) {
     throw new Error('Invalid API host');
   }
 }

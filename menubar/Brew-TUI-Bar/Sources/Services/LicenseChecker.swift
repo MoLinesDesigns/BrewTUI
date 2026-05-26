@@ -283,7 +283,10 @@ struct LicenseChecker {
             return .expired
         }
         let elapsed = Date().timeIntervalSince(lastValidated)
-        if elapsed < 0 { return .none } // clock skew: future timestamp → fresh
+        // SEC-L1: future lastValidatedAt is almost always a clock-skew
+        // exploit (user advances system clock to keep Pro forever). Fail
+        // closed; the next online revalidate resets things if benign.
+        if elapsed < 0 { return .expired }
         let days = elapsed / (24 * 60 * 60)
         if days <= warningThresholdDays { return .none }
         if days <= limitedThresholdDays { return .warning }
