@@ -142,27 +142,20 @@ struct LicenseChecker {
         NSHomeDirectory() + "/.brew-tui/license.json"
     }()
 
-    // SEG-002: license keys are now derived per-user via HKDF-SHA256.
-    // The TS bundle (license-manager.ts) ciphers with:
+    // SEG-002: license keys are derived per-user via HKDF-SHA256, mirroring
+    // the TS bundle in `license-manager.ts`:
     //   hkdfSync('sha256', SECRET, SALT, machineId, 32)
-    // Swift mirrors that here using CryptoKit's HKDF.
     //
-    // Legacy fallback: license.json files written by 0.6.2 and earlier are
-    // ciphered with the constant scrypt key whose pre-computed hex is below.
-    // We try the HKDF key first, then fall back to legacy. TODO(SEG-003,
-    // 0.6.3): delete the `let hex` legacy key path after telemetry confirms
-    // zero fallback decrypts in the wild.
+    // The legacy bundle-only scrypt fallback that existed from 0.6.3 through
+    // 2.x was retired in 3.1.0 — see SEG-M2/M3 in the security audit. An
+    // envelope ciphered with the legacy key now fails decryption, surfacing
+    // as `.notFound` so the user re-activates.
     private static let encryptionSecret = "brew-tui-license-aes256gcm-v1"
     private static let hkdfSalt = "brew-tui-salt-v1"
     private static let machineIdPath: String = NSHomeDirectory() + "/.brew-tui/machine-id"
 
-    private static var derivedEncryptionKey: SymmetricKey {
-        guard let machineId = readMachineId(), !machineId.isEmpty else {
-            // Without a machine-id we cannot reproduce the TUI's HKDF output.
-            // Fall back to the legacy key so we still degrade to the previous
-            // behaviour rather than refusing to decrypt at all.
-            return legacyEncryptionKey
-        }
+    private static var derivedEncryptionKey: SymmetricKey? {
+        guard let machineId = readMachineId(), !machineId.isEmpty else { return nil }
         let inputKey = SymmetricKey(data: Data(encryptionSecret.utf8))
         return HKDF<SHA256>.deriveKey(
             inputKeyMaterial: inputKey,
@@ -171,12 +164,6 @@ struct LicenseChecker {
             outputByteCount: 32
         )
     }
-
-    private static let legacyEncryptionKey: SymmetricKey = {
-        // Pre-computed scrypt('brew-tui-license-aes256gcm-v1', 'brew-tui-salt-v1', 32)
-        let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"
-        return SymmetricKey(data: Data(hexString: hex)!)
-    }()
 
     private static func readMachineId() -> String? {
         guard let data = FileManager.default.contents(atPath: machineIdPath),
@@ -316,16 +303,20 @@ struct LicenseChecker {
             return nil
         }
 
-        // Try the HKDF key first, fall back to the legacy scrypt key for
-        // license.json files written by 0.6.2 and earlier.
-        for key in [derivedEncryptionKey, legacyEncryptionKey] {
-            if let plaintext = try? AES.GCM.open(sealedBox, using: key),
-               let decoded = try? JSONDecoder().decode(LicenseData.self, from: plaintext) {
-                return decoded
-            }
+        // Only the HKDF (machine-bound) key is accepted; the legacy scrypt
+        // fallback was retired in 3.1.0. If the machine-id is missing the
+        // key cannot be derived and decryption is impossible — surface that
+        // distinctly in the log so support can spot it.
+        guard let key = derivedEncryptionKey else {
+            logger.error("Cannot decrypt license: machine-id is missing or empty")
+            return nil
         }
-        logger.error("License decryption failed with both current and legacy keys")
-        return nil
+        guard let plaintext = try? AES.GCM.open(sealedBox, using: key),
+              let decoded = try? JSONDecoder().decode(LicenseData.self, from: plaintext) else {
+            logger.error("License decryption failed under the HKDF key")
+            return nil
+        }
+        return decoded
     }
 
     private static func parseDate(_ value: String) -> Date? {
@@ -346,19 +337,3 @@ struct LicenseChecker {
     }
 }
 
-// MARK: - Data hex helper
-
-extension Data {
-    init?(hexString: String) {
-        let len = hexString.count / 2
-        var data = Data(capacity: len)
-        var index = hexString.startIndex
-        for _ in 0 ..< len {
-            let nextIndex = hexString.index(index, offsetBy: 2)
-            guard let byte = UInt8(hexString[index ..< nextIndex], radix: 16) else { return nil }
-            data.append(byte)
-            index = nextIndex
-        }
-        self = data
-    }
-}

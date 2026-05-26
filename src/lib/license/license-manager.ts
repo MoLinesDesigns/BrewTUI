@@ -1,5 +1,5 @@
 import { readFile, writeFile, rename, rm } from 'node:fs/promises';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
 import { LICENSE_PATH, ensureDataDirs, getMachineId } from '../data-dir.js';
 import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
 import { t } from '../../i18n/index.js';
@@ -83,8 +83,6 @@ const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
 const HKDF_SALT = 'brew-tui-salt-v1';
 
 let _derivedKey: Buffer | null = null;
-let _legacyKey: Buffer | null = null;
-let _decryptedWithLegacyKey = false;
 
 async function deriveEncryptionKey(): Promise<Buffer> {
   if (_derivedKey) return _derivedKey;
@@ -93,16 +91,6 @@ async function deriveEncryptionKey(): Promise<Buffer> {
   const derived = hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, machineId, 32);
   _derivedKey = Buffer.from(derived);
   return _derivedKey;
-}
-
-// Legacy key — scrypt(SECRET, SALT) with no machineId. Pre-existing
-// license.json files written by 0.6.2 and earlier are ciphered with this.
-// decryptLicenseData falls back to it; the next saveLicense re-ciphers
-// using the HKDF key. TODO(SEG-003, 0.6.3): remove `_legacyKey` after
-// telemetry confirms zero fallback decrypts in the wild.
-function deriveLegacyKey(): Buffer {
-  if (!_legacyKey) _legacyKey = scryptSync(ENCRYPTION_SECRET, HKDF_SALT, 32);
-  return _legacyKey;
 }
 
 async function encryptLicenseData(data: LicenseData): Promise<{ encrypted: string; iv: string; tag: string }> {
@@ -126,27 +114,21 @@ async function decryptLicenseData(encrypted: string, iv: string, tag: string): P
   const tagBuf = Buffer.from(tag, 'base64');
   const ciphertext = Buffer.from(encrypted, 'base64');
 
-  // Try the current (machine-bound) key first; fall back to the legacy
-  // (bundle-only) key for upgrade compatibility.
-  const candidates: Array<[Buffer, boolean]> = [
-    [await deriveEncryptionKey(), false],
-    [deriveLegacyKey(), true],
-  ];
-  let lastErr: unknown;
-  for (const [key, isLegacy] of candidates) {
-    try {
-      const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
-      decipher.setAuthTag(tagBuf);
-      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-      const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
-      if (!isLicenseData(parsed)) {
-        throw new Error('Decrypted license payload failed shape validation');
-      }
-      _decryptedWithLegacyKey = isLegacy;
-      return parsed;
-    } catch (err) { lastErr = err; }
+  // Only the machine-bound HKDF key is accepted. The legacy bundle-only
+  // scrypt fallback (in place from 0.6.3 through 2.x for license.json files
+  // written by 0.6.2 and earlier) was retired in 3.1.0 — see SEG-M2 in the
+  // security audit. Any envelope ciphered with the legacy key now fails
+  // decryption, which loadLicense() surfaces as "license not found" so the
+  // user re-activates.
+  const key = await deriveEncryptionKey();
+  const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
+  decipher.setAuthTag(tagBuf);
+  const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
+  if (!isLicenseData(parsed)) {
+    throw new Error('Decrypted license payload failed shape validation');
   }
-  throw lastErr instanceof Error ? lastErr : new Error('Failed to decrypt license');
+  return parsed;
 }
 
 // BK-003: Type guard for license data format
@@ -198,13 +180,6 @@ export async function loadLicense(): Promise<LicenseData | null> {
             || fileRecord.machineId.toLowerCase() !== currentMachineId.toLowerCase()) {
           throw new Error('License was activated on a different machine');
         }
-      }
-
-      // If we fell back to the legacy bundle-only key, re-cipher with the
-      // current machine-bound key so future reads use the strong path.
-      if (_decryptedWithLegacyKey) {
-        _decryptedWithLegacyKey = false;
-        try { await saveLicense(data); } catch { /* best effort */ }
       }
 
       return data;
