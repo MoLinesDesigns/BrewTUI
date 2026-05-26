@@ -140,11 +140,14 @@ describe('getDegradationLevel', () => {
     expect(getDegradationLevel(license)).toBe('expired');
   });
 
-  it('returns "none" when lastValidatedAt is in the future (clock skew)', async () => {
+  it('returns "expired" when lastValidatedAt is in the future (clock skew → fail closed)', async () => {
+    // SEC-L1: a future lastValidatedAt is almost always a clock-skew exploit
+    // (user advances system clock to keep Pro features forever). Fail closed;
+    // the next online revalidate() resets things if the skew is benign.
     vi.setSystemTime(new Date('2026-04-23T12:00:00.000Z'));
     const { getDegradationLevel } = await import('./license-manager.js');
     const license = makeLicense({ lastValidatedAt: '2026-04-30T12:00:00.000Z' });
-    expect(getDegradationLevel(license)).toBe('none');
+    expect(getDegradationLevel(license)).toBe('expired');
   });
 });
 

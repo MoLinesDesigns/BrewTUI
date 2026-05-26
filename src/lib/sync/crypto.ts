@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync, hkdfSync } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
 import { isSyncPayload, type SyncPayload } from './types.js';
 
 // SEG-003: Cross-machine sync encryption.
@@ -16,7 +16,6 @@ const ENCRYPTION_SECRET = 'brew-tui-sync-aes256gcm-v1';
 const HKDF_SALT = 'brew-tui-sync-salt-v1';
 
 const keyCache = new Map<string, Buffer>();
-let _legacyKey: Buffer | null = null;
 
 function deriveEncryptionKey(licenseKey: string): Buffer {
   const cached = keyCache.get(licenseKey);
@@ -24,17 +23,6 @@ function deriveEncryptionKey(licenseKey: string): Buffer {
   const derived = Buffer.from(hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, licenseKey, 32));
   keyCache.set(licenseKey, derived);
   return derived;
-}
-
-// Legacy key — scrypt(SECRET, SALT), no license-key factor. Used as a
-// decryption fallback for envelopes written by 0.6.2 and earlier.
-// TODO(SEG-003, 0.6.3): remove `_legacyKey` after telemetry confirms zero
-// fallback decrypts in the wild.
-function deriveLegacyKey(): Buffer {
-  if (!_legacyKey) {
-    _legacyKey = scryptSync(ENCRYPTION_SECRET, HKDF_SALT, 32, { N: 16384, r: 8, p: 1 });
-  }
-  return _legacyKey;
 }
 
 export function encryptPayload(data: SyncPayload, licenseKey: string): { encrypted: string; iv: string; tag: string } {
@@ -58,19 +46,14 @@ export function decryptPayload(encrypted: string, iv: string, tag: string, licen
   const tagBuf = Buffer.from(tag, 'base64');
   const ciphertext = Buffer.from(encrypted, 'base64');
 
-  // Try the licenseKey-bound key first; fall back to the legacy bundle-only
-  // key for envelopes written by 0.6.2 and earlier. Re-encryption happens
-  // automatically on the next sync write because writeEnvelope always uses
-  // the current key.
-  for (const key of [deriveEncryptionKey(licenseKey), deriveLegacyKey()]) {
-    try {
-      const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
-      decipher.setAuthTag(tagBuf);
-      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-      const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
-      if (!isSyncPayload(parsed)) throw new Error('Invalid sync payload shape');
-      return parsed;
-    } catch { /* try next */ }
-  }
-  throw new Error('Failed to decrypt sync payload');
+  // Only the licenseKey-bound HKDF key is accepted. The legacy bundle-only
+  // scrypt fallback (for envelopes written by 0.6.2 and earlier) was retired
+  // in 3.1.0 — see SEG-M3 in the security audit.
+  const key = deriveEncryptionKey(licenseKey);
+  const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
+  decipher.setAuthTag(tagBuf);
+  const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
+  if (!isSyncPayload(parsed)) throw new Error('Invalid sync payload shape');
+  return parsed;
 }

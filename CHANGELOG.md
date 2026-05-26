@@ -1,5 +1,40 @@
 # Changelog
 
+## [3.1.0] - 2026-05-26
+
+### Security
+- **SEC-M1 — Polar API host validation tightened.** `validateApiUrl()` en
+  `src/lib/license/polar-api.ts` rechaza ahora hosts que terminen en
+  `polar.sh` sin ser apex o subdominio real. Antes, `evilpolar.sh`
+  pasaba el `endsWith('polar.sh')`; ahora se exige `=== 'polar.sh'`
+  o `endsWith('.polar.sh')`.
+- **SEC-L1 — Fail-closed ante clock skew.** `getDegradationLevel()`
+  devuelve `'expired'` cuando `lastValidatedAt` está en el futuro
+  (reloj atrasado o manipulado), en lugar de tratarlo como sesión
+  válida. Mismo cambio aplicado en `LicenseChecker.swift` para que
+  Brew-TUI-Bar mantenga el mismo contrato.
+- **SEC-L2 — Machine-id comparison case-insensitive.** La verificación
+  de binding compara `machineId.toLowerCase()` en ambos lados para
+  evitar falsos positivos cuando UUID se persistió con casing
+  distinto entre versiones.
+- **SEC-M2 — Legacy AES bundle-only key retirado en Swift.**
+  `LicenseChecker.derivedEncryptionKey` deja de tener fallback al
+  `legacyEncryptionKey` derivado solo del bundle. La función ahora
+  exige machine-id no vacío; sin él, `decrypt()` retorna `nil` con
+  log explícito. La `Data.init?(hexString:)` extension y sus tests
+  se eliminan (dead code).
+- **SEC-M3 — Legacy scrypt fallback retirado en TS.**
+  `src/lib/license/license-manager.ts` y `src/lib/sync/crypto.ts`
+  ya no derivan ni intentan la key scrypt bundle-only. Solo se
+  acepta el HKDF derivado del machine-id (license) o de la license
+  key (sync). Cualquier envelope cifrado con la key legacy
+  (0.6.2 y anteriores en license, snapshots previos en sync) deja
+  de descifrarse — el usuario debe re-activar/re-sincronizar.
+
+### Internal
+- `Data.init?(hexString:)` y el suite `DataHexTests` retirados del
+  target Swift al quedar sin callers tras SEC-M2.
+
 ## [3.0.0] - 2026-05-26
 
 ### Breaking

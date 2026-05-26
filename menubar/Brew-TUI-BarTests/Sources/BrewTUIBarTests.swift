@@ -331,27 +331,3 @@ struct AppStateTests {
     }
 }
 
-// MARK: - Data hex extension Tests
-
-@Suite("Data Hex Extension")
-struct DataHexTests {
-    @Test("valid hex string produces correct data")
-    func validHex() {
-        let data = Data(hexString: "48656c6c6f")
-        #expect(data != nil)
-        #expect(String(data: data!, encoding: .utf8) == "Hello")
-    }
-
-    @Test("empty hex string produces empty data")
-    func emptyHex() {
-        let data = Data(hexString: "")
-        #expect(data != nil)
-        #expect(data!.isEmpty)
-    }
-
-    @Test("invalid hex returns nil")
-    func invalidHex() {
-        let data = Data(hexString: "ZZZZ")
-        #expect(data == nil)
-    }
-}
