@@ -29,7 +29,7 @@ struct OutdatedListView: View {
                         isPresented: $showUpgradeAllConfirm,
                         titleVisibility: .visible
                     ) {
-                        Button(String(localized: "Upgrade All"), role: .destructive) {
+                        Button(String(localized: "Upgrade All")) {
                             // Sin handle retenido: el popover puede ocultarse
                             // (click fuera) y el upgrade debe completar igual.
                             Task { await appState.upgradeAll() }
@@ -109,7 +109,7 @@ struct OutdatedListView: View {
                     ),
                     titleVisibility: .visible
                 ) {
-                    Button(String(localized: "Upgrade"), role: .destructive) {
+                    Button(String(localized: "Upgrade")) {
                         // Sin handle retenido: el upgrade debe sobrevivir al
                         // cierre del popover (click fuera, foco a otra app).
                         Task { await appState.upgrade(package: pkg.name) }

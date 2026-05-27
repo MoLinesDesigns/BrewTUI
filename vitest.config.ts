@@ -7,10 +7,9 @@ export default defineConfig({
     // vitest se ejecuta dentro de `git push` (husky pre-push). El stdio
     // restringido del proceso git rompe el handshake IPC del pool de forks
     // y un test al azar reporta "Failed to start forks worker" + "Timeout
-    // waiting for worker to respond" pese a que los 442 tests restantes
-    // pasan. `threads` usa workers Node nativos sin spawn de subproceso y
-    // no se ve afectado por el stdio del padre. Aislado tarda lo mismo y
-    // los tests siguen pasando 443/443.
+    // waiting for worker to respond" pese a que la suite pasa aislada.
+    // `threads` usa workers Node nativos sin spawn de subproceso y
+    // no se ve afectado por el stdio del padre.
     pool: 'threads',
     // QA-001: bajo el pool paralelo de vitest, los tests que renderizan
     // varios componentes Ink consecutivos (ConfirmDialog, ResultBanner,
@@ -18,11 +17,8 @@ export default defineConfig({
     // compiten por CPU. Aislados tardan menos de 1 s. 15 s deja margen
     // amplio sin enmascarar tests realmente lentos.
     testTimeout: 15_000,
-    // QA-004: coverage shape is defined here so `npm run test -- --coverage`
-    // produces a useful report once the v8 provider is installed. Default
-    // runs do NOT collect coverage (provider+excludes are inert without the
-    // flag), so the regular test command stays fast and the dependency on
-    // @vitest/coverage-v8 is optional until someone needs the metric.
+    // QA-004: coverage is enforced through `npm run test:coverage` and
+    // therefore through `npm run validate`. Plain `npm test` stays fast.
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
@@ -37,12 +33,13 @@ export default defineConfig({
         'src/**/*.d.ts',
       ],
       thresholds: {
-        // Soft floor — fails the run if a regression drops coverage on the
-        // measured surface. Tweak as the test base grows.
-        lines: 50,
-        functions: 50,
-        branches: 60,
-        statements: 50,
+        // Real floor for the measured production surface. Branch coverage is
+        // lower because many Ink view branches still need interaction-level
+        // tests; keep it enforced so new work cannot regress the current base.
+        lines: 64,
+        functions: 64,
+        branches: 45,
+        statements: 63,
       },
     },
   },

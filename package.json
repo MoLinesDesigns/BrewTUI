@@ -26,11 +26,12 @@
     "dev": "tsx src/index.tsx",
     "build": "tsup",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage --no-file-parallelism",
     "test:watch": "vitest",
     "test:serial": "vitest run --no-file-parallelism",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run typecheck && npm run test:serial && npm run build && npm run lint",
+    "validate": "npm run typecheck && npm run test:coverage && npm run build && npm run lint",
     "check:brewtuibar-release": "node scripts/check-brewtuibar-release.mjs",
     "prepublishOnly": "npm run validate && npm run check:brewtuibar-release",
     "postinstall": "node build/postinstall.js",
@@ -61,6 +62,7 @@
     "@types/react": "^19.2.14",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
+    "@vitest/coverage-v8": "4.1.5",
     "eslint": "^10.2.1",
     "husky": "9.1.7",
     "ink-testing-library": "^4.0.0",
@@ -68,6 +70,6 @@
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.5"
+    "vitest": "4.1.5"
   }
 }
