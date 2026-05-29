@@ -1,5 +1,54 @@
 # Changelog
 
+## [3.3.0] - 2026-05-29
+
+### Brew-TUI-Bar — Crystal Glass redesign + install progress modal
+
+- **Visual overhaul (Apple Liquid Glass).** New `CrystalGlass.swift` design
+  system: `.ultraThinMaterial` panels with cyan/coral gradient overlays,
+  hairline gradient borders, ambient shadows. Replaces all solid backgrounds
+  in the popover. Spacing scale + radius tokens applied across views.
+- **Round transparent buttons.** Purple subscription pills (`yearlyTint`,
+  `monthlyTint`) and `.borderedProminent` "Upgrade All" / "Renew Pro" removed.
+  Two new SwiftUI button styles: `.glassPill` (capsule, content-sized,
+  transparent) and `.glassIcon` (28pt circular, used for refresh / settings /
+  quit / dismiss / per-package upgrade arrows).
+- **Live install progress modal.** New `InstallProgressView` sheet opens on
+  every `brew upgrade` / `upgradeAll`. Per-package rows show stage icons
+  (pending → fetching → installing → pouring → linking → done / failed),
+  a cyan `CrystalProgressBar` with overall fraction, and Cancel / Done
+  buttons. `BrewUpgradeStream` consumes `brew`'s `==>` markers as the
+  process emits them and drives the modal in real time.
+- **Cancel support.** Tracking `installTask` lets the modal abort an
+  in-flight upgrade — cancellation flows through `AsyncStream.onTermination`
+  which terminates the brew process.
+
+### Hardening
+
+- **Parser pinned by tests.** `BrewUpgradeStream.packageName` now rejects
+  URLs (`https://…`, `file:…`), absolute paths and tokens that don't start
+  with a letter, fixing a bug where cask `==> Downloading <url>` lines would
+  pollute the modal list. Seven new `@Test`s in
+  `BrewUpgradeStreamParserTests` anchor the recognised markers (Upgrading,
+  Fetching, Pouring, Caveats, ANSI-coloured lines, etc.) so future brew
+  version changes surface as test failures, not blank modals.
+- **`BrewChecking.streamUpgrade` with default fallback.** Production
+  `BrewChecker` overrides with the real stream; test mocks inherit the
+  default that routes through legacy `upgradePackage` / `upgradeAll` so
+  existing tests keep working without code changes.
+
+### Localization
+
+- 22 new Spanish translations for install-progress UI and Free funnel pills
+  (`Descargando…`, `Instalando…`, `Trabajando…`, `Mensual`, `Anual`,
+  `ahorra 27%`, etc.) — see `Localizable.xcstrings`.
+
+### Notes
+
+- Tests: 45 → 52 passing (45 functional + 7 parser + an opt-in screenshot
+  generation suite gated by `RUN_SCREENSHOTS=1`).
+- No CLI / npm changes. Brew-TUI (TUI) untouched in this release.
+
 ## [3.1.0] - 2026-05-26
 
 ### Security

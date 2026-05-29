@@ -17,44 +17,62 @@ struct PopoverView: View {
         return summary.tier == .basic && !summary.wasEverActive
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-
-            if showsFreeFunnel {
-                freeTierView
-            } else {
-                if let message = appState.lastActionMessage {
-                    lastActionBanner(message)
-                    Divider()
-                }
-
-                if appState.isLoading && appState.outdatedPackages.isEmpty {
-                    loadingView
-                } else if let error = appState.error {
-                    errorView(error)
-                } else if appState.outdatedPackages.isEmpty {
-                    upToDateView
-                } else {
-                    OutdatedListView(appState: appState)
-                }
-
-                if !appState.errorServices.isEmpty || appState.servicesError != nil {
-                    Divider()
-                    servicesErrorView
-                }
-
-                if !appState.canUpgrade {
-                    Divider()
-                    basicModeView
-                }
+    /// Sheet binding driven by `appState.installProgress`. We never want to
+    /// dismiss while a run is still in flight, so the setter ignores `false`
+    /// until the progress reports `isFinished`.
+    private var installProgressBinding: Binding<Bool> {
+        Binding(
+            get: { appState.installProgress != nil },
+            set: { isPresented in
+                guard !isPresented else { return }
+                appState.dismissInstallProgress()
             }
+        )
+    }
 
-            Divider()
-            footerView
-            Divider()
-            versionFooter
+    var body: some View {
+        ZStack {
+            CrystalAmbientBackground()
+            VStack(spacing: 0) {
+                headerView
+                GlassDivider().padding(.horizontal, CrystalGlass.Spacing.md)
+
+                if showsFreeFunnel {
+                    freeTierView
+                } else {
+                    if let message = appState.lastActionMessage {
+                        lastActionBanner(message)
+                            .padding(.horizontal, CrystalGlass.Spacing.md)
+                            .padding(.vertical, 6)
+                    }
+
+                    if appState.isLoading && appState.outdatedPackages.isEmpty {
+                        loadingView
+                    } else if let error = appState.error {
+                        errorView(error)
+                    } else if appState.outdatedPackages.isEmpty {
+                        upToDateView
+                    } else {
+                        OutdatedListView(appState: appState)
+                    }
+
+                    if !appState.errorServices.isEmpty || appState.servicesError != nil {
+                        servicesErrorView
+                            .padding(.horizontal, CrystalGlass.Spacing.md)
+                            .padding(.vertical, 6)
+                    }
+
+                    if !appState.canUpgrade {
+                        basicModeView
+                            .padding(.horizontal, CrystalGlass.Spacing.md)
+                            .padding(.vertical, 6)
+                    }
+                }
+
+                GlassDivider().padding(.horizontal, CrystalGlass.Spacing.md)
+                footerView
+                versionFooter
+            }
         }
         // UI-015: drop the fixed 420 minHeight so users with large Dynamic Type
         // sizes do not get content clipped at the bottom of the popover.
@@ -68,6 +86,15 @@ struct PopoverView: View {
                 appState: appState,
                 badgePreferences: badgePreferences
             )
+        }
+        .sheet(isPresented: installProgressBinding) {
+            if let progress = appState.installProgress {
+                InstallProgressView(
+                    progress: progress,
+                    onClose: { appState.dismissInstallProgress() },
+                    onCancel: { appState.cancelInstallProgress() }
+                )
+            }
         }
     }
 
@@ -118,9 +145,9 @@ struct PopoverView: View {
     }
 
     private func lastActionBanner(_ message: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: CrystalGlass.Spacing.sm) {
             Image(systemName: "sparkles")
-                .foregroundStyle(.tint)
+                .foregroundStyle(CrystalGlass.glassCyan)
                 .accessibilityHidden(true)
             Text(message)
                 .font(.caption)
@@ -130,21 +157,21 @@ struct PopoverView: View {
             Button {
                 appState.dismissLastActionMessage()
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.glassIcon)
             .accessibilityLabel(String(localized: "Dismiss"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.accentColor.opacity(0.08))
+        .padding(.horizontal, CrystalGlass.Spacing.md)
+        .padding(.vertical, CrystalGlass.Spacing.sm)
+        .glassPanel(strokeOpacity: 0.4, ambientGlow: 0.08)
     }
 
     private var headerView: some View {
-        HStack {
+        HStack(spacing: CrystalGlass.Spacing.sm) {
             Image(systemName: "mug.fill")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CrystalGlass.warmAccent)
                 .accessibilityHidden(true)
             Text("Homebrew Updates")
                 .font(.headline)
@@ -167,12 +194,12 @@ struct PopoverView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.glassIcon)
             .disabled(appState.isLoading)
             .accessibilityLabel(String(localized: "Refresh"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, CrystalGlass.Spacing.md)
+        .padding(.vertical, CrystalGlass.Spacing.md - 2)
     }
 
     private var loadingView: some View {
@@ -185,7 +212,7 @@ struct PopoverView: View {
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: CrystalGlass.Spacing.md) {
             Spacer()
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
@@ -195,11 +222,14 @@ struct PopoverView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Retry") {
+            Button {
                 // Sin handle retenido: si el popover se cierra el retry sigue
                 // en background. El guard `!isLoading` evita reentradas.
                 Task { await appState.refresh() }
+            } label: {
+                Text(String(localized: "Retry"))
             }
+            .buttonStyle(.glassPill)
             Spacer()
         }
         .padding()
@@ -250,19 +280,19 @@ struct PopoverView: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(CrystalGlass.Spacing.md)
+        .glassPanel(tint: BrewTUIBarTheme.critical(highContrast: colorSchemeContrast == .increased), strokeOpacity: 0.45)
     }
 
     private var footerView: some View {
-        HStack {
+        HStack(spacing: CrystalGlass.Spacing.sm) {
             Button {
                 openBrewTUI()
             } label: {
                 Label("Open Brew-TUI", systemImage: "terminal")
                     .font(.caption)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.glassPill)
             .accessibilityLabel(String(localized: "Open Brew-TUI"))
 
             Spacer()
@@ -278,7 +308,7 @@ struct PopoverView: View {
             } label: {
                 Image(systemName: "gear")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.glassIcon)
             .accessibilityLabel(String(localized: "Settings"))
 
             Button {
@@ -286,11 +316,11 @@ struct PopoverView: View {
             } label: {
                 Image(systemName: "power")
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.glassIcon)
             .accessibilityLabel(String(localized: "Quit"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, CrystalGlass.Spacing.md)
+        .padding(.vertical, CrystalGlass.Spacing.sm)
     }
 
     // UX-008: same Polar checkout the TUI surfaces from `POLAR_CHECKOUT_URLS`.
@@ -303,25 +333,17 @@ struct PopoverView: View {
     // through the feature grid first.
     private static let pricingURL = URL(string: "https://molinesdesigns.com/brewtui/#pricing")!
 
-    /// Plan CTA colour family. Yearly is the saturated lila; monthly is a
-    /// lighter shade of the same hue so the secondary plan still reads as
-    /// "in the family" instead of muted gray. Both share the same shape.
-    private static let yearlyTint = Color(red: 0.45, green: 0.30, blue: 0.85)
-    private static let monthlyTint = Color(red: 0.70, green: 0.60, blue: 0.95)
-    private static let planCornerRadius: CGFloat = 30
-    private static let planVerticalPadding: CGFloat = 12
-
     private static let activateCommand = "brew-tui activate <your-license-key>"
 
     private var freeTierView: some View {
         // No ScrollView: the popover is fixed at 340×420 and Free funnel must
         // fit without the user having to scroll. Dynamic Type at accessibility
         // sizes can still overflow — see the preview at the bottom for catch.
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: CrystalGlass.Spacing.md) {
                 // Header
-                HStack(spacing: 8) {
+                HStack(spacing: CrystalGlass.Spacing.sm) {
                     Image(systemName: "lock.fill")
-                        .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                        .foregroundStyle(CrystalGlass.warmAccent)
                         .font(.title2)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
@@ -349,43 +371,49 @@ struct PopoverView: View {
                     proFeatureRow(systemImage: "clock.arrow.circlepath", text: String(localized: "Action History"))
                     proFeatureRow(systemImage: "exclamationmark.shield", text: String(localized: "Security Audit (CVE)"))
                 }
+                .padding(CrystalGlass.Spacing.md)
+                .glassPanel(cornerRadius: CrystalGlass.Radius.panel - 4, strokeOpacity: 0.35, ambientGlow: 0.06)
 
-                // Plans — monthly on top, yearly below. Both same size + shape;
-                // colour shift signals which is the headline plan without
-                // shouting it (yearly tint is more saturated).
-                VStack(spacing: 8) {
-                    Button {
-                        NSWorkspace.shared.open(Self.monthlyURL)
-                    } label: {
-                        Text(String(localized: "Subscribe Monthly — €5.45"))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Self.planVerticalPadding)
-                            .background(Self.monthlyTint)
-                            .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Subscribe Monthly, 5 euros 45 cents"))
-
-                    Button {
-                        NSWorkspace.shared.open(Self.renewURL)
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text(String(localized: "Subscribe Yearly — €48"))
-                                .fontWeight(.semibold)
-                            Text(String(localized: "save 27%"))
-                                .font(.caption2)
-                                .opacity(0.85)
+                // Plans — compact pill buttons centered horizontally. Yearly
+                // gets `glassPillProminent` (warm tint, stronger border) to
+                // signal it as the headline plan without using a solid colour.
+                VStack(spacing: CrystalGlass.Spacing.sm) {
+                    HStack { Spacer()
+                        Button {
+                            NSWorkspace.shared.open(Self.monthlyURL)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(String(localized: "Monthly"))
+                                Text(verbatim: "·")
+                                    .foregroundStyle(.secondary)
+                                Text(verbatim: "€5.45")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.callout)
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Self.planVerticalPadding)
-                        .background(Self.yearlyTint)
-                        .clipShape(RoundedRectangle(cornerRadius: Self.planCornerRadius))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "Subscribe Yearly, 48 euros, save 27 percent"))
+                        .buttonStyle(.glassPill)
+                        .accessibilityLabel(String(localized: "Subscribe Monthly, 5 euros 45 cents"))
+                    Spacer() }
+
+                    HStack { Spacer()
+                        Button {
+                            NSWorkspace.shared.open(Self.renewURL)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(String(localized: "Yearly"))
+                                Text(verbatim: "·")
+                                    .opacity(0.6)
+                                Text(verbatim: "€48")
+                                    .fontWeight(.semibold)
+                                Text(String(localized: "save 27%"))
+                                    .font(.caption2)
+                                    .opacity(0.85)
+                            }
+                            .font(.callout)
+                        }
+                        .buttonStyle(.glassPillProminent)
+                        .accessibilityLabel(String(localized: "Subscribe Yearly, 48 euros, save 27 percent"))
+                    Spacer() }
                 }
 
                 // Already have a license — compact one-row layout. The
@@ -397,8 +425,14 @@ struct PopoverView: View {
                         .font(.system(.caption2, design: .monospaced))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(Color.secondary.opacity(colorSchemeContrast == .increased ? 0.2 : 0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(CrystalGlass.glassCyan.opacity(0.4), lineWidth: 0.5)
+                        )
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                         .truncationMode(.tail)
@@ -409,10 +443,9 @@ struct PopoverView: View {
                         NSPasteboard.general.setString(Self.activateCommand, forType: .string)
                     } label: {
                         Image(systemName: "doc.on.doc")
-                            .frame(minWidth: 22, minHeight: 22)
-                            .contentShape(Rectangle())
+                            .font(.system(size: 11, weight: .medium))
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.glassIcon)
                     .accessibilityLabel(String(localized: "Copy activate command"))
                 }
 
@@ -432,14 +465,14 @@ struct PopoverView: View {
                 .buttonStyle(.borderless)
                 .accessibilityLabel(String(localized: "See all plans on the website"))
             }
-            .padding(12)
+            .padding(CrystalGlass.Spacing.md)
     }
 
     private func proFeatureRow(systemImage: String, text: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
                 .font(.caption)
-                .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                .foregroundStyle(CrystalGlass.warmAccent)
                 .frame(width: 16)
                 .accessibilityHidden(true)
             Text(text)
@@ -449,13 +482,13 @@ struct PopoverView: View {
     }
 
     private var basicModeView: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: CrystalGlass.Spacing.sm) {
             Image(systemName: "lock.fill")
-                .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                .foregroundStyle(CrystalGlass.warmAccent)
                 .accessibilityHidden(true)
             Text(String(localized: "Pro license expired"))
                 .font(.caption)
-                .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                .foregroundStyle(CrystalGlass.warmAccent)
             Spacer()
             Button {
                 NSWorkspace.shared.open(Self.renewURL)
@@ -463,12 +496,12 @@ struct PopoverView: View {
                 Text(String(localized: "Renew Pro"))
                     .font(.caption)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .buttonStyle(.glassPillProminent)
             .accessibilityLabel(String(localized: "Renew Pro license"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, CrystalGlass.Spacing.md)
+        .padding(.vertical, CrystalGlass.Spacing.sm)
+        .glassPanel(strokeOpacity: 0.4, ambientGlow: 0.08)
     }
 
     private func openBrewTUI() {

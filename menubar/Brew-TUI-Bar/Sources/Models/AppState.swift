@@ -36,6 +36,17 @@ final class AppState {
     /// from `outdatedPackages` so the self-cask never inflates the user-facing
     /// outdated count.
     var selfUpdateVersion: String?
+    /// Live state of an in-flight `brew upgrade`. PopoverView shows the
+    /// InstallProgressView sheet whenever this is non-nil; the sheet stays
+    /// open after `isFinished` so the user can confirm the outcome before
+    /// dismissing it.
+    var installProgress: InstallProgress?
+
+    /// Handle to the in-flight install task so the user can cancel it. We
+    /// store it weakly via reference — cancelling propagates to the AsyncStream
+    /// consumer loop, which trips `onTermination` and `process.terminate()`s
+    /// brew.
+    private var installTask: Task<Void, Never>?
 
     private let checker: any BrewChecking
 
@@ -171,17 +182,13 @@ final class AppState {
             error = String(localized: "Pro license expired")
             return
         }
-        isLoading = true
-        error = nil
-        do {
-            try await checker.upgradePackage(name)
-        } catch {
-            self.error = String(format: String(localized: "Upgrade failed: %@"), error.localizedDescription)
-            isLoading = false
-            return
+        await spawnInstallTask {
+            await self.runUpgradeStream(
+                mode: .singlePackage(name),
+                seeds: [name],
+                arguments: [name]
+            )
         }
-        // Stay in loading state — refresh(force:) bypasses the guard
-        await refresh(force: true)
     }
 
     func upgradeAll() async {
@@ -190,16 +197,99 @@ final class AppState {
             error = String(localized: "Pro license expired")
             return
         }
+        // Seed the progress with what we currently know is outdated so the
+        // modal can render its rows immediately. The stream then refines the
+        // list as `==> Upgrading X` lines arrive (brew may skip pinned or
+        // already-current packages between our last refresh and now).
+        let seeds = outdatedPackages
+            .filter { !$0.pinned }
+            .map(\.name)
+        await spawnInstallTask {
+            await self.runUpgradeStream(
+                mode: .all,
+                seeds: seeds,
+                arguments: []
+            )
+        }
+    }
+
+    /// Wraps an upgrade flow in a tracked Task so `cancelInstallProgress()` has
+    /// something to cancel. The caller still awaits completion, preserving the
+    /// existing `await state.upgrade(...)` contract used by tests.
+    private func spawnInstallTask(_ body: @escaping @Sendable () async -> Void) async {
+        let task = Task { @MainActor in
+            await body()
+        }
+        installTask = task
+        await task.value
+        installTask = nil
+    }
+
+    /// Dismisses the install-progress sheet. Allowed only once the run has
+    /// finished — the view binding gates the close button on `isFinished`.
+    func dismissInstallProgress() {
+        guard installProgress?.isFinished == true else { return }
+        installProgress = nil
+    }
+
+    /// Aborts an in-flight install. Cancels the wrapping Task; cancellation
+    /// propagates to the `for await` loop in `runUpgradeStream`, the stream's
+    /// `onTermination` callback fires, and brew receives SIGTERM. The modal
+    /// stays open with a `.failed` final state so the user can read the
+    /// outcome before dismissing.
+    func cancelInstallProgress() {
+        guard installProgress?.isFinished == false else { return }
+        installTask?.cancel()
+        installProgress?.finishFailure(String(localized: "Cancelled"))
+        // The wrapping task will still re-enter and emit isLoading = false.
+    }
+
+    // MARK: - Streaming upgrade core
+
+    /// Shared driver for single-package and upgrade-all flows. Consumes
+    /// `BrewUpgradeStream` events, mutates `installProgress`, then refreshes
+    /// the outdated list when the stream finishes.
+    private func runUpgradeStream(
+        mode: InstallProgress.Mode,
+        seeds: [String],
+        arguments: [String]
+    ) async {
         isLoading = true
         error = nil
-        do {
-            try await checker.upgradeAll()
-        } catch {
-            self.error = String(format: String(localized: "Upgrade all failed: %@"), error.localizedDescription)
-            isLoading = false
-            return
+        installProgress = InstallProgress(mode: mode, seeds: seeds)
+
+        // Drive the stream on the main actor — AppState is @MainActor, every
+        // mutation happens here, and the modal observes the same actor. The
+        // checker injects a real `BrewUpgradeStream` in production, while the
+        // test MockChecker inherits the protocol's fallback (which routes
+        // through `upgradePackage`/`upgradeAll`).
+        var succeeded = true
+        let events = checker.streamUpgrade(packages: arguments)
+        for await event in events {
+            switch event {
+            case .packageDiscovered(let name):
+                installProgress?.mark(name, stage: .pending)
+            case .packageStage(let name, let stage):
+                installProgress?.mark(name, stage: stage)
+            case .logLine:
+                break
+            case .success:
+                installProgress?.finishSuccess()
+            case .failure(let reason):
+                succeeded = false
+                installProgress?.finishFailure(reason)
+                self.error = String(format: String(localized: "Upgrade failed: %@"), reason)
+            }
         }
-        // Stay in loading state — refresh(force:) bypasses the guard
-        await refresh(force: true)
+
+        if succeeded {
+            // Refresh the outdated badge so it reflects the new state.
+            // Skipping the refresh on failure preserves the error message
+            // (refresh wipes `error` on entry) and avoids re-querying brew
+            // when nothing changed.
+            await refresh(force: true)
+        } else {
+            isLoading = false
+        }
     }
 }

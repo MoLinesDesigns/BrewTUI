@@ -17,11 +17,18 @@ struct OutdatedListView: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if appState.canUpgrade {
-                    Button("Upgrade All") {
+                    Button {
                         showUpgradeAllConfirm = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.caption)
+                            Text(String(localized: "Upgrade All"))
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                    .buttonStyle(.glassPillProminent)
                     .disabled(appState.isLoading)
                     .accessibilityLabel(String(localized: "Upgrade All"))
                     .confirmationDialog(
@@ -38,24 +45,25 @@ struct OutdatedListView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, CrystalGlass.Spacing.md)
+            .padding(.vertical, CrystalGlass.Spacing.sm)
 
-            Divider()
+            GlassDivider().padding(.horizontal, CrystalGlass.Spacing.md)
 
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: 4) {
                     ForEach(appState.outdatedPackages) { pkg in
                         packageRow(pkg)
-                        Divider().padding(.leading, 12)
                     }
                 }
+                .padding(.horizontal, CrystalGlass.Spacing.sm)
+                .padding(.vertical, CrystalGlass.Spacing.sm)
             }
         }
     }
 
     private func packageRow(_ pkg: OutdatedPackage) -> some View {
-        HStack {
+        HStack(spacing: CrystalGlass.Spacing.sm) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(pkg.name)
                     .font(.system(.body, design: .monospaced))
@@ -81,7 +89,7 @@ struct OutdatedListView: View {
             if pkg.pinned {
                 Image(systemName: "pin.fill")
                     .font(.caption)
-                    .foregroundStyle(BrewTUIBarTheme.accent(highContrast: colorSchemeContrast == .increased))
+                    .foregroundStyle(CrystalGlass.warmAccent)
                     .accessibilityLabel(String(localized: "Pinned"))
             }
 
@@ -90,9 +98,10 @@ struct OutdatedListView: View {
                 Button {
                     packageToConfirm = pkg
                 } label: {
-                    Image(systemName: "arrow.up.circle")
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 11, weight: .semibold))
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.glassIcon)
                 .disabled(appState.isLoading || pkg.pinned)
                 .accessibilityLabel(
                     String(format: String(localized: "Upgrade %@", comment: "Accessibility label for upgrading a single package"), pkg.name)
@@ -123,8 +132,13 @@ struct OutdatedListView: View {
                     .accessibilityLabel(String(localized: "Upgrade not available — Pro license required"))
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, CrystalGlass.Spacing.md)
+        .padding(.vertical, CrystalGlass.Spacing.sm)
+        .glassPanel(
+            cornerRadius: 12,
+            strokeOpacity: 0.25,
+            ambientGlow: 0.04
+        )
         .contentShape(Rectangle())
     }
 }

@@ -197,3 +197,74 @@ struct SchedulerSecurityTests {
         #expect(securityStub.loadCalls == 0)
     }
 }
+
+// MARK: - BrewUpgradeStream.packageName ── ANCHORS THE PARSER CONTRACT
+//
+// brew's `==>` output shape has changed across versions and InstallProgressView
+// is built on the assumption that the markers we recognise here are stable. If
+// brew flips the wording, one of these tests should fail before users see an
+// empty modal — change the parser to match, never delete a case without
+// replacing it.
+
+@Suite("BrewUpgradeStream package name extraction")
+struct BrewUpgradeStreamParserTests {
+    @Test("plain formula name passes through verbatim")
+    func plainFormula() {
+        #expect(BrewUpgradeStream.packageName(from: "git") == "git")
+        #expect(BrewUpgradeStream.packageName(from: "node") == "node")
+        #expect(BrewUpgradeStream.packageName(from: "wget") == "wget")
+    }
+
+    @Test("versioned formulae keep their @-fragment")
+    func versionedFormula() {
+        // `python@3.12` is the full Homebrew name; the `.` inside the version
+        // must NOT trip the parser into truncating the name.
+        #expect(BrewUpgradeStream.packageName(from: "python@3.12") == "python@3.12")
+        #expect(BrewUpgradeStream.packageName(from: "node@20") == "node@20")
+    }
+
+    @Test("bottle filenames are split at `--`")
+    func bottleFilenames() {
+        #expect(
+            BrewUpgradeStream.packageName(from: "git--2.45.1.arm64_sonoma.bottle.tar.gz")
+                == "git"
+        )
+        #expect(
+            BrewUpgradeStream.packageName(from: "python@3.12--3.12.4.arm64_sonoma.bottle.tar.gz")
+                == "python@3.12"
+        )
+    }
+
+    @Test("bottle filenames without `--` strip the trailing extension")
+    func bottleNoSeparator() {
+        // Defensive — brew has used both `name-ver` and `name--ver` forms.
+        #expect(BrewUpgradeStream.packageName(from: "git.bottle.tar.gz") == "git")
+        #expect(BrewUpgradeStream.packageName(from: "foo.tar.gz") == "foo")
+        #expect(BrewUpgradeStream.packageName(from: "bar.dmg") == "bar")
+    }
+
+    @Test("URLs are rejected — keeps cask Downloading lines out of the list")
+    func rejectURLs() {
+        #expect(BrewUpgradeStream.packageName(from: "https://example.com/foo.dmg") == nil)
+        #expect(BrewUpgradeStream.packageName(from: "http://example.com") == nil)
+        #expect(BrewUpgradeStream.packageName(from: "file:///tmp/x") == nil)
+    }
+
+    @Test("absolute paths and stray punctuation are rejected")
+    func rejectGarbage() {
+        #expect(BrewUpgradeStream.packageName(from: "/Library/Caches") == nil)
+        #expect(BrewUpgradeStream.packageName(from: "") == nil)
+        #expect(BrewUpgradeStream.packageName(from: "   ") == nil)
+        // Tokens starting with a digit aren't valid formula names.
+        #expect(BrewUpgradeStream.packageName(from: "3.12.4") == nil)
+    }
+
+    @Test("ANSI colour escapes are stripped")
+    func ansiStrip() {
+        // brew prints `\u{1B}[34m==>\u{1B}[0m Upgrading git` when a TTY is
+        // attached. The parser must see plain `==> Upgrading git`.
+        let raw = "\u{1B}[34m==>\u{1B}[0m Upgrading git 2.43.0 -> 2.45.1"
+        let cleaned = BrewUpgradeStream.stripANSI(raw)
+        #expect(cleaned == "==> Upgrading git 2.43.0 -> 2.45.1")
+    }
+}
