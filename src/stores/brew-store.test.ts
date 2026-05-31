@@ -53,8 +53,8 @@ describe('brew-store fetchAll', () => {
     const first = useBrewStore.getState().fetchAll();
     const second = useBrewStore.getState().fetchAll();
 
-    expect(mockBrewUpdate).toHaveBeenCalledTimes(1);
-    expect(mockGetInstalled).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(mockBrewUpdate).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(mockGetInstalled).toHaveBeenCalledTimes(1));
     expect(mockGetOutdated).toHaveBeenCalledTimes(1);
     expect(mockGetServices).toHaveBeenCalledTimes(1);
     expect(mockGetConfig).toHaveBeenCalledTimes(1);
@@ -82,5 +82,33 @@ describe('brew-store fetchAll', () => {
     expect(mockGetServices).toHaveBeenCalledTimes(2);
     expect(mockGetConfig).toHaveBeenCalledTimes(2);
     expect(mockGetLeaves).not.toHaveBeenCalled();
+  });
+
+  it('awaits brew update before outdated on manual refresh', async () => {
+    const update = deferred<void>();
+    const outdated = deferred<{ formulae: never[]; casks: never[] }>();
+    const callOrder: string[] = [];
+
+    mockBrewUpdate.mockImplementationOnce(async () => {
+      callOrder.push('update-start');
+      await update.promise;
+      callOrder.push('update-end');
+    });
+    mockGetOutdated.mockImplementationOnce(async () => {
+      callOrder.push('outdated');
+      return outdated.promise;
+    });
+
+    const { useBrewStore } = await import('./brew-store.js');
+    const pending = useBrewStore.getState().fetchOutdated();
+
+    await vi.waitFor(() => expect(callOrder).toContain('update-start'));
+    expect(callOrder).not.toContain('outdated');
+
+    update.resolve();
+    outdated.resolve({ formulae: [], casks: [] });
+    await pending;
+
+    expect(callOrder).toEqual(['update-start', 'update-end', 'outdated']);
   });
 });

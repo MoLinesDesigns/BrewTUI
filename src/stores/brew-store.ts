@@ -47,6 +47,27 @@ function recordFetchTime(set: (fn: (s: BrewState) => Partial<BrewState>) => void
   set((s) => ({ lastFetchedAt: { ...s.lastFetchedAt, [key]: Date.now() } }));
 }
 
+/** Refreshes the Homebrew tap index before `brew outdated` so results match the terminal. */
+async function ensureBrewIndexFresh(
+  set: (fn: (s: BrewState) => Partial<BrewState>) => void,
+): Promise<void> {
+  const now = Date.now();
+  if (brewUpdateInFlight) {
+    await brewUpdateInFlight;
+    return;
+  }
+  if (now - lastBrewUpdateStartedAt <= BREW_UPDATE_COOLDOWN_MS) {
+    return;
+  }
+  lastBrewUpdateStartedAt = now;
+  brewUpdateInFlight = api.brewUpdate()
+    .catch((err) => { set((s) => ({ errors: { ...s.errors, update: String(err) } })); })
+    .finally(() => {
+      brewUpdateInFlight = null;
+    });
+  await brewUpdateInFlight;
+}
+
 export const useBrewStore = create<BrewState>((set, get) => ({
   formulae: [],
   casks: [],
@@ -82,6 +103,7 @@ export const useBrewStore = create<BrewState>((set, get) => ({
     setLoading(set, 'outdated', true);
     setError(set, 'outdated', null);
     try {
+      await ensureBrewIndexFresh(set);
       const result = await api.getOutdated();
       set({ outdated: result });
     } catch (err) {
@@ -150,38 +172,28 @@ export const useBrewStore = create<BrewState>((set, get) => ({
       return fetchAllInFlight;
     }
 
-    const now = Date.now();
-    if (!brewUpdateInFlight && now - lastBrewUpdateStartedAt > BREW_UPDATE_COOLDOWN_MS) {
-      lastBrewUpdateStartedAt = now;
-      // Don't block on brew update — run in background.
-      // This is equivalent to the auto-update that `brew` does by default,
-      // which we disable per-command with HOMEBREW_NO_AUTO_UPDATE=1.
-      // ARQ-003: Capture brew update errors in store
-      brewUpdateInFlight = api.brewUpdate()
-        .catch((err) => { set((s) => ({ errors: { ...s.errors, update: String(err) } })); })
-        .finally(() => {
-          brewUpdateInFlight = null;
-        });
-    }
-
-    const store = get();
-    // PERF: keep fetchAll to the data Dashboard renders on the first frame.
-    // `brew doctor` (~4 s) and `brew leaves` (~1 s) were here historically
-    // but Dashboard reads neither — `doctorWarnings/doctorClean` is only
-    // consumed by `views/doctor.tsx` (lazy-fetched in its own useEffect),
-    // and `leaves` had no in-store consumer at all. Moving them out drops
-    // cold-start time from ~5 s to <1 s (dominated now by `brew config`
-    // at ~0.9 s). If a future view starts reading either from the store,
-    // restore its `fetchX()` call here or lazy-fetch from that view.
-    fetchAllInFlight = Promise.all([
-      store.fetchInstalled(),
-      store.fetchOutdated(),
-      store.fetchServices(),
-      store.fetchConfig(),
-    ]).then(() => undefined)
-      .finally(() => {
-        fetchAllInFlight = null;
-      });
+    // Claim the in-flight slot before any await so concurrent fetchAll()
+    // callers dedupe instead of racing through ensureBrewIndexFresh.
+    fetchAllInFlight = (async () => {
+      await ensureBrewIndexFresh(set);
+      const store = get();
+      // PERF: keep fetchAll to the data Dashboard renders on the first frame.
+      // `brew doctor` (~4 s) and `brew leaves` (~1 s) were here historically
+      // but Dashboard reads neither — `doctorWarnings/doctorClean` is only
+      // consumed by `views/doctor.tsx` (lazy-fetched in its own useEffect),
+      // and `leaves` had no in-store consumer at all. Moving them out drops
+      // cold-start time from ~5 s to <1 s (dominated now by `brew config`
+      // at ~0.9 s). If a future view starts reading either from the store,
+      // restore its `fetchX()` call here or lazy-fetch from that view.
+      await Promise.all([
+        store.fetchInstalled(),
+        store.fetchOutdated(),
+        store.fetchServices(),
+        store.fetchConfig(),
+      ]);
+    })().finally(() => {
+      fetchAllInFlight = null;
+    });
 
     return fetchAllInFlight;
   },
