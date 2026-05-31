@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.1] - 2026-05-31
+
+### Fixed
+
+- **Stale outdated list.** Brew-TUI and Brew-TUI-Bar ran `brew outdated` in
+  parallel with `brew update`, so the index was often still stale and the UI
+  showed "up to date" while the terminal listed real updates. Both apps now
+  finish `brew update` before querying outdated (manual refresh included).
+
 ## [3.3.0] - 2026-05-29
 
 ### Brew-TUI-Bar — Crystal Glass redesign + install progress modal
