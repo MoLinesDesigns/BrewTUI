@@ -213,11 +213,17 @@ struct LicenseChecker {
             return status
         }
 
-        // Fallback: legacy unencrypted format
-        if let license = file.license {
-            let status = evaluate(license)
-            logger.info("License check result (legacy format): \(LicenseChecker.summarizeStatus(status), privacy: .public) (\(String(describing: status), privacy: .private))")
-            return status
+        // Hard reject of the legacy unencrypted format. The TUI auto-migrates
+        // such files to the encrypted envelope on first read (see
+        // `src/lib/license/license-manager.ts` saveLicense after legacy
+        // detection), but the menubar app is read-only — accepting an
+        // unencrypted license here would let any process that can write to
+        // ~/.brew-tui/ forge Pro status without holding a key. Users with a
+        // genuinely legacy license just need to run `brew-tui revalidate`
+        // once; the TUI re-saves it encrypted and the next launch passes.
+        if file.license != nil {
+            logger.warning("License file is in legacy unencrypted format — refusing to authorize. Run `brew-tui revalidate` to migrate.")
+            return .notFound
         }
 
         logger.info("License file has no license data")

@@ -96,13 +96,19 @@ struct InstallProgressView: View {
                     ForEach(progress.packages) { item in
                         row(for: item)
                             .transition(.opacity.combined(with: .move(edge: .leading)))
+                            // Per-row animation: previously the .spring lived on
+                            // the parent VStack with `value: progress.packages`,
+                            // so any single stage transition diffed the entire
+                            // array and animated every row. With N packages and
+                            // M stage events per package, that scaled to N×M
+                            // spring evaluations per upgrade run.
+                            .animation(
+                                reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85),
+                                value: item.stage
+                            )
                     }
                 }
             }
-            .animation(
-                reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85),
-                value: progress.packages
-            )
             .padding(CrystalGlass.Spacing.sm)
         }
         .frame(maxHeight: .infinity)
