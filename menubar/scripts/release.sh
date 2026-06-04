@@ -114,10 +114,13 @@ dereg_paths=(
 
 # The DerivedData hash is opaque to us, so glob it. There may be more than
 # one Brew-TUI-Bar-* directory if Tuist regenerated with a different cache
-# key at any point; deregister all of them.
+# key at any point; deregister all of them. `nullglob` makes the loop skip
+# cleanly when no DerivedData dir exists yet (fresh checkout).
+shopt -s nullglob
 for d in "$HOME"/Library/Developer/Xcode/DerivedData/Brew-TUI-Bar-*/Build/Intermediates.noindex/ArchiveIntermediates/Brew-TUI-Bar/InstallationBuildProductsLocation/Applications/"${SCHEME}.app"; do
-  [[ -d "$d" ]] && dereg_paths+=("$d")
+  dereg_paths+=("$d")
 done
+shopt -u nullglob
 
 echo ""
 echo "→ Deregistering intermediate bundles from LaunchServices..."
