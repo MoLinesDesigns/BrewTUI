@@ -98,6 +98,40 @@ rm -f "$ZIP_PATH"
 
 shasum -a 256 "$ZIP_PATH" | tee "${ZIP_PATH}.sha256"
 
+# ── Step 6: deregister intermediate bundles from LaunchServices ───────────
+# `xcodebuild archive` + `-exportArchive` leave .app copies in DerivedData,
+# inside the .xcarchive bundle, and under build/export. macOS auto-registers
+# each one with LaunchServices the first time it's seen, so without this
+# cleanup every release adds another duplicate to Spotlight / Launchpad /
+# Stage Manager. We only touch the index — the .app files stay on disk so
+# subsequent rebuilds and SHA verification still work.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
+
+dereg_paths=(
+  "${ARCHIVE_PATH}/Products/Applications/${SCHEME}.app"
+  "${APP_PATH}"
+)
+
+# The DerivedData hash is opaque to us, so glob it. There may be more than
+# one Brew-TUI-Bar-* directory if Tuist regenerated with a different cache
+# key at any point; deregister all of them.
+for d in "$HOME"/Library/Developer/Xcode/DerivedData/Brew-TUI-Bar-*/Build/Intermediates.noindex/ArchiveIntermediates/Brew-TUI-Bar/InstallationBuildProductsLocation/Applications/"${SCHEME}.app"; do
+  [[ -d "$d" ]] && dereg_paths+=("$d")
+done
+
+echo ""
+echo "→ Deregistering intermediate bundles from LaunchServices..."
+for p in "${dereg_paths[@]}"; do
+  # Defense in depth: never touch /Applications/, that's the canonical install.
+  if [[ -d "$p" && "$p" != "/Applications/${SCHEME}.app" ]]; then
+    if "$LSREGISTER" -u "$p" >/dev/null 2>&1; then
+      echo "  ✓ ${p}"
+    else
+      echo "  ⚠ failed to deregister ${p} (non-fatal)"
+    fi
+  fi
+done
+
 echo ""
 echo "✓ Release artefact ready:"
 echo "    $ZIP_PATH"
