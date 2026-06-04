@@ -131,6 +131,21 @@ macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent fr
 - **Free vs Expired discrimination en PopoverView**: `LicenseSummary.wasEverActive` distingue `.notFound` (Free, nunca activó) → `false`, de `.expired` (Pro expirado) → `true`. `PopoverView.showsFreeFunnel` muestra la vista upgrade completa cuando `tier == .basic && !wasEverActive`; los expirados ven la UI normal con el banner pequeño `basicModeView` ("Pro license expired") al fondo. Mantener este split si se añade un tercer tier (e.g. trial) — sin él la UI de Free aparecería para todos los no-Pro.
 - **`installBrewTUIBar(_isPro, force)` ignora `_isPro`** (subrayado prefix). 2.1.0 quitó el gate Pro; el parámetro queda por back-compat con call sites externos. No volver a gatear aquí: el gate Pro vive dentro de la app (popover Free funnel), no en el installer del CLI.
 
+## Cross-stack backend (`brewtui-api`)
+
+Express 5 ESM backend at `/Volumes/SSD/Projects/Backends/brewtui`, deployed to NAS via `bash brewdeploy.sh` (NOT zsh). Public API at `https://api.molinesdesigns.com/api/...` via Cloudflare Tunnel (UUID `f9ae10c1-8ede-4251-99c4-665e24e6dde8`). Add new public hostnames via CF Zero Trust → Tunnels → that tunnel → Public Hostnames; auto-creates the proxied CNAME.
+
+- **`/api/license/{activate,validate,deactivate,pubkey}`** — proxies Polar customer-portal (no auth required) and Ed25519-signs the response. Private key in NAS env `LICENSE_SIGNING_PRIVATE_KEY`. Public key constant must match in three places: TUI `LICENSE_PUBLIC_KEY_B64`, Swift `licensePublicKeyB64`, and the test vectors in `signature-cross-check.test.ts` (Node) + `LicenseCheckerTests.swift` (Swift). Rotating the key → update all three + regenerate vectors in the same release.
+- **`/api/promo/{validate,redeem,admin/*}`** — promo code redemption (`src/lib/license/promo.ts`).
+- Conventions: `jsonOk`/`jsonError`/`asyncHandler` from `utils/response.js`, Zod validation per route, `rateLimit({windowMs, max, prefix, identity})` per-IP + per-identity. No test framework — verification is end-to-end with curl post-deploy. `.env` on NAS is rsync-excluded; secrets configured in-place via SSH.
+- Polar `status` (`granted/revoked/disabled`) is normalised to the TUI's union (`active/expired/inactive`) backend-side in `routes/license.js`; the `plan` is inferred from the key prefix (`BTUI-T-` → team, else pro). Sending raw Polar shapes breaks `isLicenseData` silently.
+
+## Ed25519 signing contract
+
+- **SPKI wrapper for raw Ed25519 public keys**: 12-byte prefix `302a300506032b6570032100` + 32 raw bytes = 44 bytes. Same prefix in Node `createPublicKey({format:'der', type:'spki'})` and Swift `Curve25519.Signing.PublicKey(rawRepresentation:)`. Strip prefix to export raw.
+- **PKCS8 wrapper for raw Ed25519 private keys**: 16-byte prefix `302e020100300506032b657004220420` + 32 raw bytes. Required by `createPrivateKey({format:'der', type:'pkcs8'})`.
+- **Canonical JSON**: object keys sorted alphabetically recursive, no whitespace, `JSON.stringify` for primitives. Three implementations must agree byte-for-byte: backend `lib/signer.js`, TUI `license-manager.ts`, Swift `LicenseChecker.swift`. The cross-check tests pin a vector signed with the production key.
+
 ## Naming
 
 - **Brew-TUI** — branding in UI, user-facing text, docs
@@ -226,3 +241,6 @@ All three channels must be updated on each release, in this order (auto-memory `
 - **Local tap clone:** `brew tap` already keeps it at `/opt/homebrew/Library/Taps/molinesdesigns/homebrew-tap`. Edit there and `git push origin main` — no need to clone elsewhere.
 - **npm token:** Stored at `/Users/molinesmac/Documents/Secrets/npm token.md` — update `~/.npmrc` if expired.
 - **Notary health check:** before step 2, run `xcrun notarytool history --keychain-profile brewbar-notary` — a 401 means the keychain profile is gone and `release.sh` will fail.
+- **`release.sh` step 6 (LaunchServices cleanup)** deregisters intermediate `.app` bundles (xcarchive, DerivedData ArchiveIntermediates, build/export) so Spotlight doesn't grow a duplicate every release. The DerivedData glob uses `shopt -s nullglob` — load-bearing for `set -e` to survive a fresh checkout where DerivedData doesn't exist yet.
+- **Parallelising tap bump while npm publish is blocked by 2FA**: `npm pack` (no `--dry-run`) produces a tarball whose SHA-256 is identical to what the npm registry serves after publish. Bump `Formula/brew-tui.rb` with that SHA while the publish web-auth completes; verify after with `curl -sL https://registry.npmjs.org/brew-tui/-/brew-tui-X.Y.Z.tgz | shasum -a 256`.
+- **Testing endpoints behind a new Cloudflare Tunnel hostname before DNS A propagates**: CF publishes AAAA first; IPv4 can lag minutes. Bypass with `curl --resolve <host>:443:104.21.88.226 https://<host>/...` using any active CF edge IP from a sibling subdomain.
