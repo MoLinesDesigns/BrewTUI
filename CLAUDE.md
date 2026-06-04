@@ -97,7 +97,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 
 ## Freemium Model
 
-- **Licensing:** Polar API (`src/lib/license/`). License stored at `~/.brew-tui/license.json` (AES-256-GCM encrypted, machine-bound). Revalidates every 24h with 7-day offline grace period.
+- **Licensing (4.0.0+):** `~/.brew-tui/license.json` carries an Ed25519-signed envelope `{version:2, license, sig}` issued by `brewtui-api` (NAS). Clients verify offline with the embedded public key `oHtzyU7…wq0=`. Pre-4.0.0 AES-GCM envelopes (v1) are rejected — user runs `brew-tui revalidate` once to migrate. Revalidates every 24h with 7-day offline grace.
 - **Machine binding:** License envelope includes `machineId` from `~/.brew-tui/machine-id` (UUID generated on first activation). Prevents license portability between devices.
 - **Feature gating:** `src/lib/license/feature-gate.ts` defines which ViewIds are Pro. `app.tsx` checks `isPro()` before rendering Pro views.
 - **Pro features:** Profiles (`src/lib/profiles/`), Smart Cleanup (`src/lib/cleanup/`), History (`src/lib/history/`), Security Audit (`src/lib/security/` via OSV.dev API, 30min cache), Smart Rollback (`src/lib/rollback/` + `src/lib/state-snapshot/`), Declarative Brewfile (`src/lib/brewfile/`, YAML), Cross-machine Sync (`src/lib/sync/` via iCloud + AES-256-GCM), Impact Analysis (`src/lib/impact/`).
@@ -106,7 +106,7 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 - **Rate limiting:** 30s cooldown between activation attempts, 15min lockout after 5 consecutive failures
 - **Watermark:** Profile exports can embed user email via zero-width Unicode (requires explicit `consent` parameter)
 - **Integrity:** Bundle SHA-256 verified at startup (`checkBundleIntegrity()`, fail-closed). Canary functions always return `false`
-- **Built-in accounts:** `getBuiltinAccountType()` in `license-manager.ts` returns `null` unconditionally (SEG-009: hardcoded map removed because the AES key is bundle-derivable, so any user could forge perpetual licenses). The regression test `license-manager.test.ts:505-525` pins owner emails (artax, admin@molinesdesigns) among the candidates that must stay `null` — do not reintroduce a hardcoded entry.
+- **Built-in accounts:** `getBuiltinAccountType()` returns `null` unconditionally. SEG-009 (AES key bundle-derivable) was closed in 4.0.0 by moving to Ed25519 signatures — the private key now lives only in `LICENSE_SIGNING_PRIVATE_KEY` on the NAS. Regression test still pins owner emails (artax, admin@molinesdesigns) among the candidates that must stay `null`.
 - **Owner Pro accounts** are instead provisioned via a private free recurring "comp" product in Polar carrying the same `license_keys` benefit (see auto-memory `polar_perpetual_pro.md` for IDs).
 - **Promo codes:** `src/lib/license/promo.ts` — promotional code redemption via brewtui-api backend
 
