@@ -285,17 +285,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let cve = appState.criticalCveCount
         let sync = appState.syncActivity
 
-        var parts: [String] = []
-        if outdated > 0, badgePreferences.showOutdated { parts.append("\(outdated)↑") }
-        if cve > 0, badgePreferences.showCVE          { parts.append("\(cve)⚠") }
-        if sync, badgePreferences.showSync            { parts.append("⟳") }
-        // No leading space: AppKit already pads between image and title via imagePosition.
-        // An empty string here is required so variable-length collapses fully when there's
-        // no badge to show; a leading " " would keep one glyph of width reserved.
-        let badge = parts.joined(separator: " ")
+        // Each part remembers if it represents outdated packages so we can
+        // selectively tint only that segment in red. CVE warnings and sync
+        // status keep the system color — they're informational, not alerting,
+        // and overloading red across all three would dilute the cue.
+        var parts: [(text: String, isOutdated: Bool)] = []
+        if outdated > 0, badgePreferences.showOutdated { parts.append(("\(outdated)↑", true)) }
+        if cve > 0, badgePreferences.showCVE          { parts.append(("\(cve)⚠", false)) }
+        if sync, badgePreferences.showSync            { parts.append(("⟳", false)) }
 
-        if badge != button.title {
-            button.title = badge
+        // Build the attributed title with per-segment colors. We always write
+        // attributedTitle — even when empty — so a residual red from a previous
+        // state can't linger after the outdated count drops to zero. CVE and
+        // sync stay in the system color: red is reserved for "you have pending
+        // updates" so it stays semantically distinct.
+        let menuFont = NSFont.menuBarFont(ofSize: NSFont.systemFontSize(for: .small))
+        let attributed = NSMutableAttributedString()
+        for (idx, part) in parts.enumerated() {
+            if idx > 0 {
+                attributed.append(NSAttributedString(string: " ", attributes: [.font: menuFont]))
+            }
+            var attrs: [NSAttributedString.Key: Any] = [.font: menuFont]
+            if part.isOutdated { attrs[.foregroundColor] = NSColor.systemRed }
+            attributed.append(NSAttributedString(string: part.text, attributes: attrs))
+        }
+        if attributed != button.attributedTitle {
+            button.attributedTitle = attributed
         }
 
         let icon = NSImage(named: "MenuBarIcon")
@@ -303,7 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         icon?.size = Self.menuBarIconSize
         let desc = parts.isEmpty
             ? String(localized: "Brew-TUI-Bar")
-            : String(format: String(localized: "Brew-TUI-Bar — %@"), parts.joined(separator: ", "))
+            : String(format: String(localized: "Brew-TUI-Bar — %@"), parts.map(\.text).joined(separator: ", "))
         icon?.accessibilityDescription = desc
         button.image = icon
     }

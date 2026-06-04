@@ -6,6 +6,7 @@ struct PopoverView: View {
     let badgePreferences: BadgePreferences
 
     @State private var showSettings = false
+    @State private var showNewPackages = false
     @Environment(\.legibilityWeight) private var legibilityWeight
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
@@ -45,6 +46,11 @@ struct PopoverView: View {
                             .padding(.horizontal, CrystalGlass.Spacing.md)
                             .padding(.vertical, 6)
                     }
+
+                    newPackagesBanner
+                        .padding(.horizontal, CrystalGlass.Spacing.md)
+                        .padding(.top, 4)
+                        .padding(.bottom, 2)
 
                     if appState.isLoading && appState.outdatedPackages.isEmpty {
                         loadingView
@@ -96,6 +102,55 @@ struct PopoverView: View {
                 )
             }
         }
+        .sheet(isPresented: $showNewPackages) {
+            NewPackagesView(
+                formulae: appState.newPackagesFormulae,
+                casks: appState.newPackagesCasks,
+                isLoading: appState.newPackagesLoading,
+                error: appState.newPackagesError,
+                fetchedAt: appState.newPackagesFetchedAt,
+                onClose: { showNewPackages = false },
+                onRefresh: { appState.loadNewPackagesIfNeeded(force: true) }
+            )
+        }
+    }
+
+    /// Compact "What's new in Homebrew" entry point. Shown above the outdated
+    /// list (not below — users scan top-down and the banner is a discovery
+    /// surface, not a status row). Triggers a lazy fetch the first time it's
+    /// opened; cached for 24h after that. Hidden when an install is in flight
+    /// to avoid distracting the user mid-action.
+    private var newPackagesBanner: some View {
+        Button {
+            appState.loadNewPackagesIfNeeded()
+            showNewPackages = true
+        } label: {
+            HStack(spacing: CrystalGlass.Spacing.sm) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(CrystalGlass.glassCyan)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(String(localized: "What's new in Homebrew"))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text(String(localized: "Recently added formulae and casks"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, CrystalGlass.Spacing.md)
+            .padding(.vertical, CrystalGlass.Spacing.sm)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .glassPanel(cornerRadius: CrystalGlass.Radius.panel - 6, strokeOpacity: 0.4, ambientGlow: 0.05)
+        .accessibilityLabel(String(localized: "Open what's new in Homebrew"))
+        .accessibilityHint(String(localized: "Shows recently added formulae and casks"))
     }
 
     // Cross-platform version contract: the bundle's CFBundleShortVersionString

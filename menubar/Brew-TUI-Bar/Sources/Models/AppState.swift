@@ -41,12 +41,24 @@ final class AppState {
     /// open after `isFinished` so the user can confirm the outcome before
     /// dismissing it.
     var installProgress: InstallProgress?
+    /// "What's new in Homebrew" modal state. Populated lazily the first time
+    /// the user opens the modal (or refreshes it); the modal renders empty
+    /// states for loading/error so the user knows what's happening.
+    var newPackagesFormulae: [NewPackage] = []
+    var newPackagesCasks: [NewPackage] = []
+    var newPackagesLoading = false
+    var newPackagesError: String?
+    var newPackagesFetchedAt: Date?
 
     /// Handle to the in-flight install task so the user can cancel it. We
     /// store it weakly via reference — cancelling propagates to the AsyncStream
     /// consumer loop, which trips `onTermination` and `process.terminate()`s
     /// brew.
     private var installTask: Task<Void, Never>?
+
+    /// Dedupes concurrent calls to `loadNewPackagesIfNeeded`. Non-nil means
+    /// a fetch is in flight; new callers piggyback on it.
+    private var newPackagesTask: Task<Void, Never>?
 
     /// Serializes `refresh()` so only one `brew update`/outdated/services chain
     /// runs at a time. `pendingCoalescedForce` merges overlapping `force: true`
@@ -271,6 +283,34 @@ final class AppState {
         installTask?.cancel()
         installProgress?.finishFailure(String(localized: "Cancelled"))
         // The wrapping task will still re-enter and emit isLoading = false.
+    }
+
+    // MARK: - What's new in Homebrew
+
+    /// Triggers a NewPackagesService fetch, reusing the in-flight task if any.
+    /// `force: true` bypasses the 24h cache (the modal's refresh button passes
+    /// this). Errors are surfaced via `newPackagesError`; partial data still
+    /// shows so a flaky GitHub doesn't blank the modal.
+    func loadNewPackagesIfNeeded(force: Bool = false) {
+        if newPackagesTask != nil { return }
+        newPackagesLoading = true
+        newPackagesError = nil
+        newPackagesTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.newPackagesLoading = false
+                self.newPackagesTask = nil
+            }
+            do {
+                let result = try await NewPackagesService.shared.fetchNewPackages(force: force)
+                self.newPackagesFormulae = result.formulae
+                self.newPackagesCasks = result.casks
+                self.newPackagesFetchedAt = result.fetchedAt
+            } catch {
+                appStateLogger.warning("New packages fetch failed: \(error.localizedDescription, privacy: .public)")
+                self.newPackagesError = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Streaming upgrade core
