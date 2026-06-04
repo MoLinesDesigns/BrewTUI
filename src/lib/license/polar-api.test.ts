@@ -1,176 +1,151 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-// Mock fetch-timeout
+// The module under test hits the brewtui-api backend (not Polar directly) since
+// 4.0.0 — the backend returns a SignedLicense envelope wrapped in the standard
+// { success, data } shape used across our API.
 const mockFetch = vi.fn();
 vi.mock('../fetch-timeout.js', () => ({
   fetchWithTimeout: (...args: unknown[]) => mockFetch(...args),
   fetchWithRetry: (...args: unknown[]) => mockFetch(...args),
 }));
 
-// Mock machine-id resolution (single canonical impl in data-dir.ts)
-vi.mock('../data-dir.js', () => ({
-  getMachineId: vi.fn(async () => 'test-machine-uuid-1234'),
-}));
+const sampleSignedLicense = {
+  license: {
+    key: 'test-key-12345',
+    instanceId: 'act-123',
+    status: 'active',
+    customerEmail: 'user@example.com',
+    customerName: 'Test User',
+    plan: 'pro',
+    activatedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: null,
+    lastValidatedAt: '2026-06-04T00:00:00.000Z',
+  },
+  // Real Ed25519 signatures are 64 bytes / 88 base64 chars. Tests only care
+  // about the shape passing through polar-api; signature verification itself
+  // lives in license-manager.ts and is exercised by its own tests.
+  sig: 'A'.repeat(88),
+};
 
-describe('activateLicense (QA-007, EP-001)', () => {
+describe('activateLicense', () => {
   beforeEach(() => {
     vi.resetModules();
     mockFetch.mockReset();
   });
 
-  it('returns activation data on successful activation', async () => {
-    // First call: activate
+  it('returns the signed envelope on success', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({
-        id: 'act-123',
-        license_key: { status: 'granted', expires_at: null },
-      }),
-    });
-    // Second call: validate (for customer info)
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        id: 'act-123',
-        status: 'granted',
-        expires_at: null,
-        customer: { email: 'user@example.com', name: 'Test User' },
-        activation: { id: 'act-123' },
-      }),
+      json: async () => ({ success: true, data: sampleSignedLicense }),
     });
 
     const { activateLicense } = await import('./polar-api.js');
-    const result = await activateLicense('valid-key-12345');
+    const result = await activateLicense('test-key-12345', 'machine-uuid-aaaa');
 
-    expect(result.activated).toBe(true);
-    expect(result.instance.id).toBe('act-123');
-    expect(result.meta.customer_email).toBe('user@example.com');
+    expect(result.license.key).toBe('test-key-12345');
+    expect(result.license.instanceId).toBe('act-123');
+    expect(result.sig).toHaveLength(88);
   });
 
-  it('throws on invalid key (400 response)', async () => {
+  it('forwards key + machineId to the backend body', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: sampleSignedLicense }),
+    });
+
+    const { activateLicense } = await import('./polar-api.js');
+    await activateLicense('valid-key-12345', 'machine-uuid-xyz');
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
+    expect(callBody.key).toBe('valid-key-12345');
+    expect(callBody.machineId).toBe('machine-uuid-xyz');
+    // Hashing the machineId is the backend's responsibility now — the client
+    // sends the raw UUID and lets the backend derive the Polar label.
+  });
+
+  it('throws when the backend rejects the request', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 400,
-      json: async () => ({ detail: 'Invalid license key' }),
+      json: async () => ({ success: false, error: 'Invalid license key' }),
     });
 
     const { activateLicense } = await import('./polar-api.js');
-    await expect(activateLicense('bad-key-123456')).rejects.toThrow('Invalid license key');
+    await expect(activateLicense('bad-key-12345', 'm-id')).rejects.toThrow('Invalid license key');
   });
 
-  it('throws on network failure', async () => {
+  it('throws when the network call fails', async () => {
     mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
 
     const { activateLicense } = await import('./polar-api.js');
-    await expect(activateLicense('any-key-123456')).rejects.toThrow('fetch failed');
+    await expect(activateLicense('any-key-12345', 'm-id')).rejects.toThrow('fetch failed');
   });
 
-  it('throws on malformed activation response (EP-001)', async () => {
+  it('throws when the envelope is missing license fields', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ unexpected: 'data' }), // missing id, license_key
+      json: async () => ({ success: true, data: { sig: 'aaaa' } }),
     });
 
     const { activateLicense } = await import('./polar-api.js');
-    await expect(activateLicense('test-key-123456')).rejects.toThrow('Invalid activation response');
+    await expect(activateLicense('test-key-12345', 'm-id')).rejects.toThrow(/missing license/);
   });
 
-  it('uses machine UUID instead of hostname (SEG-004)', async () => {
+  it('throws when the envelope is missing the signature', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({
-        id: 'act-456',
-        license_key: { status: 'granted', expires_at: null },
-      }),
-    });
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        id: 'act-456',
-        status: 'granted',
-        expires_at: null,
-        customer: { email: '', name: '' },
-        activation: { id: 'act-456' },
-      }),
+      json: async () => ({ success: true, data: { license: sampleSignedLicense.license } }),
     });
 
     const { activateLicense } = await import('./polar-api.js');
-    await activateLicense('test-key-123456');
-
-    // BK-009: el label es ahora SHA-256(machineId) truncado a 32 chars hex,
-    // no el UUID en claro. Verificamos: (1) no es el hostname, (2) no es el
-    // UUID en claro, (3) tiene 32 caracteres hex, (4) es derivacion
-    // deterministica del UUID conocido.
-    const { createHash } = await import('node:crypto');
-    const expectedHash = createHash('sha256').update('test-machine-uuid-1234').digest('hex').slice(0, 32);
-    const callBody = JSON.parse(mockFetch.mock.calls[0]![1].body as string);
-    expect(callBody.label).toBe(expectedHash);
-    expect(callBody.label).toMatch(/^[0-9a-f]{32}$/);
-    expect(callBody.label).not.toContain('.local');
-    expect(callBody.label).not.toBe('test-machine-uuid-1234'); // UUID no debe filtrarse en claro
+    await expect(activateLicense('test-key-12345', 'm-id')).rejects.toThrow(/missing signature/);
   });
 });
 
-describe('validateLicense (QA-007, EP-002)', () => {
+describe('validateLicense', () => {
   beforeEach(() => {
     vi.resetModules();
     mockFetch.mockReset();
   });
 
-  it('returns valid=true for granted license', async () => {
+  it('returns a fresh signed envelope', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({
-        id: 'act-123',
-        status: 'granted',
-        expires_at: null,
-        customer: { email: 'user@example.com', name: 'Test' },
-        activation: { id: 'act-123' },
-      }),
+      json: async () => ({ success: true, data: sampleSignedLicense }),
     });
 
     const { validateLicense } = await import('./polar-api.js');
-    const result = await validateLicense('key-123456789', 'act-123');
+    const result = await validateLicense('key-12345', 'act-123');
 
-    expect(result.valid).toBe(true);
-    expect(result.error).toBeNull();
+    expect(result.license.status).toBe('active');
+    expect(typeof result.sig).toBe('string');
   });
 
-  it('returns valid=false for revoked license', async () => {
+  it('throws when the backend says the license is revoked', async () => {
     mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        id: 'act-123',
-        status: 'revoked',
-        expires_at: null,
-        customer: { email: '', name: '' },
-        activation: { id: 'act-123' },
-      }),
+      ok: false,
+      status: 400,
+      json: async () => ({ success: false, error: 'License revoked' }),
     });
 
     const { validateLicense } = await import('./polar-api.js');
-    const result = await validateLicense('key-123456789', 'act-123');
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('revoked');
+    await expect(validateLicense('key-12345', 'act-123')).rejects.toThrow('License revoked');
   });
 
-  it('throws on malformed response (EP-002)', async () => {
+  it('throws on a malformed envelope', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ id: 'act-123' }), // missing status, customer
+      json: async () => ({ success: true, data: { sig: 123 } }),
     });
 
     const { validateLicense } = await import('./polar-api.js');
-    await expect(validateLicense('key-123456789', 'act-123')).rejects.toThrow('Invalid validation response');
+    await expect(validateLicense('key-12345', 'act-123')).rejects.toThrow(/missing signature|missing license/);
   });
 });
 
@@ -180,24 +155,25 @@ describe('deactivateLicense', () => {
     mockFetch.mockReset();
   });
 
-  it('succeeds on 204 response', async () => {
+  it('resolves on a successful deactivation', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      status: 204,
+      status: 200,
+      json: async () => ({ success: true, data: { deactivated: true } }),
     });
 
     const { deactivateLicense } = await import('./polar-api.js');
-    await expect(deactivateLicense('key-123456789', 'act-123')).resolves.toBeUndefined();
+    await expect(deactivateLicense('key-12345', 'act-123')).resolves.toBeUndefined();
   });
 
-  it('throws on server error', async () => {
+  it('throws when the backend returns an error', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
-      json: async () => ({ error: 'Internal server error' }),
+      json: async () => ({ success: false, error: 'Internal server error' }),
     });
 
     const { deactivateLicense } = await import('./polar-api.js');
-    await expect(deactivateLicense('key-123456789', 'act-123')).rejects.toThrow();
+    await expect(deactivateLicense('key-12345', 'act-123')).rejects.toThrow();
   });
 });

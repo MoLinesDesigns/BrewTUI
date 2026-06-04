@@ -29,43 +29,35 @@ export function isLicenseData(value: unknown): value is LicenseData {
   );
 }
 
+/**
+ * v2 envelope: license payload + Ed25519 signature from the brewtui-api
+ * backend. The client verifies the signature with the embedded public key
+ * — see license-manager.ts. This replaces the v1 AES-GCM envelope where the
+ * shared HKDF secret lived in the public npm bundle.
+ *
+ * v1 envelopes (encrypted: {iv,tag,encrypted}) and legacy unencrypted
+ * envelopes ({license}) are still represented here so the loader can detect
+ * and reject them with a helpful message ("run brew-tui revalidate").
+ */
 export interface LicenseFile {
-  version: 1;
-  license?: LicenseData | null; // legacy unencrypted
-  hmac?: string; // legacy
-  encrypted?: string; // AES-256-GCM encrypted license JSON
+  version: 1 | 2;
+  // v2 fields
+  license?: LicenseData | null;
+  sig?: string;
+  // v1 legacy fields — present only on files written by < 4.0.0
+  hmac?: string;
+  encrypted?: string;
   iv?: string;
   tag?: string;
 }
 
 export type LicenseStatus = 'free' | 'pro' | 'team' | 'expired' | 'validating';
 
-export interface PolarActivateResponse {
-  activated: boolean;
-  error: string | null;
-  license_key: {
-    id: number;
-    status: string;
-    key: string;
-    activation_limit: number;
-    activations_count: number;
-    expires_at: string | null;
-  };
-  instance: { id: string };
-  meta: { customer_name: string; customer_email: string };
-}
-
-export interface PolarValidateResponse {
-  valid: boolean;
-  error: string | null;
-  license_key: {
-    id: number;
-    status: string;
-    key: string;
-    expires_at: string | null;
-  };
-  instance: { id: string };
-}
+// PolarActivateResponse / PolarValidateResponse used to mirror the shape of
+// the customer-portal API responses. Since 4.0.0 the client no longer talks
+// to Polar directly — see polar-api.ts (now a thin wrapper around the
+// brewtui-api backend). The signed envelope returned by the backend is
+// `SignedLicense` (exported from polar-api.ts).
 
 export type ProFeatureId =
   | 'profiles'

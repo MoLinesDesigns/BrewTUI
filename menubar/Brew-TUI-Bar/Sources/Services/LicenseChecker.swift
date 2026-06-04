@@ -18,9 +18,14 @@ struct LicenseData: Codable {
 
 struct LicenseFile: Codable {
     let version: Int
-    // Legacy unencrypted format
+    /// v2 (current): the LicenseData payload signed by the brewtui-api backend.
+    /// v1 envelopes set this too but combine it with `encrypted/iv/tag`; we
+    /// reject those in checkLicense() regardless of the field's presence.
     let license: LicenseData?
-    // AES-256-GCM encrypted format
+    /// v2: Ed25519 signature over canonical JSON of `license`, base64.
+    let sig: String?
+    /// v1 legacy fields — kept Decodable only so we can detect & reject these
+    /// envelopes with a helpful log message. Never used for authorisation.
     let encrypted: String?
     let iv: String?
     let tag: String?
@@ -142,36 +147,26 @@ struct LicenseChecker {
         NSHomeDirectory() + "/.brew-tui/license.json"
     }()
 
-    // SEG-002: license keys are derived per-user via HKDF-SHA256, mirroring
-    // the TS bundle in `license-manager.ts`:
-    //   hkdfSync('sha256', SECRET, SALT, machineId, 32)
+    // SEG-009 v2 (4.0.0): the symmetric HKDF/AES-GCM scheme was replaced by
+    // an Ed25519 signature issued by the brewtui-api backend. The private key
+    // lives only on the NAS (LICENSE_SIGNING_PRIVATE_KEY env var); the public
+    // counterpart below is embedded so the app verifies offline without ever
+    // round-tripping the network. Exposing the public key is by design — a
+    // verifier needs it, but it cannot be used to forge signatures.
     //
-    // The legacy bundle-only scrypt fallback that existed from 0.6.3 through
-    // 2.x was retired in 3.1.0 — see SEG-M2/M3 in the security audit. An
-    // envelope ciphered with the legacy key now fails decryption, surfacing
-    // as `.notFound` so the user re-activates.
-    private static let encryptionSecret = "brew-tui-license-aes256gcm-v1"
-    private static let hkdfSalt = "brew-tui-salt-v1"
-    private static let machineIdPath: String = NSHomeDirectory() + "/.brew-tui/machine-id"
+    // Cross-platform contract: the same constant ships in the TUI's
+    // src/lib/license/license-manager.ts (LICENSE_PUBLIC_KEY_B64). Rotating
+    // the key means updating BOTH constants in the same release and bumping
+    // the LICENSE_SIGNING_PRIVATE_KEY env var on the NAS. The cross-check
+    // vector in src/lib/license/signature-cross-check.test.ts pins the
+    // agreement between the three implementations.
+    private static let licensePublicKeyB64 = "oHtzyU7ZACt8Eqga+U4PSagr0rSj1YLs3oVSpmjmwq0="
 
-    private static var derivedEncryptionKey: SymmetricKey? {
-        guard let machineId = readMachineId(), !machineId.isEmpty else { return nil }
-        let inputKey = SymmetricKey(data: Data(encryptionSecret.utf8))
-        return HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: inputKey,
-            salt: Data(hkdfSalt.utf8),
-            info: Data(machineId.utf8),
-            outputByteCount: 32
-        )
-    }
-
-    private static func readMachineId() -> String? {
-        guard let data = FileManager.default.contents(atPath: machineIdPath),
-              let raw = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-        return raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    private static let licensePublicKey: Curve25519.Signing.PublicKey? = {
+        guard let raw = Data(base64Encoded: licensePublicKeyB64),
+              raw.count == 32 else { return nil }
+        return try? Curve25519.Signing.PublicKey(rawRepresentation: raw)
+    }()
 
     /// Degradation thresholds (days since last validation). Must match
     /// `getDegradationLevel` in `src/lib/license/license-manager.ts`.
@@ -198,10 +193,10 @@ struct LicenseChecker {
             return .notFound
         }
 
-        // Try encrypted format first
-        if let encrypted = file.encrypted, let iv = file.iv, let tag = file.tag {
-            guard let license = decrypt(encrypted: encrypted, iv: iv, tag: tag) else {
-                logger.error("Failed to decrypt license data")
+        // v2: signed envelope. The only authorised path since 4.0.0.
+        if file.version == 2, let license = file.license, let sig = file.sig {
+            guard verifySignedLicense(license, signatureBase64: sig) else {
+                logger.warning("License signature verification failed — refusing to authorize")
                 return .notFound
             }
             let status = evaluate(license)
@@ -213,21 +208,94 @@ struct LicenseChecker {
             return status
         }
 
-        // Hard reject of the legacy unencrypted format. The TUI auto-migrates
-        // such files to the encrypted envelope on first read (see
-        // `src/lib/license/license-manager.ts` saveLicense after legacy
-        // detection), but the menubar app is read-only — accepting an
-        // unencrypted license here would let any process that can write to
-        // ~/.brew-tui/ forge Pro status without holding a key. Users with a
-        // genuinely legacy license just need to run `brew-tui revalidate`
-        // once; the TUI re-saves it encrypted and the next launch passes.
-        if file.license != nil {
-            logger.warning("License file is in legacy unencrypted format — refusing to authorize. Run `brew-tui revalidate` to migrate.")
+        // v1 (any shape): AES-GCM envelope or unencrypted plaintext. Both are
+        // rejected — the symmetric HKDF key was shipped in the public npm
+        // bundle, so any v1 file is forgeable. The TUI's `brew-tui revalidate`
+        // re-issues a v2 signed envelope; users with a genuinely v1 license
+        // just need to run it once.
+        if file.version == 1 {
+            logger.warning("License file is in legacy v1 format — refusing to authorize. Run `brew-tui revalidate` to migrate.")
             return .notFound
         }
 
-        logger.info("License file has no license data")
+        logger.info("License file has no usable license data (version \(file.version, privacy: .public))")
         return .notFound
+    }
+
+    // MARK: - Ed25519 signature verification
+
+    /// Verifies the envelope returned by the backend. Returns false on any
+    /// failure — malformed base64, wrong-length signature, mismatched bytes —
+    /// so the caller has a single boolean to gate Pro access.
+    static func verifySignedLicense(_ license: LicenseData, signatureBase64: String) -> Bool {
+        guard let pub = licensePublicKey else {
+            logger.error("License public key is malformed at compile time — this is a code bug")
+            return false
+        }
+        guard let sig = Data(base64Encoded: signatureBase64), sig.count == 64 else {
+            return false
+        }
+        guard let message = canonicalJSONData(for: license) else {
+            return false
+        }
+        return pub.isValidSignature(sig, for: message)
+    }
+
+    /// Builds the same byte sequence the backend and TUI sign / verify.
+    /// Order: keys of LicenseData sorted alphabetically, JSON.stringify for
+    /// each value, no whitespace. The TUI's canonicalJSON in
+    /// src/lib/license/license-manager.ts implements the same algorithm.
+    private static func canonicalJSONData(for license: LicenseData) -> Data? {
+        // LicenseData has a fixed shape, so we don't need a generic JSON
+        // canonicaliser — just emit the fields in sorted order.
+        var parts: [(String, String)] = []
+        parts.append(("activatedAt", jsonString(license.activatedAt)))
+        parts.append(("customerEmail", jsonString(license.customerEmail)))
+        parts.append(("customerName", jsonString(license.customerName)))
+        if let exp = license.expiresAt {
+            parts.append(("expiresAt", jsonString(exp)))
+        } else {
+            parts.append(("expiresAt", "null"))
+        }
+        parts.append(("instanceId", jsonString(license.instanceId)))
+        parts.append(("key", jsonString(license.key)))
+        parts.append(("lastValidatedAt", jsonString(license.lastValidatedAt)))
+        parts.append(("plan", jsonString(license.plan)))
+        parts.append(("status", jsonString(license.status)))
+
+        // sorted() is a no-op here (the array is already built in sorted
+        // order) but keeps the contract explicit — future fields added in
+        // the wrong place still come out correct.
+        let serialized = parts.sorted(by: { $0.0 < $1.0 })
+            .map { "\(jsonString($0.0)):\($0.1)" }
+            .joined(separator: ",")
+        return "{\(serialized)}".data(using: .utf8)
+    }
+
+    /// JSON-encode a string with escapes matching JavaScript's JSON.stringify:
+    /// double quotes, backslash escapes, control character \uXXXX, slashes
+    /// not escaped. Matches the canonical encoding the signer uses.
+    private static func jsonString(_ s: String) -> String {
+        var out = "\""
+        for scalar in s.unicodeScalars {
+            switch scalar {
+            case "\"":   out += "\\\""
+            case "\\":   out += "\\\\"
+            case "\u{08}": out += "\\b"
+            case "\u{0C}": out += "\\f"
+            case "\n":   out += "\\n"
+            case "\r":   out += "\\r"
+            case "\t":   out += "\\t"
+            default:
+                if scalar.value < 0x20 {
+                    out += String(format: "\\u%04x", scalar.value)
+                } else {
+                    out.unicodeScalars.append(scalar)
+                }
+            }
+        }
+        out += "\""
+        return out
     }
 
     /// Evaluate a license directly (for testing without filesystem access)
@@ -285,44 +353,6 @@ struct LicenseChecker {
         if days <= limitedThresholdDays { return .warning }
         if days <= expiredThresholdDays { return .limited }
         return .expired
-    }
-
-    // MARK: - AES-256-GCM decryption
-
-    private static func decrypt(encrypted: String, iv ivBase64: String, tag tagBase64: String) -> LicenseData? {
-        guard let ciphertext = Data(base64Encoded: encrypted),
-              let nonce = Data(base64Encoded: ivBase64),
-              let tag = Data(base64Encoded: tagBase64)
-        else {
-            return nil
-        }
-
-        let sealedBox: AES.GCM.SealedBox
-        do {
-            sealedBox = try AES.GCM.SealedBox(
-                nonce: AES.GCM.Nonce(data: nonce),
-                ciphertext: ciphertext,
-                tag: tag
-            )
-        } catch {
-            logger.error("Sealed box error: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
-
-        // Only the HKDF (machine-bound) key is accepted; the legacy scrypt
-        // fallback was retired in 3.1.0. If the machine-id is missing the
-        // key cannot be derived and decryption is impossible — surface that
-        // distinctly in the log so support can spot it.
-        guard let key = derivedEncryptionKey else {
-            logger.error("Cannot decrypt license: machine-id is missing or empty")
-            return nil
-        }
-        guard let plaintext = try? AES.GCM.open(sealedBox, using: key),
-              let decoded = try? JSONDecoder().decode(LicenseData.self, from: plaintext) else {
-            logger.error("License decryption failed under the HKDF key")
-            return nil
-        }
-        return decoded
     }
 
     private static func parseDate(_ value: String) -> Date? {

@@ -1,7 +1,12 @@
 import { readFile, writeFile, rename, rm } from 'node:fs/promises';
-import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from 'node:crypto';
+import { verify, createPublicKey } from 'node:crypto';
 import { LICENSE_PATH, ensureDataDirs, getMachineId } from '../data-dir.js';
-import { activateLicense as apiActivate, validateLicense as apiValidate, deactivateLicense as apiDeactivate } from './polar-api.js';
+import {
+  activateLicense as apiActivate,
+  validateLicense as apiValidate,
+  deactivateLicense as apiDeactivate,
+  type SignedLicense,
+} from './polar-api.js';
 import { t } from '../../i18n/index.js';
 import { isLicenseData, type LicenseData, type LicenseFile } from './types.js';
 
@@ -68,80 +73,72 @@ function recordAttempt(success: boolean): void {
   }
 }
 
-// SECURITY (SEG-002): the bundle-only constants below USED to be the entire
-// derivation input — anyone with the npm bundle could decrypt any user's
-// license.json. Now the per-user machineId is mixed into the HKDF info, so
-// the bundle alone is no longer sufficient: an attacker also needs the
-// target's ~/.brew-tui/machine-id. The two constants stay published; what's
-// secret is the user's local machineId, which never leaves the machine.
+// SECURITY (SEG-009 v2): the signing key lives only on the brewtui-api NAS
+// (LICENSE_SIGNING_PRIVATE_KEY env var). The Ed25519 public counterpart is
+// embedded here AND in menubar/Brew-TUI-Bar/Sources/Services/LicenseChecker.swift —
+// both verify the signed envelope offline without round-tripping the network.
+// Exposing the public key is by design: a verifier needs it; forging signatures
+// without the private half is computationally infeasible.
 //
-// HKDF-SHA256 was chosen over scrypt because Swift's CryptoKit (used by
-// Brew-TUI-Bar to read the same license.json) ships HKDF natively but not scrypt.
-// machineId is a UUIDv4 with 122 bits of entropy, so the cost-hardening of
-// scrypt is not what's protecting the key — the secrecy of the machineId is.
-const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
-const HKDF_SALT = 'brew-tui-salt-v1';
+// Cross-check vector for keeping JS and Swift in sync lives in
+// signature-cross-check.test.ts. Don't change the constant without rotating
+// the key on the backend AND bumping the schema version.
+const LICENSE_PUBLIC_KEY_B64 = 'oHtzyU7ZACt8Eqga+U4PSagr0rSj1YLs3oVSpmjmwq0=';
 
-let _derivedKey: Buffer | null = null;
-
-async function deriveEncryptionKey(): Promise<Buffer> {
-  if (_derivedKey) return _derivedKey;
-  const machineId = await getMachineId();
-  // HKDF: ikm = SECRET, salt = HKDF_SALT, info = machineId, len = 32
-  const derived = hkdfSync('sha256', ENCRYPTION_SECRET, HKDF_SALT, machineId, 32);
-  _derivedKey = Buffer.from(derived);
-  return _derivedKey;
+let _cachedPublicKey: ReturnType<typeof createPublicKey> | null = null;
+function publicKey(): ReturnType<typeof createPublicKey> {
+  if (_cachedPublicKey) return _cachedPublicKey;
+  // SPKI wrapper for raw Ed25519 public keys (RFC 8410 §4):
+  //   SEQUENCE { AlgorithmIdentifier { 1.3.101.112 }, BIT STRING { rawKey } }
+  // 12-byte prefix + 32 raw bytes = 44 bytes total. Same prefix the backend
+  // uses in lib/signer.js to expose publicKeyBase64().
+  const spkiPrefix = Buffer.from('302a300506032b6570032100', 'hex');
+  const rawPub = Buffer.from(LICENSE_PUBLIC_KEY_B64, 'base64');
+  const spki = Buffer.concat([spkiPrefix, rawPub]);
+  _cachedPublicKey = createPublicKey({ key: spki, format: 'der', type: 'spki' });
+  return _cachedPublicKey;
 }
 
-async function encryptLicenseData(data: LicenseData): Promise<{ encrypted: string; iv: string; tag: string }> {
-  const key = await deriveEncryptionKey();
-  const iv = randomBytes(12); // 96-bit IV for GCM
-  const cipher = createCipheriv('aes-256-gcm', key, iv);
-
-  const plaintext = JSON.stringify(data);
-  const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf-8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-
-  return {
-    encrypted: ciphertext.toString('base64'),
-    iv: iv.toString('base64'),
-    tag: tag.toString('base64'),
-  };
-}
-
-async function decryptLicenseData(encrypted: string, iv: string, tag: string): Promise<LicenseData> {
-  const ivBuf = Buffer.from(iv, 'base64');
-  const tagBuf = Buffer.from(tag, 'base64');
-  const ciphertext = Buffer.from(encrypted, 'base64');
-
-  // Only the machine-bound HKDF key is accepted. The legacy bundle-only
-  // scrypt fallback (in place from 0.6.3 through 2.x for license.json files
-  // written by 0.6.2 and earlier) was retired in 3.1.0 — see SEG-M2 in the
-  // security audit. Any envelope ciphered with the legacy key now fails
-  // decryption, which loadLicense() surfaces as "license not found" so the
-  // user re-activates.
-  const key = await deriveEncryptionKey();
-  const decipher = createDecipheriv('aes-256-gcm', key, ivBuf);
-  decipher.setAuthTag(tagBuf);
-  const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  const parsed: unknown = JSON.parse(plaintext.toString('utf-8'));
-  if (!isLicenseData(parsed)) {
-    throw new Error('Decrypted license payload failed shape validation');
+/**
+ * Deterministic JSON serialisation: object keys sorted recursively, no
+ * whitespace, JSON.stringify for primitives. Both the backend signer
+ * (backend/lib/signer.js) and the Swift verifier (LicenseChecker.swift)
+ * implement the same algorithm — that's how the bytes-signed match the
+ * bytes-verified across three languages.
+ */
+export function canonicalJSON(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return '[' + value.map(canonicalJSON).join(',') + ']';
   }
-  return parsed;
+  const keys = Object.keys(value as Record<string, unknown>).sort();
+  const parts = keys.map((k) =>
+    JSON.stringify(k) + ':' + canonicalJSON((value as Record<string, unknown>)[k]),
+  );
+  return '{' + parts.join(',') + '}';
+}
+
+/**
+ * Crypto-verify the envelope returned by the backend. Returns false on any
+ * failure — including malformed base64, wrong-length signatures or invalid
+ * canonical encoding — so the caller has a single boolean to gate Pro access.
+ */
+export function verifySignedLicense(signed: SignedLicense): boolean {
+  try {
+    const sig = Buffer.from(signed.sig, 'base64');
+    if (sig.length !== 64) return false;
+    const message = Buffer.from(canonicalJSON(signed.license), 'utf8');
+    return verify(null, message, publicKey(), sig);
+  } catch {
+    return false;
+  }
 }
 
 // BK-003: Type guard for license data format
 function isLicenseFile(obj: unknown): obj is LicenseFile {
-  return typeof obj === 'object' && obj !== null && (obj as Record<string, unknown>).version === 1;
-}
-
-function isEncryptedLicenseFile(obj: unknown): obj is LicenseFile & { encrypted: string; iv: string; tag: string } {
-  if (!isLicenseFile(obj)) return false;
-  const record = obj as unknown as Record<string, unknown>;
-  return typeof record.encrypted === 'string'
-    && typeof record.iv === 'string'
-    && typeof record.tag === 'string';
+  if (typeof obj !== 'object' || obj === null) return false;
+  const v = obj as Record<string, unknown>;
+  return v.version === 1 || v.version === 2;
 }
 
 export async function loadLicense(): Promise<LicenseData | null> {
@@ -149,48 +146,26 @@ export async function loadLicense(): Promise<LicenseData | null> {
     const raw = await readFile(LICENSE_PATH, 'utf-8');
     const parsed: unknown = JSON.parse(raw);
 
-    // BK-003: Validate parsed data
-    if (!isLicenseFile(parsed)) {
-      throw new Error('Invalid license data format');
-    }
-
+    if (!isLicenseFile(parsed)) return null;
     const file = parsed as LicenseFile;
 
-    if (file.version !== 1) {
-      // Future: add migration logic here
-      throw new Error('Unsupported data version');
+    // v2: signed envelope. The only path that grants Pro since 4.0.0.
+    if (file.version === 2) {
+      if (!file.license || typeof file.sig !== 'string') return null;
+      if (!isLicenseData(file.license)) return null;
+      const signed: SignedLicense = { license: file.license, sig: file.sig };
+      if (!verifySignedLicense(signed)) return null;
+      return file.license;
     }
 
-    // New encrypted format
-    if (isEncryptedLicenseFile(file)) {
-      const data = await decryptLicenseData(file.encrypted!, file.iv!, file.tag!);
-
-      // SEG-002: Check machine ID if stored in the envelope.
-      // getMachineId() now always resolves a value — if the user's machine-id
-      // file was wiped, a new UUID is created and this check rejects the
-      // license, prompting reactivation. Same behaviour the polar-api flow
-      // already had on save.
-      const fileRecord = file as unknown as Record<string, unknown>;
-      if (fileRecord.machineId) {
-        const currentMachineId = await getMachineId();
-        // SEC-L2: randomUUID() yields lowercase UUIDs, but a manually edited
-        // machine-id or license.json could carry mixed case. Normalise both
-        // sides before comparing so case alone is never the rejection reason.
-        if (typeof fileRecord.machineId !== 'string'
-            || fileRecord.machineId.toLowerCase() !== currentMachineId.toLowerCase()) {
-          throw new Error('License was activated on a different machine');
-        }
-      }
-
-      return data;
-    }
-
-    // Legacy unencrypted format — migrate to encrypted on read
-    if (file.license) {
-      const data = file.license;
-      // Re-save in encrypted format
-      await saveLicense(data);
-      return data;
+    // v1: legacy AES-GCM envelope or unencrypted blob. Both are rejected —
+    // the symmetric encryption key was shipped in the public bundle, so
+    // accepting v1 would defeat the point of the signature migration. The
+    // user just needs to run `brew-tui revalidate` once; activate() / the
+    // periodic revalidation will overwrite the file with a v2 envelope on
+    // the next successful round-trip to the backend.
+    if (file.version === 1) {
+      return null;
     }
 
     return null;
@@ -199,15 +174,35 @@ export async function loadLicense(): Promise<LicenseData | null> {
   }
 }
 
-export async function saveLicense(data: LicenseData): Promise<void> {
+/**
+ * Persists the signed envelope returned by the backend. Replaces the old
+ * client-side AES-GCM saveLicense — the client no longer needs (or has) any
+ * key material; it just writes the bytes the backend signed.
+ *
+ * Atomic write via tmp + rename: a crash mid-write leaves either the old
+ * file intact or the new one fully written, never a torn JSON.
+ */
+async function persistSigned(signed: SignedLicense): Promise<void> {
   await ensureDataDirs();
-  const { encrypted, iv, tag } = await encryptLicenseData(data);
-  // SEG-002: Include machineId in the envelope for portability detection
-  const machineId = await getMachineId();
-  const file: Record<string, unknown> = { version: 1, encrypted, iv, tag, machineId };
+  const file: LicenseFile = {
+    version: 2,
+    license: signed.license,
+    sig: signed.sig,
+  };
   const tmpPath = LICENSE_PATH + '.tmp';
   await writeFile(tmpPath, JSON.stringify(file, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmpPath, LICENSE_PATH);
+}
+
+/**
+ * @deprecated Use `persistSigned` with a backend-issued SignedLicense. Kept
+ * for tests that pre-date the v2 envelope. Sign here locally with a test
+ * keypair would defeat the threat model, so this path is intentionally
+ * non-functional in production: any LicenseData saved through here cannot
+ * be loaded back (no signature → loadLicense returns null).
+ */
+export async function saveLicense(_data: LicenseData): Promise<void> {
+  throw new Error('saveLicense is no longer supported; the backend issues signed envelopes (4.0.0).');
 }
 
 export async function clearLicense(): Promise<void> {
@@ -280,54 +275,33 @@ function validateLicenseKey(key: string): void {
   }
 }
 
-// Polar license-key benefits use distinct prefixes per tier:
-//   Pro Monthly/Yearly  → "BTUI-..."
-//   Team Monthly/Yearly → "BTUI-T-..."
-// We detect the tier from the prefix instead of looking up the productId,
-// because Polar's customer-portal license endpoints don't echo product info
-// in the activation response.
-function detectPlan(key: string): 'pro' | 'team' {
-  const upper = key.toUpperCase();
-  return upper.startsWith('BTUI-T-') || upper.startsWith('BTUI-T_') ? 'team' : 'pro';
-}
-
 export async function activate(key: string): Promise<LicenseData> {
   validateLicenseKey(key);
   checkRateLimit();
 
   let success = false;
   try {
-    const res = await apiActivate(key);
+    const machineId = await getMachineId();
+    const signed = await apiActivate(key, machineId);
 
-    if (!res.activated) {
-      throw new Error(res.error ?? 'Activation failed');
+    // Verify the envelope before trusting it. The backend should never emit
+    // an unverifiable response, but a MITM injecting `{license, sig:""}`
+    // would otherwise pass straight through.
+    if (!verifySignedLicense(signed)) {
+      throw new Error('Backend response failed signature verification');
     }
 
-    const license: LicenseData = {
-      key,
-      instanceId: res.instance.id,
-      status: 'active',
-      customerEmail: res.meta.customer_email,
-      customerName: res.meta.customer_name,
-      plan: detectPlan(key),
-      activatedAt: new Date().toISOString(),
-      expiresAt: res.license_key.expires_at,
-      lastValidatedAt: new Date().toISOString(),
-    };
-
-    await saveLicense(license);
+    await persistSigned(signed);
     success = true;
-    return license;
+    return signed.license;
   } finally {
     recordAttempt(success);
   }
 }
 
 /**
- * Revalidate the license against the server.
- * This also serves as Layer 19 (telemetry): each validation call
- * allows Polar to track activation count, last-seen timestamp,
- * and detect if the activation limit is exceeded (license sharing).
+ * Revalidate the license against the server. Each call refreshes
+ * lastValidatedAt and resets the offline-degradation timer.
  */
 // EP-006: Detect if an error is a network error vs validation/contract error
 function isNetworkError(err: unknown): boolean {
@@ -337,28 +311,24 @@ function isNetworkError(err: unknown): boolean {
 
 export async function revalidate(license: LicenseData): Promise<RevalidationResult> {
   try {
-    const res = await apiValidate(license.key, license.instanceId);
-
-    if (res.valid) {
-      const updated: LicenseData = {
-        ...license,
-        lastValidatedAt: new Date().toISOString(),
-        status: 'active',
-        expiresAt: res.license_key.expires_at,
-      };
-      await saveLicense(updated);
-      return 'valid';
+    const signed = await apiValidate(license.key, license.instanceId);
+    if (!verifySignedLicense(signed)) {
+      // Treat a malformed signature as a hard failure — same posture as
+      // an explicit "expired" from the backend.
+      return 'expired';
     }
-
-    await saveLicense({ ...license, status: 'expired' });
-    return 'expired';
+    await persistSigned(signed);
+    // The backend stamps lastValidatedAt server-side, so the persisted
+    // envelope is already fresh. Surface only the status to the caller.
+    return signed.license.status === 'active' ? 'valid' : 'expired';
   } catch (err) {
     // EP-006: Network errors trigger grace period; validation/contract errors mean expired
     if (isNetworkError(err)) {
       return isWithinGracePeriod(license) ? 'grace' : 'expired';
     }
-    // Unexpected response or contract violation — treat as expired
-    await saveLicense({ ...license, status: 'expired' });
+    // Unexpected response or contract violation — leave the existing file
+    // alone (the user was Pro a moment ago; a transient API blip shouldn't
+    // wipe the local state) but report expired so callers stop authorizing.
     return 'expired';
   }
 }

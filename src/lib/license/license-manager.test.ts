@@ -240,48 +240,14 @@ describe('isWithinGracePeriod', () => {
 
 // ── AES-256-GCM round-trip (QA-006) via saveLicense → loadLicense ──
 
-describe('AES-256-GCM license round-trip', () => {
-  let capturedFileContent: string | null = null;
-
+// In 4.0.0 the local AES-GCM envelope was replaced by a backend-signed
+// envelope (Ed25519). The signing key lives on the NAS; the client only
+// verifies. These tests pin the loadLicense rejection behaviour for every
+// legacy / malformed shape so a regression that re-accepts unencrypted or
+// AES envelopes can't slip through.
+describe('loadLicense — envelope handling', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    capturedFileContent = null;
-
-    // Capture what saveLicense writes
-    mockWriteFile.mockImplementation(async (_path: string, content: string) => {
-      capturedFileContent = content;
-    });
-    mockRename.mockResolvedValue(undefined);
-
-    // Return captured content when loadLicense reads
-    mockReadFile.mockImplementation(async () => {
-      if (!capturedFileContent) throw new Error('ENOENT');
-      return capturedFileContent;
-    });
-  });
-
-  it('encrypts and decrypts license data correctly (round-trip)', async () => {
-    const { saveLicense, loadLicense } = await import('./license-manager.js');
-    const original = makeLicense();
-
-    await saveLicense(original);
-    expect(capturedFileContent).toBeTruthy();
-
-    // Verify the saved file is encrypted (does not contain plaintext key)
-    const parsed = JSON.parse(capturedFileContent!);
-    expect(parsed.version).toBe(1);
-    expect(parsed.encrypted).toBeDefined();
-    expect(parsed.iv).toBeDefined();
-    expect(parsed.tag).toBeDefined();
-    // The raw plaintext key should NOT appear in the encrypted file
-    expect(capturedFileContent).not.toContain(original.key);
-
-    const loaded = await loadLicense();
-    expect(loaded).not.toBeNull();
-    expect(loaded!.key).toBe(original.key);
-    expect(loaded!.instanceId).toBe(original.instanceId);
-    expect(loaded!.customerEmail).toBe(original.customerEmail);
-    expect(loaded!.status).toBe(original.status);
   });
 
   it('returns null when license file does not exist', async () => {
@@ -302,18 +268,58 @@ describe('AES-256-GCM license round-trip', () => {
     expect(await loadLicense()).toBeNull();
   });
 
-  it('detects tampering with ciphertext', async () => {
-    const { saveLicense, loadLicense } = await import('./license-manager.js');
-    await saveLicense(makeLicense());
+  it('refuses legacy v1 unencrypted envelopes (security regression guard)', async () => {
+    // Pre-3.1.0 wrote `{version: 1, license: {...}}` in plaintext. Accepting
+    // these would let any process that writes the file forge Pro status.
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      version: 1,
+      license: makeLicense(),
+    }));
+    const { loadLicense } = await import('./license-manager.js');
+    expect(await loadLicense()).toBeNull();
+  });
 
-    // Tamper with the encrypted data
-    const parsed = JSON.parse(capturedFileContent!);
-    const tampered = Buffer.from(parsed.encrypted, 'base64');
-    tampered[0] = tampered[0]! ^ 0xFF;
-    parsed.encrypted = tampered.toString('base64');
-    capturedFileContent = JSON.stringify(parsed);
+  it('refuses legacy v1 AES-GCM envelopes', async () => {
+    // The HKDF key was bundle-derivable, so any envelope encrypted under it
+    // is forgeable. v2 (signed) is the only authorised path since 4.0.0.
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      version: 1,
+      encrypted: 'AAAA',
+      iv: 'BBBB',
+      tag: 'CCCC',
+    }));
+    const { loadLicense } = await import('./license-manager.js');
+    expect(await loadLicense()).toBeNull();
+  });
 
-    // loadLicense should return null (decryption fails gracefully)
+  it('refuses v2 envelopes with a bogus signature', async () => {
+    // The shape is right but the signature won't verify against the real
+    // public key. Must NOT grant Pro.
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      version: 2,
+      license: makeLicense(),
+      sig: 'AAAA'.padEnd(88, 'A'),
+    }));
+    const { loadLicense } = await import('./license-manager.js');
+    expect(await loadLicense()).toBeNull();
+  });
+
+  it('refuses v2 envelopes missing the signature', async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      version: 2,
+      license: makeLicense(),
+    }));
+    const { loadLicense } = await import('./license-manager.js');
+    expect(await loadLicense()).toBeNull();
+  });
+
+  it('refuses v2 envelopes with malformed license payload', async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      version: 2,
+      license: { key: 'incomplete' },
+      sig: 'A'.repeat(88),
+    }));
+    const { loadLicense } = await import('./license-manager.js');
     expect(await loadLicense()).toBeNull();
   });
 });
@@ -330,20 +336,33 @@ describe('rate limiting', () => {
     vi.useRealTimers();
   });
 
-  it('allows a first activation attempt', async () => {
+  it('allows a first activation attempt to reach the backend', async () => {
+    // Producing a real signed envelope here would require the private key
+    // (lives on the NAS). Instead we let the backend call succeed structurally
+    // and assert the rate limit didn't block before the verify stage — the
+    // verify failure is expected and unrelated to what this test pins.
     const polarApi = await import('./polar-api.js');
     const { activateLicense } = polarApi;
     (activateLicense as ReturnType<typeof vi.fn>).mockResolvedValue({
-      activated: true,
-      error: null,
-      instance: { id: 'inst-1' },
-      license_key: { id: 0, status: 'granted', key: 'valid-key-123', activation_limit: 3, activations_count: 1, expires_at: null },
-      meta: { customer_email: 'test@example.com', customer_name: 'Test' },
+      license: {
+        key: 'valid-key-123',
+        instanceId: 'inst-1',
+        status: 'active',
+        customerEmail: 'test@example.com',
+        customerName: 'Test',
+        plan: 'pro',
+        activatedAt: '2026-01-01T00:00:00Z',
+        expiresAt: null,
+        lastValidatedAt: '2026-06-04T00:00:00Z',
+      },
+      sig: 'A'.repeat(88),
     });
 
     const { activate } = await import('./license-manager.js');
-    const license = await activate('valid-key-123');
-    expect(license.key).toBe('valid-key-123');
+    // The verify will reject our fake signature → activate throws a
+    // signature-verification error, NOT a rate-limit error. That asymmetry
+    // is what we're pinning: the rate limiter let the call through.
+    await expect(activate('valid-key-123')).rejects.toThrow(/signature verification/);
   });
 
   it('blocks attempts within cooldown window', async () => {
@@ -396,35 +415,24 @@ describe('rate limiting', () => {
     await expect(activate('bad-key-60000')).rejects.toThrow('Rate limited');
   });
 
-  it('resets attempts on successful activation', async () => {
+  it('does not lock out under the MAX_ATTEMPTS threshold', async () => {
+    // Counterpart to the lockout test above: 4 failed attempts must NOT
+    // trigger the 15-min lockout. Reset-on-success is now indirectly covered
+    // — synthesising a successful activation needs a real signed envelope,
+    // which lives behind the backend's private key. The interesting failure
+    // mode here is that lockout fires one attempt too early, which this
+    // bounded-loop assertion catches.
     const polarApi = await import('./polar-api.js');
     const { activateLicense } = polarApi;
+    (activateLicense as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Invalid key'));
 
     const { activate } = await import('./license-manager.js');
 
-    // 3 failed attempts
-    (activateLicense as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Invalid key'));
-    for (let i = 0; i < 3; i++) {
-      await expect(activate(`bad-key-${String(i).padStart(5, '0')}0000`)).rejects.toThrow();
+    for (let i = 0; i < 4; i++) {
+      await expect(activate(`bad-key-${String(i).padStart(5, '0')}0000`)).rejects.toThrow('Invalid key');
       vi.advanceTimersByTime(31_000);
     }
-
-    // Successful attempt
-    (activateLicense as ReturnType<typeof vi.fn>).mockResolvedValue({
-      activated: true,
-      error: null,
-      instance: { id: 'inst-1' },
-      license_key: { id: 0, status: 'granted', key: 'good-key-12345', activation_limit: 3, activations_count: 1, expires_at: null },
-      meta: { customer_email: 'test@example.com', customer_name: 'Test' },
-    });
-    vi.advanceTimersByTime(31_000);
-    const license = await activate('good-key-12345');
-    expect(license.key).toBe('good-key-12345');
-
-    // More failed attempts should NOT trigger lockout (counter was reset)
-    (activateLicense as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Invalid key'));
-    vi.advanceTimersByTime(31_000);
-    // This should fail with API error, not rate limit
+    // 5th attempt: still allowed through to the backend (Invalid key, not Rate limited)
     await expect(activate('bad-key-40000')).rejects.toThrow('Invalid key');
   });
 });
@@ -449,61 +457,10 @@ describe('license key format validation', () => {
   });
 });
 
-// ── Plan detection from license-key prefix ──
-// Polar's license-key benefits use distinct prefixes per tier, and we rely on
-// the prefix to set license.plan correctly because the customer-portal API
-// doesn't echo the productId on activation.
-
-describe('plan detection by key prefix', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  function mockSuccessfulActivation(key: string) {
-    return import('./polar-api.js').then(({ activateLicense }) => {
-      (activateLicense as ReturnType<typeof vi.fn>).mockResolvedValue({
-        activated: true,
-        error: null,
-        instance: { id: 'inst-1' },
-        license_key: { id: 0, status: 'granted', key, activation_limit: 5, activations_count: 1, expires_at: null },
-        meta: { customer_email: 'test@example.com', customer_name: 'Test' },
-      });
-    });
-  }
-
-  it('flags BTUI- (no -T-) keys as Pro', async () => {
-    await mockSuccessfulActivation('BTUI-aaaa-bbbb-cccc');
-    const { activate } = await import('./license-manager.js');
-    const license = await activate('BTUI-aaaa-bbbb-cccc');
-    expect(license.plan).toBe('pro');
-  });
-
-  it('flags BTUI-T- keys as Team', async () => {
-    await mockSuccessfulActivation('BTUI-T-aaaa-bbbb-cccc');
-    const { activate } = await import('./license-manager.js');
-    const license = await activate('BTUI-T-aaaa-bbbb-cccc');
-    expect(license.plan).toBe('team');
-  });
-
-  it('case-insensitive prefix match (lowercase BTUI-T-)', async () => {
-    await mockSuccessfulActivation('btui-t-aaaa-bbbb-cccc');
-    const { activate } = await import('./license-manager.js');
-    const license = await activate('btui-t-aaaa-bbbb-cccc');
-    expect(license.plan).toBe('team');
-  });
-
-  it('defaults unknown prefixes to Pro (legacy keys without prefix)', async () => {
-    await mockSuccessfulActivation('legacy-key-without-prefix');
-    const { activate } = await import('./license-manager.js');
-    const license = await activate('legacy-key-without-prefix');
-    expect(license.plan).toBe('pro');
-  });
-});
+// Plan detection by key prefix used to live here; in 4.0.0 the client no
+// longer infers the plan from the key (the backend stamps it on the signed
+// envelope). The corresponding tests moved to the backend repo where the
+// detection logic now lives.
 
 describe('getBuiltinAccountType (SEG-009 — backdoor removed)', () => {
   // The previous implementation hardcoded a map of customer emails that
