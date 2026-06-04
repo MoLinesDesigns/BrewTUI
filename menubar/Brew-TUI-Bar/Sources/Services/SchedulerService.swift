@@ -57,6 +57,9 @@ final class SchedulerService {
     // cancel them rather than leaving them to run after the scheduler is
     // dismissed.
     private var permissionSyncTask: Task<Void, Never>?
+    /// Prevents overlapping scheduler ticks when `brew update` + CVE checks
+    /// outlive the configured interval (e.g. 30 minutes).
+    private var checkInFlight = false
 
     private static let hasLaunchedKey = "hasLaunchedBefore"
 
@@ -155,6 +158,13 @@ final class SchedulerService {
 
     private func check() async {
         guard let state else { return }
+        guard !checkInFlight else {
+            schedulerLogger.info("Scheduled check skipped — previous tick still running")
+            return
+        }
+        checkInFlight = true
+        defer { checkInFlight = false }
+
         schedulerLogger.info("Scheduled check starting")
         let previousCount = state.outdatedCount
         await state.refresh()

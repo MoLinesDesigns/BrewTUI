@@ -48,6 +48,12 @@ final class AppState {
     /// brew.
     private var installTask: Task<Void, Never>?
 
+    /// Serializes `refresh()` so only one `brew update`/outdated/services chain
+    /// runs at a time. `pendingCoalescedForce` merges overlapping `force: true`
+    /// callers (scheduler + LastActionMonitor) into a single follow-up pass.
+    private var refreshTask: Task<Void, Never>?
+    private var pendingCoalescedForce = false
+
     private let checker: any BrewChecking
 
     init(checker: any BrewChecking = BrewChecker()) {
@@ -68,6 +74,33 @@ final class AppState {
 
     func refresh(force: Bool = false) async {
         guard force || !isLoading else { return }
+
+        if let running = refreshTask {
+            if force {
+                pendingCoalescedForce = true
+            } else {
+                return
+            }
+            await running.value
+            if pendingCoalescedForce {
+                pendingCoalescedForce = false
+                await refresh(force: true)
+            }
+            return
+        }
+
+        refreshTask = Task {
+            defer { refreshTask = nil }
+            await performRefresh()
+            while pendingCoalescedForce {
+                pendingCoalescedForce = false
+                await performRefresh()
+            }
+        }
+        await refreshTask?.value
+    }
+
+    private func performRefresh() async {
         isLoading = true
         error = nil
         defer {
@@ -127,7 +160,7 @@ final class AppState {
             guard !Task.isCancelled, let self else { return }
             self.lastActionMessage = nil
         }
-        Task { await refresh(force: true) }
+        Task { await self.refresh(force: true) }
     }
 
     func dismissLastActionMessage() {

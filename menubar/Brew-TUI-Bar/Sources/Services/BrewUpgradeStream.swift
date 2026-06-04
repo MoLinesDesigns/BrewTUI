@@ -74,6 +74,10 @@ private final class StreamBox: @unchecked Sendable {
 /// emits and producing structured `BrewUpgradeEvent`s. Used by AppState to
 /// drive `InstallProgressView` without blocking until the whole run finishes.
 enum BrewUpgradeStream {
+    /// Large upgrades can run for a long time; still bound so a stuck brew cannot
+    /// leave AppState on `isLoading` indefinitely (see BrewProcess timeout).
+    static let upgradeTimeout: TimeInterval = 30 * 60
+
     /// Runs `brew upgrade <packages>` (no packages → upgrade all) and yields
     /// events as the process produces output. The stream finishes on `.success`
     /// or `.failure`; the consumer should always await the final event before
@@ -81,6 +85,11 @@ enum BrewUpgradeStream {
     static func run(packages: [String]) -> AsyncStream<BrewUpgradeEvent> {
         AsyncStream { continuation in
             let box = StreamBox(continuation)
+
+            final class TimeoutBox: @unchecked Sendable {
+                var task: Task<Void, Never>?
+            }
+            let timeoutBox = TimeoutBox()
 
             let process = Process()
             let stdoutPipe = Pipe()
@@ -120,6 +129,7 @@ enum BrewUpgradeStream {
             stderrPipe.fileHandleForReading.readabilityHandler = drain
 
             process.terminationHandler = { proc in
+                timeoutBox.task?.cancel()
                 stdoutPipe.fileHandleForReading.readabilityHandler = nil
                 stderrPipe.fileHandleForReading.readabilityHandler = nil
                 if let tail = box.drainTail(), !tail.isEmpty {
@@ -137,6 +147,7 @@ enum BrewUpgradeStream {
             }
 
             continuation.onTermination = { @Sendable _ in
+                timeoutBox.task?.cancel()
                 if process.isRunning { process.terminate() }
             }
 
@@ -148,6 +159,20 @@ enum BrewUpgradeStream {
             } catch {
                 brewStreamLogger.error("Failed to launch brew upgrade: \(error.localizedDescription, privacy: .public)")
                 box.finish(with: .failure(error.localizedDescription))
+                return
+            }
+
+            timeoutBox.task = Task {
+                do {
+                    try await Task.sleep(for: .seconds(upgradeTimeout))
+                } catch {
+                    return
+                }
+                if process.isRunning {
+                    brewStreamLogger.error("brew upgrade timed out after \(upgradeTimeout, privacy: .public)s")
+                    process.terminate()
+                    box.finish(with: .failure(BrewProcessError.timeout.localizedDescription))
+                }
             }
         }
     }

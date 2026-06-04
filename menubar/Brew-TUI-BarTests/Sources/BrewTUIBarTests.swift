@@ -263,6 +263,35 @@ struct LicenseCheckerTests {
 
 // MARK: - AppState Tests
 
+/// Tracks concurrent `updateIndex` calls to prove refresh serialisation.
+actor SerializingStubBrewChecker: BrewChecking {
+    private var inFlight = 0
+    private(set) var updateIndexCalls = 0
+    private(set) var maxConcurrentUpdateIndex = 0
+
+    func updateIndex() async {
+        updateIndexCalls += 1
+        inFlight += 1
+        maxConcurrentUpdateIndex = max(maxConcurrentUpdateIndex, inFlight)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        inFlight -= 1
+    }
+
+    func checkOutdated() async throws -> OutdatedResponse {
+        OutdatedResponse(formulae: [], casks: [])
+    }
+
+    func checkServices() async throws -> [BrewService] { [] }
+
+    func upgradePackage(_ name: String) async throws {}
+
+    func upgradeAll() async throws {}
+
+    func metrics() -> (calls: Int, maxConcurrent: Int) {
+        (updateIndexCalls, maxConcurrentUpdateIndex)
+    }
+}
+
 @Suite("AppState")
 struct AppStateTests {
     @Test("outdatedCount reflects packages array")
@@ -314,6 +343,22 @@ struct AppStateTests {
         await state.refresh()
         // isLoading should still be true (the non-force path returned early)
         #expect(state.isLoading == true)
+    }
+
+    @Test("parallel force refresh serializes brew update (no overlap)")
+    @MainActor func refreshSerializesForce() async {
+        let stub = SerializingStubBrewChecker()
+        let state = AppState(checker: stub)
+        async let first: Void = state.refresh(force: true)
+        async let second: Void = state.refresh(force: true)
+        await first
+        await second
+        let metrics = await stub.metrics()
+        let calls = metrics.calls
+        let maxConcurrent = metrics.maxConcurrent
+        #expect(calls >= 1)
+        #expect(calls <= 2)
+        #expect(maxConcurrent == 1)
     }
 
     @Test("lastSchedulerError reads from UserDefaults")

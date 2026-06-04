@@ -14,43 +14,57 @@ struct LastAction: Decodable, Sendable {
     let source: String
 }
 
-// Watches `~/.brew-tui/last-action.json` with a DispatchSourceFileSystemObject
-// and invokes a callback on every successful read. This is the same pattern
-// SyncMonitor uses for iCloud — the goal is to keep Brew-TUI-Bar reactive to
-// Brew-TUI without IPC, polling, or distributed notifications.
-@MainActor
-final class LastActionMonitor {
+// Watches `~/.brew-tui/` for atomic renames of `last-action.json`.
+// Events are handled off the main thread with debounce so unrelated writes
+// under `~/.brew-tui/` (history, license, CVE cache, profiles) do not block UI.
+final class LastActionMonitor: @unchecked Sendable {
     static let shared = LastActionMonitor()
 
+    private static let debounceInterval: TimeInterval = 0.3
+
     private let path: URL
+    private let eventQueue = DispatchQueue(label: "com.molinesdesigns.brewtuibar.lastaction", qos: .utility)
     private var source: DispatchSourceFileSystemObject?
     private var fileDescriptor: Int32 = -1
+    private var debounceWorkItem: DispatchWorkItem?
     private var lastSeenTimestamp: String?
-    private var onChange: ((LastAction) -> Void)?
+    private var lastKnownFileModDate: Date?
+    private var onChange: (@MainActor (LastAction) -> Void)?
 
     init(path: URL? = nil) {
-        if let path { self.path = path; return }
+        if let path {
+            self.path = path
+            return
+        }
         let home = FileManager.default.homeDirectoryForCurrentUser
         self.path = home.appendingPathComponent(".brew-tui/last-action.json")
     }
 
-    // Begin watching. The directory is created lazily by Brew-TUI; if the file
-    // is missing we still install a directory watcher so the first write picks
-    // it up. Safe to call multiple times — re-installs the source.
-    func start(onChange: @escaping (LastAction) -> Void) {
-        stop()
-        self.onChange = onChange
+    func start(onChange: @escaping @MainActor (LastAction) -> Void) {
+        eventQueue.async { [self] in
+            self.stopOnQueue()
+            self.onChange = onChange
 
-        // Seed lastSeenTimestamp from the current file so the first launch does
-        // not replay an old action as if it just happened.
-        if let initial = readPayload() {
-            lastSeenTimestamp = initial.timestamp
+            if let initial = self.readPayloadOnQueue() {
+                self.lastSeenTimestamp = initial.timestamp
+                self.lastKnownFileModDate = self.fileModificationDateOnQueue()
+            }
+
+            self.installSourceOnQueue()
         }
-
-        installSource()
     }
 
     func stop() {
+        eventQueue.async { [self] in
+            self.stopOnQueue()
+        }
+    }
+
+    // MARK: - Internals (event queue only)
+
+    private func stopOnQueue() {
+        debounceWorkItem?.cancel()
+        debounceWorkItem = nil
         source?.cancel()
         source = nil
         if fileDescriptor >= 0 {
@@ -60,15 +74,9 @@ final class LastActionMonitor {
         onChange = nil
     }
 
-    // MARK: - Internals
-
-    private func installSource() {
-        // Watch the parent directory because the file is replaced atomically via
-        // rename(); a descriptor on the file itself becomes stale after rename
-        // and stops emitting events. Directory watching survives the swap.
+    private func installSourceOnQueue() {
         let dir = path.deletingLastPathComponent().path
 
-        // Ensure the directory exists; if not, retry installation in 5s.
         if !FileManager.default.fileExists(atPath: dir) {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true, attributes: nil)
         }
@@ -83,12 +91,11 @@ final class LastActionMonitor {
         let src = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
             eventMask: [.write, .delete, .rename, .extend],
-            queue: .main
+            queue: eventQueue
         )
 
         src.setEventHandler { [weak self] in
-            guard let self else { return }
-            self.handleFileSystemEvent()
+            self?.scheduleDebouncedReadOnQueue()
         }
 
         src.setCancelHandler { [weak self] in
@@ -104,18 +111,41 @@ final class LastActionMonitor {
         lastActionLogger.info("Watching \(dir, privacy: .public) for last-action.json changes")
     }
 
-    private func handleFileSystemEvent() {
-        guard let payload = readPayload() else { return }
-        // De-dupe: only fire if timestamp changed. Atomic rename produces one
-        // event but the watcher may also fire on .extend during the temp write,
-        // so timestamp is the canonical "is this new" signal.
-        if payload.timestamp == lastSeenTimestamp { return }
-        lastSeenTimestamp = payload.timestamp
-        lastActionLogger.info("New last-action.json: action=\(payload.action, privacy: .public) packages=\(payload.packages.count) remaining=\(payload.remainingOutdated)")
-        onChange?(payload)
+    private func scheduleDebouncedReadOnQueue() {
+        debounceWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.handleFileSystemEventOnQueue()
+        }
+        debounceWorkItem = work
+        eventQueue.asyncAfter(deadline: .now() + Self.debounceInterval, execute: work)
     }
 
-    private func readPayload() -> LastAction? {
+    private func handleFileSystemEventOnQueue() {
+        guard let modDate = fileModificationDateOnQueue() else { return }
+        if let lastMod = lastKnownFileModDate, modDate == lastMod {
+            return
+        }
+        lastKnownFileModDate = modDate
+
+        guard let payload = readPayloadOnQueue() else { return }
+        if payload.timestamp == lastSeenTimestamp { return }
+        lastSeenTimestamp = payload.timestamp
+        lastActionLogger.info(
+            "New last-action.json: action=\(payload.action, privacy: .public) packages=\(payload.packages.count) remaining=\(payload.remainingOutdated)"
+        )
+
+        guard let callback = onChange else { return }
+        Task { @MainActor in
+            callback(payload)
+        }
+    }
+
+    private func fileModificationDateOnQueue() -> Date? {
+        guard FileManager.default.fileExists(atPath: path.path) else { return nil }
+        return try? path.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+    }
+
+    private func readPayloadOnQueue() -> LastAction? {
         do {
             let data = try Data(contentsOf: path)
             return try JSONDecoder().decode(LastAction.self, from: data)
