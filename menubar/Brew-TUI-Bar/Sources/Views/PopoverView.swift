@@ -223,10 +223,23 @@ struct PopoverView: View {
         .glassPanel(strokeOpacity: 0.4, ambientGlow: 0.08)
     }
 
+    /// Live app icon (the full-color one in `AppIcon.appiconset`). Prefers
+    /// `NSApp.applicationIconImage` so a future Pro/branded variant of the
+    /// icon flows in automatically; falls back to a direct NSImage lookup
+    /// for SwiftUI previews where NSApp isn't initialised.
+    private var appIconView: some View {
+        let nsImage = NSApp?.applicationIconImage
+            ?? NSImage(named: NSImage.applicationIconName)
+            ?? NSImage(named: "AppIcon")
+        return Image(nsImage: nsImage ?? NSImage())
+            .resizable()
+            .interpolation(.high)
+    }
+
     private var headerView: some View {
         HStack(spacing: CrystalGlass.Spacing.sm) {
-            Image(systemName: "mug.fill")
-                .foregroundStyle(CrystalGlass.warmAccent)
+            appIconView
+                .frame(width: 20, height: 20)
                 .accessibilityHidden(true)
             Text("Homebrew Updates")
                 .font(.headline)
