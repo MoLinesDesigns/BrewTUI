@@ -179,15 +179,16 @@ enum BrewUpgradeStream {
 
     // MARK: - Parser (file-private, exposed for tests)
 
-    /// Recognises the `==> <verb> <name>` markers brew emits, then forwards
-    /// every line as `.logLine` for observability. Permissive on the exact
-    /// wording — brew has changed it across versions and the formatters strip
-    /// ANSI colour but keep the leading `==>`.
+    /// Recognises the `==> <verb> <name>` markers brew emits. Lines that do
+    /// not carry a `==>` marker are dropped silently — `brew install` emits
+    /// thousands of progress lines during compilation (ffmpeg, node, …) and
+    /// yielding a `.logLine` event per line was saturating the @MainActor
+    /// runloop that serves the popover. The `.logLine` case is kept in the
+    /// enum so the contract stays open for a future "show details" disclosure
+    /// that batches lines off-actor.
     fileprivate static func parseAndEmit(line rawLine: String, box: StreamBox) {
         let stripped = stripANSI(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !stripped.isEmpty else { return }
-
-        box.emit(.logLine(stripped))
 
         guard let marker = stripped.range(of: "==>") else { return }
         let after = stripped[marker.upperBound...].trimmingCharacters(in: .whitespaces)
