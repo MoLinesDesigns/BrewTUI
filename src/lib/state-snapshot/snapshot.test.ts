@@ -156,6 +156,12 @@ describe('loadSnapshots() — corrupt file handling', () => {
 
   it('silences corrupt JSON files and returns valid snapshots', async () => {
     const { writeFile } = await import('node:fs/promises');
+    // Spy on the logger so the expected warnings don't leak to stderr during
+    // the test run AND so we can assert the contract: every corrupt file
+    // must be flagged. Promoting the warns to an assertion turns "annoying
+    // noise" into "regression guard if someone removes the log".
+    const { logger } = await import('../../utils/logger.js');
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
 
     // Write one valid snapshot file
     const valid = {
@@ -170,14 +176,14 @@ describe('loadSnapshots() — corrupt file handling', () => {
       { mode: 0o600 },
     );
 
-    // Write one corrupt file
+    // Write one corrupt file (unparseable JSON)
     await writeFile(
       join(TEST_SNAPSHOTS_DIR, '2026-04-27T11-00-00-000Z-auto.json'),
       'this is not valid json{{{{',
       { mode: 0o600 },
     );
 
-    // Write one file with wrong shape
+    // Write one file with wrong shape (parseable but schema-invalid)
     await writeFile(
       join(TEST_SNAPSHOTS_DIR, '2026-04-27T10-00-00-000Z-auto.json'),
       JSON.stringify({ wrong: 'shape' }),
@@ -189,6 +195,10 @@ describe('loadSnapshots() — corrupt file handling', () => {
 
     expect(loaded).toHaveLength(1);
     expect(loaded[0]?.capturedAt).toBe(valid.capturedAt);
+    // Each invalid file must produce one warning: parse error path and
+    // shape-rejection path use different messages, so check both.
+    expect(warnSpy).toHaveBeenCalledWith('Failed to read snapshot file', expect.objectContaining({ filename: expect.stringContaining('2026-04-27T11') }));
+    expect(warnSpy).toHaveBeenCalledWith('Skipping corrupt snapshot file', expect.objectContaining({ filename: expect.stringContaining('2026-04-27T10') }));
   });
 
   afterEach(teardownDir);

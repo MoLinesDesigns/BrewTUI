@@ -103,6 +103,12 @@ describe('analyzeUpgradeImpact — formula', () => {
   });
 
   it('returns impact with empty deps when execBrew fails, without throwing', async () => {
+    // Spy the logger so the expected warns (one per failed brew sub-call:
+    // `brew deps` + `brew uses`) don't bleed to stderr, and assert both
+    // were emitted — silently swallowing a brew error would hide degraded
+    // analysis from operators looking at logs.
+    const { logger } = await import('../../utils/logger.js');
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     mockExecBrew.mockRejectedValue(new Error('brew command failed'));
 
     const result = await analyzeUpgradeImpact('brokenlib', '1.0.0', '1.1.0', 'formula');
@@ -110,6 +116,8 @@ describe('analyzeUpgradeImpact — formula', () => {
     expect(result.reverseDeps).toEqual([]);
     // Should not throw — risk is based on empty deps, no HIGH_RISK, no major bump (1.0→1.1)
     expect(result.risk).toBe('low');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('impact-analyzer: deps failed for brokenlib'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('impact-analyzer: uses failed for brokenlib'));
   });
 
   it('returns high risk when >=3 reverse deps AND major version bump (2 factors)', async () => {

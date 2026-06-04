@@ -68,10 +68,15 @@ describe('brewfile-manager', () => {
     });
 
     it('returns null when file is invalid (parse error)', async () => {
+      // Spy the logger so the expected warn doesn't bleed to stderr and
+      // doubles as a contract: parse failures MUST emit a structured warn.
+      const { logger } = await import('../../utils/logger.js');
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       vi.mocked(readFile).mockResolvedValue('invalid: yaml: content: that: fails: version\n');
 
       const result = await loadBrewfile();
       expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to parse Brewfile', expect.objectContaining({ error: expect.stringContaining('Invalid Brewfile') }));
     });
 
     it('returns parsed schema when file is valid', async () => {
