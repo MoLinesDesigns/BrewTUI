@@ -86,14 +86,21 @@ struct PopoverView: View {
         // Intencional: no cancelamos tasks en onDisappear. El popover puede
         // ocultarse (click fuera, foco a otra app) mientras un refresh/upgrade
         // sigue en marcha; las operaciones viven en AppState y deben completar.
-        .sheet(isPresented: $showSettings) {
+        // onDismiss in every sheet re-keys the popover window. macOS bug:
+        // closing a SwiftUI .sheet over an NSPopover leaves the popover
+        // visible but its NSWindow stops being key, so every subsequent
+        // click hits the popover surface but isn't routed to the
+        // SwiftUI buttons inside — they look enabled but do nothing.
+        // Forcing makeKey() on the next runloop tick (after dismissal
+        // finishes animating) restores hit testing without flicker.
+        .sheet(isPresented: $showSettings, onDismiss: restorePopoverKey) {
             SettingsView(
                 scheduler: scheduler,
                 appState: appState,
                 badgePreferences: badgePreferences
             )
         }
-        .sheet(isPresented: installProgressBinding) {
+        .sheet(isPresented: installProgressBinding, onDismiss: restorePopoverKey) {
             if let progress = appState.installProgress {
                 InstallProgressView(
                     progress: progress,
@@ -102,7 +109,7 @@ struct PopoverView: View {
                 )
             }
         }
-        .sheet(isPresented: $showNewPackages) {
+        .sheet(isPresented: $showNewPackages, onDismiss: restorePopoverKey) {
             NewPackagesView(
                 formulae: appState.newPackagesFormulae,
                 casks: appState.newPackagesCasks,
@@ -221,6 +228,28 @@ struct PopoverView: View {
         .padding(.horizontal, CrystalGlass.Spacing.md)
         .padding(.vertical, CrystalGlass.Spacing.sm)
         .glassPanel(strokeOpacity: 0.4, ambientGlow: 0.08)
+    }
+
+    /// Restores key-window status on the popover after a sheet dismisses.
+    /// Walks NSApp.windows to find the NSPopover's window (the popover
+    /// itself is not exposed as a SwiftUI environment value, so we go
+    /// through AppKit) and calls makeKey on the next runloop tick — doing
+    /// it synchronously inside onDismiss races the sheet's own teardown
+    /// and the key window gets stolen back by the closing sheet's NSWindow.
+    private func restorePopoverKey() {
+        DispatchQueue.main.async {
+            // NSPopover hosts its content in a private NSWindow subclass
+            // (`_NSPopoverWindow`). Match by className substring rather
+            // than the private symbol so this survives macOS internal
+            // renames; fall back to "the only window that's currently
+            // visible and isn't a sheet" if the class match fails.
+            let candidate = NSApp.windows.first { win in
+                guard win.isVisible else { return false }
+                let cls = String(describing: type(of: win))
+                return cls.contains("Popover")
+            } ?? NSApp.windows.first { $0.isVisible && $0.sheetParent == nil }
+            candidate?.makeKey()
+        }
     }
 
     /// Live app icon (the full-color one in `AppIcon.appiconset`). Prefers
