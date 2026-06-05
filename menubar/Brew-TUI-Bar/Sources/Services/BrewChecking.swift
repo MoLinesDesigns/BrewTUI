@@ -8,6 +8,7 @@ protocol BrewChecking: Sendable {
     func checkServices() async throws -> [BrewService]
     func upgradePackage(_ name: String) async throws
     func upgradeAll() async throws
+    func serviceDiagnostics(for serviceName: String) async throws -> String
     /// Streaming variant of `brew upgrade <packages>` (empty packages = all).
     /// Production `BrewChecker` returns `BrewUpgradeStream.run(...)`; tests can
     /// inherit the default implementation, which routes through the legacy
@@ -17,6 +18,10 @@ protocol BrewChecking: Sendable {
 }
 
 extension BrewChecking {
+    func serviceDiagnostics(for serviceName: String) async throws -> String {
+        try await BrewServiceDiagnostics.run(serviceName: serviceName)
+    }
+
     /// Default fallback that bridges non-streaming mocks (tests) to the
     /// AppState stream consumer. Yields a single `packageDiscovered` +
     /// `packageStage(.installing)` per known package, awaits the legacy call,

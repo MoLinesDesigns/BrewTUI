@@ -16,6 +16,8 @@ final class StubBrewChecker: BrewChecking, @unchecked Sendable {
     var upgradeAllCalls = 0
     var upgradePackageError: Error?
     var upgradeAllError: Error?
+    var diagnosticsOutput = "diagnostics output"
+    var diagnosticsRequests: [String] = []
 
     func updateIndex() async {
         updateIndexCalls += 1
@@ -37,6 +39,11 @@ final class StubBrewChecker: BrewChecking, @unchecked Sendable {
     func upgradeAll() async throws {
         if let upgradeAllError { throw upgradeAllError }
         upgradeAllCalls += 1
+    }
+
+    func serviceDiagnostics(for serviceName: String) async throws -> String {
+        diagnosticsRequests.append(serviceName)
+        return diagnosticsOutput
     }
 }
 
@@ -137,6 +144,21 @@ struct AppStateInjectedTests {
 
         #expect(stub.upgradeAllCalls == 1)
         #expect(state.error == nil)
+    }
+
+    @Test("service diagnostics modal is populated from the injected checker")
+    @MainActor func serviceDiagnosticsRoutesToChecker() async {
+        let stub = StubBrewChecker()
+        stub.diagnosticsOutput = "$ brew services info colima\ncolima details\n\n$ colima status\nrunning"
+        let state = AppState(checker: stub)
+        let service = BrewService(name: "colima", status: "error", user: nil, file: nil, exitCode: 1)
+
+        await state.showServiceDiagnostics(for: service)
+
+        #expect(stub.diagnosticsRequests == ["colima"])
+        #expect(state.serviceDiagnostics?.serviceName == "colima")
+        #expect(state.serviceDiagnostics?.isLoading == false)
+        #expect(state.serviceDiagnostics?.output.contains("colima status") == true)
     }
 }
 

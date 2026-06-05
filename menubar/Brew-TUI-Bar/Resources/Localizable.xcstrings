@@ -135,6 +135,40 @@
         }
       }
     },
+    "(no output)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(no output)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(sin salida)"
+          }
+        }
+      }
+    },
+    "[exit %lld]": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[exit %lld]"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[salida %lld]"
+          }
+        }
+      }
+    },
     "%lld packages still pending an update.": {
       "extractionState": "manual",
       "localizations": {
@@ -796,6 +830,23 @@
         }
       }
     },
+    "Close": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        }
+      }
+    },
     "Close install progress": {
       "extractionState": "manual",
       "localizations": {
@@ -852,6 +903,23 @@
         }
       }
     },
+    "Command timed out.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command timed out."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comando tardó demasiado."
+          }
+        }
+      }
+    },
     "Copied": {
       "extractionState": "manual",
       "localizations": {
@@ -876,6 +944,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copiar Comando de Instalación"
+          }
+        }
+      }
+    },
+    "Copy Output": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Output"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar salida"
           }
         }
       }
@@ -910,6 +995,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copiar comando de activación"
+          }
+        }
+      }
+    },
+    "Copy diagnostic output": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy diagnostic output"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar salida del diagnóstico"
+          }
+        }
+      }
+    },
+    "Could not launch command: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not launch command: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo lanzar el comando: %@"
           }
         }
       }
@@ -1250,6 +1369,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Instalando…"
+          }
+        }
+      }
+    },
+    "Invalid service name: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid service name: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre de servicio no válido: %@"
           }
         }
       }
@@ -1824,6 +1960,23 @@
         }
       }
     },
+    "Running diagnostics...": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running diagnostics..."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecutando diagnóstico..."
+          }
+        }
+      }
+    },
     "Revalidate license": {
       "extractionState": "manual",
       "localizations": {
@@ -1971,6 +2124,23 @@
         }
       }
     },
+    "Service Diagnostics": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service Diagnostics"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnóstico de Servicio"
+          }
+        }
+      }
+    },
     "Settings": {
       "extractionState": "manual",
       "localizations": {
@@ -1995,6 +2165,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar alertas CVE"
+          }
+        }
+      }
+    },
+    "Show diagnostics for %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show diagnostics for %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar diagnóstico de %@"
           }
         }
       }
@@ -2046,6 +2233,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Muestra formulae y casks añadidos recientemente"
+          }
+        }
+      }
+    },
+    "Skipped service status because the previous command failed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skipped service status because the previous command failed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se omitió el estado del servicio porque el comando anterior falló."
           }
         }
       }

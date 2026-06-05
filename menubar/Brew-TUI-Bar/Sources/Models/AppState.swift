@@ -49,6 +49,9 @@ final class AppState {
     var newPackagesLoading = false
     var newPackagesError: String?
     var newPackagesFetchedAt: Date?
+    /// Diagnostic modal for a failed `brew services` entry. The popover opens
+    /// this when the user clicks a service error row.
+    var serviceDiagnostics: ServiceDiagnostics?
 
     /// Handle to the in-flight install task so the user can cancel it. We
     /// store it weakly via reference — cancelling propagates to the AsyncStream
@@ -179,6 +182,28 @@ final class AppState {
         lastActionFadeTask?.cancel()
         lastActionFadeTask = nil
         lastActionMessage = nil
+    }
+
+    func showServiceDiagnostics(for service: BrewService) async {
+        let requestID = UUID()
+        let serviceName = service.name
+        let diagnostics = ServiceDiagnostics(id: requestID, serviceName: serviceName)
+        serviceDiagnostics = diagnostics
+
+        do {
+            let output = try await checker.serviceDiagnostics(for: serviceName)
+            guard serviceDiagnostics?.id == requestID else { return }
+            diagnostics.output = output
+            diagnostics.isLoading = false
+        } catch {
+            guard serviceDiagnostics?.id == requestID else { return }
+            diagnostics.output = error.localizedDescription
+            diagnostics.isLoading = false
+        }
+    }
+
+    func dismissServiceDiagnostics() {
+        serviceDiagnostics = nil
     }
 
     private func formatLastActionMessage(action: String, packages: [String], remaining: Int) -> String {

@@ -31,6 +31,19 @@ struct PopoverView: View {
         )
     }
 
+    private var serviceDiagnosticsBinding: Binding<ServiceDiagnostics?> {
+        Binding(
+            get: { appState.serviceDiagnostics },
+            set: { diagnostics in
+                if diagnostics == nil {
+                    appState.dismissServiceDiagnostics()
+                } else {
+                    appState.serviceDiagnostics = diagnostics
+                }
+            }
+        )
+    }
+
     var body: some View {
         ZStack {
             CrystalAmbientBackground()
@@ -118,6 +131,12 @@ struct PopoverView: View {
                 fetchedAt: appState.newPackagesFetchedAt,
                 onClose: { showNewPackages = false },
                 onRefresh: { appState.loadNewPackagesIfNeeded(force: true) }
+            )
+        }
+        .sheet(item: serviceDiagnosticsBinding, onDismiss: restorePopoverKey) { diagnostics in
+            ServiceDiagnosticsView(
+                diagnostics: appState.serviceDiagnostics ?? diagnostics,
+                onClose: { appState.dismissServiceDiagnostics() }
             )
         }
     }
@@ -365,16 +384,28 @@ struct PopoverView: View {
                     .foregroundStyle(BrewTUIBarTheme.critical(highContrast: colorSchemeContrast == .increased))
             }
             ForEach(appState.errorServices) { svc in
-                HStack {
-                    Text(svc.name)
-                        .font(.caption2)
-                    Spacer()
-                    if let code = svc.exitCode {
-                        Text(String(format: String(localized: "exit %lld"), Int64(code)))
+                Button {
+                    Task { await appState.showServiceDiagnostics(for: svc) }
+                } label: {
+                    HStack(spacing: CrystalGlass.Spacing.sm) {
+                        Text(svc.name)
                             .font(.caption2)
-                            .foregroundStyle(BrewTUIBarTheme.critical(highContrast: colorSchemeContrast == .increased))
+                            .fontWeight(.semibold)
+                        Spacer()
+                        if let code = svc.exitCode {
+                            Text(String(format: String(localized: "exit %lld"), Int64(code)))
+                                .font(.caption2)
+                                .foregroundStyle(BrewTUIBarTheme.critical(highContrast: colorSchemeContrast == .increased))
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
                     }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(format: String(localized: "Show diagnostics for %@"), svc.name))
             }
         }
         .padding(CrystalGlass.Spacing.md)
