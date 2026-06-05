@@ -21,22 +21,28 @@ extension BrewChecking {
     /// AppState stream consumer. Yields a single `packageDiscovered` +
     /// `packageStage(.installing)` per known package, awaits the legacy call,
     /// then finishes with `.success` or `.failure`.
-    func streamUpgrade(packages: [String]) -> AsyncStream<BrewUpgradeEvent> {
+    ///
+    /// The `packages` argument is the raw arg list AppState passes to brew —
+    /// it can contain flags like `--cask` / `--formula` alongside package
+    /// names. Filter flags out before calling the legacy single-name
+    /// `upgradePackage` so test stubs receive only the actual package names.
+    func streamUpgrade(packages args: [String]) -> AsyncStream<BrewUpgradeEvent> {
         AsyncStream { continuation in
+            let names = args.filter { !$0.hasPrefix("-") }
             let task = Task {
-                for name in packages {
+                for name in names {
                     continuation.yield(.packageDiscovered(name))
                     continuation.yield(.packageStage(name: name, stage: .installing))
                 }
                 do {
-                    if packages.isEmpty {
+                    if names.isEmpty {
                         try await upgradeAll()
-                    } else if packages.count == 1, let only = packages.first {
+                    } else if names.count == 1, let only = names.first {
                         try await upgradePackage(only)
                     } else {
                         // Multi-package non-stream path: run sequentially so a
                         // mid-run failure still reports a useful error.
-                        for name in packages { try await upgradePackage(name) }
+                        for name in names { try await upgradePackage(name) }
                     }
                     continuation.yield(.success)
                 } catch {

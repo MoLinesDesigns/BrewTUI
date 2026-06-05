@@ -190,6 +190,22 @@ enum BrewUpgradeStream {
         let stripped = stripANSI(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !stripped.isEmpty else { return }
 
+        // Detect brew's polite refusal: "Warning: Not upgrading <name>, the
+        // latest version is already installed". The process still exits 0
+        // even though nothing was installed — without this branch the modal
+        // would render "Done" over a package that re-appears in the next
+        // outdated refresh. Emitting a `.failed` stage lets runUpgradeStream
+        // flip the overall success to failure so the user sees what happened.
+        if let prefix = stripped.range(of: "Not upgrading "),
+           let comma = stripped.range(of: ",", range: prefix.upperBound..<stripped.endIndex) {
+            let name = String(stripped[prefix.upperBound..<comma.lowerBound])
+            if let resolved = packageName(from: name) {
+                let reason = String(localized: "Homebrew skipped the upgrade — try `brew reinstall` for this package")
+                box.emit(.packageStage(name: resolved, stage: .failed(reason)))
+            }
+            return
+        }
+
         guard let marker = stripped.range(of: "==>") else { return }
         let after = stripped[marker.upperBound...].trimmingCharacters(in: .whitespaces)
 

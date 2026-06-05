@@ -1,5 +1,16 @@
 import Foundation
 
+/// Whether an outdated row originated in the `formulae` or `casks` array of
+/// `brew outdated --json=v2`. We need this because `brew upgrade <name>`
+/// without an explicit `--cask` / `--formula` flag is ambiguous for some
+/// casks (auto-updates, version :latest, cask-metadata desync) — brew can
+/// silently no-op and exit 0, leaving the modal with a "Done" banner over a
+/// package that re-appears in the next refresh as still outdated.
+enum PackageKind: String, Codable, Sendable {
+    case formula
+    case cask
+}
+
 struct OutdatedPackage: Identifiable, Codable, Sendable {
     var id: String { name }
     let name: String
@@ -7,6 +18,12 @@ struct OutdatedPackage: Identifiable, Codable, Sendable {
     let currentVersion: String
     let pinned: Bool
     let pinnedVersion: String?
+    /// Set in `BrewChecker.checkOutdated` after decoding by tagging the
+    /// formulae array as `.formula` and the casks array as `.cask`. The JSON
+    /// itself does not carry this field — it's implicit in which array the
+    /// row came from — so the decoder defaults to `.formula` and BrewChecker
+    /// overwrites the cask rows.
+    var kind: PackageKind
 
     enum CodingKeys: String, CodingKey {
         case name
@@ -16,12 +33,13 @@ struct OutdatedPackage: Identifiable, Codable, Sendable {
         case pinnedVersion = "pinned_version"
     }
 
-    init(name: String, installedVersions: [String], currentVersion: String, pinned: Bool = false, pinnedVersion: String? = nil) {
+    init(name: String, installedVersions: [String], currentVersion: String, pinned: Bool = false, pinnedVersion: String? = nil, kind: PackageKind = .formula) {
         self.name = name
         self.installedVersions = installedVersions
         self.currentVersion = currentVersion
         self.pinned = pinned
         self.pinnedVersion = pinnedVersion
+        self.kind = kind
     }
 
     init(from decoder: Decoder) throws {
@@ -33,6 +51,7 @@ struct OutdatedPackage: Identifiable, Codable, Sendable {
         // Treat absence as not pinned so the decoder doesn't fail and silently abort the whole refresh.
         pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
         pinnedVersion = try c.decodeIfPresent(String.self, forKey: .pinnedVersion)
+        kind = .formula
     }
 
     var installedVersion: String {

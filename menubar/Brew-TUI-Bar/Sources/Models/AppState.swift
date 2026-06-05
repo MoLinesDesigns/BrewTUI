@@ -223,11 +223,18 @@ final class AppState {
             error = String(localized: "Pro license expired")
             return
         }
+        // Look up the package's kind so we can pass `--cask`/`--formula`
+        // explicitly. Without it `brew upgrade <name>` is ambiguous for
+        // certain casks and can silently no-op (exit 0, "Warning: Not
+        // upgrading X, the latest version is already installed"), leaving
+        // the modal showing "Done" over a package that's still outdated.
+        let kind = outdatedPackages.first(where: { $0.name == name })?.kind ?? .formula
+        let typeFlag = kind == .cask ? "--cask" : "--formula"
         await spawnInstallTask {
             await self.runUpgradeStream(
                 mode: .singlePackage(name),
                 seeds: [name],
-                arguments: [name]
+                arguments: [typeFlag, name]
             )
         }
     }
@@ -347,6 +354,30 @@ final class AppState {
             case .failure(let reason):
                 succeeded = false
                 installProgress?.finishFailure(reason)
+                self.error = String(format: String(localized: "Upgrade failed: %@"), reason)
+            }
+        }
+
+        // Defense in depth: brew can exit 0 even when no package was actually
+        // upgraded — the "Not upgrading X, latest already installed" branch
+        // detected by BrewUpgradeStream tags those packages as `.failed`.
+        // If brew claimed success but every tracked seed ended in `.failed`,
+        // flip the overall outcome to failure so the user sees what happened
+        // instead of "Done" over a package that's about to re-appear in the
+        // next refresh.
+        if succeeded, let progress = installProgress, !progress.packages.isEmpty {
+            let allFailed = progress.packages.allSatisfy {
+                if case .failed = $0.stage { return true } else { return false }
+            }
+            if allFailed {
+                succeeded = false
+                let reason: String = {
+                    for pkg in progress.packages {
+                        if case .failed(let r) = pkg.stage { return r }
+                    }
+                    return String(localized: "Homebrew did not perform any upgrade")
+                }()
+                installProgress?.finalError = reason
                 self.error = String(format: String(localized: "Upgrade failed: %@"), reason)
             }
         }

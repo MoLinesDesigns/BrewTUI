@@ -3,7 +3,7 @@ import ServiceManagement
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private static let isRunningForPreviews =
         ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" ||
         ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PLAYGROUNDS"] == "1"
@@ -267,15 +267,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = NSPopover()
         popover.contentSize = NSSize(width: 340, height: 420)
         popover.behavior = .transient
-        // Create the hosting controller once and reuse on each popover open
-        hostingController = NSHostingController(
-            rootView: PopoverView(
-                appState: appState,
-                scheduler: scheduler,
-                badgePreferences: badgePreferences
-            )
-        )
-        popover.contentViewController = hostingController
+        // Delegate is required to learn about `.transient` auto-closes
+        // (click outside, focus loss) — without it `clickOutsideMonitor`
+        // leaks past the popover lifecycle and fires phantom closePopover()
+        // calls on the next external click. See popoverDidClose below.
+        popover.delegate = self
+        // The hostingController is created fresh on every show in
+        // togglePopover(), not here. Reusing the same controller across
+        // shows leaves a stale SwiftUI tree + window-responder chain
+        // after a sheet dismiss: buttons render but mouse events never
+        // reach them. See togglePopover for the rationale.
     }
 
     private func updateBadge() {
@@ -329,8 +330,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             closePopover()
         } else {
+            // Recreate the hostingController on every show. Reusing the
+            // same controller across shows means the same NSView tree is
+            // re-attached to whatever NSWindow NSPopover hands us, and after
+            // a `.sheet` dismissal the responder chain on that view can
+            // stay broken even when makeKey() succeeds — buttons render
+            // but mouse events never reach the SwiftUI handlers. A fresh
+            // controller forces NSPopover to wire up a fresh view hierarchy,
+            // which always gets a clean event routing path. The cost is
+            // resetting `@State` (showSettings / showNewPackages), which
+            // is desirable: those sheets shouldn't survive a popover close.
+            let controller = NSHostingController(
+                rootView: PopoverView(
+                    appState: appState,
+                    scheduler: scheduler,
+                    badgePreferences: badgePreferences
+                )
+            )
+            hostingController = controller
+            popover.contentViewController = controller
+
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            // Defer makeKey() one runloop tick. Calling it synchronously
+            // after popover.show() races NSPopover's own window-keying:
+            // in some scenarios (reopen after a sheet dismiss, reopen
+            // long after a previous show) the synchronous call silently
+            // no-ops and the popover stays non-key, which kills mouse
+            // event delivery to SwiftUI controls inside it.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.popover.isShown else { return }
+                self.popover.contentViewController?.view.window?.makeKey()
+            }
             installClickOutsideMonitor()
         }
     }
@@ -339,6 +369,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         removeClickOutsideMonitor()
         if popover.isShown {
             popover.performClose(nil)
+        }
+    }
+
+    // MARK: - NSPopoverDelegate
+
+    /// Called by AppKit when the popover closes for any reason, including
+    /// the `.transient` auto-close that bypasses our `closePopover()`.
+    /// Without this, the global click-outside monitor stays installed
+    /// after a transient close and fires phantom `closePopover()` calls
+    /// on the next click in another app — harmless but messy. Cleanup
+    /// here makes installClickOutsideMonitor's `guard == nil` accurate.
+    nonisolated func popoverDidClose(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            self?.removeClickOutsideMonitor()
         }
     }
 
