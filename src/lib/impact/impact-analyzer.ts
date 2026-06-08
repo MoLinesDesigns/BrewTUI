@@ -5,7 +5,7 @@ import type { UpgradeImpact, RiskLevel } from './types.js';
 
 // Packages whose upgrade is always considered high risk
 const HIGH_RISK_PACKAGES = new Set([
-  'openssl', 'openssl@3', 'openssl@1.1',
+  'openssl', 'openssl@3', 'openssl@4', 'openssl@1.1',
   'python', 'python@3', 'python@3.11', 'python@3.12', 'python@3.13',
   'node', 'node@18', 'node@20', 'ruby', 'ruby@3',
   'sqlite', 'sqlite3', 'libpq', 'postgresql', 'postgresql@16',

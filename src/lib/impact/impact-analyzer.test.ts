@@ -63,6 +63,13 @@ describe('analyzeUpgradeImpact — formula', () => {
     expect(result.riskReasons).toContain('impact_reason_critical_package');
   });
 
+  it('returns high risk for openssl@4', async () => {
+    mockExecBrew.mockResolvedValue('');
+    const result = await analyzeUpgradeImpact('openssl@4', '4.0.0', '4.0.1', 'formula');
+    expect(result.risk).toBe('high');
+    expect(result.riskReasons).toContain('impact_reason_critical_package');
+  });
+
   it('returns high risk when more than 10 reverse deps', async () => {
     const manyDeps = Array.from({ length: 11 }, (_, i) => `pkg${i}`).join('\n');
     mockExecBrew.mockImplementation((args: string[]) => {
