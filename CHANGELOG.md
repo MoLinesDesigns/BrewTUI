@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.1.1] - 2026-06-14
+
+### Brew-TUI-Bar
+
+- **One-click upgrades with an 8s countdown.** Tapping a package's upgrade
+  button no longer opens a confirmation dialog — it starts an 8-second
+  countdown that you can cancel inline. If it isn't cancelled, the upgrade
+  begins automatically.
+- **Launch at login fixes.** The "Launch at login" toggle now handles the
+  `requiresApproval` state (opens System Settings › Login Items) and surfaces a
+  clear error instead of silently reverting, re-syncing the toggle with the
+  real `SMAppService` status.
+- New menu bar icon assets and assorted popover refinements.
+
+### Both
+
+- Version aligned across npm and the menu bar app at 4.1.1.
+
 ## [3.3.1] - 2026-05-31
 
 ### Fixed
