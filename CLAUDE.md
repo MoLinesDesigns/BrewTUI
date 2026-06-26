@@ -114,6 +114,8 @@ All rendering via Ink's `<Box>` (flexbox) and `<Text>`. `@inkjs/ui` provides `Te
 
 macOS menu bar companion app (Swift 6 / macOS 14+ / Tuist). Fully independent from the TypeScript codebase — both call `brew` directly.
 
+> **Location (current):** the menubar app now lives in its **own standalone repo** at `/Volumes/SSD/xCode_Projects/Brew-TUI-Bar` (`MoLinesDesigns/Brew-TUI-Bar`), with its own `CLAUDE.md`. The `menubar/` subdir referenced throughout this file **no longer exists** here — only `menubar.zip` remains as a snapshot. Read every `menubar/…` path below (e.g. `menubar/scripts/release.sh`, `menubar/build/Brew-TUI-Bar.app.zip`, `cd menubar && tuist generate`) as that standalone repo: run those commands there, not in a `menubar/` subfolder. The app's source tag `vX.Y.Z` lives in `MoLinesDesigns/Brew-TUI-Bar`, while its **binary GitHub Release** (the cask's download) lives in `MoLinesDesigns/Brew-TUI` — see Publishing.
+
 **Por qué Brew-TUI-Bar y no BrewBar.** El rename de 2.0.0 fue defensivo: `omkarkirpan/tap/brewbar` (cask de terceros, gestor de `brew services`) se publicó en 2026-01, tres meses antes que el nuestro. Mismo nombre corto, misma categoría. El cask transicional `brewbar` se eliminó del tap en 4.1.1 (estuvo `disable!` desde 3.0.0); `LegacyMigrator` + auto-cleanup en `installer.ts` siguen cubriendo la migración in-app para quien aún arranque desde un bundle viejo. No volver a "BrewBar" sin confirmar que el otro proyecto se ha extinguido.
 
 - `menubar/Project.swift` — Tuist manifest. `LSUIElement: true` (no Dock icon).
