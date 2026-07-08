@@ -38,7 +38,7 @@ export function SearchView() {
   const fetchInstalled = useBrewStore((s) => s.fetchInstalled);
   const hasRefreshed = useRef(false);
   // BK-001: nombre del ultimo paquete instalado desde search, para escribir
-  // el handoff IPC a Brew-TUI-Bar cuando el stream finalice exitosamente.
+  // el handoff IPC a BrewTUI-Bar cuando el stream finalice exitosamente.
   const pendingInstallRef = useRef<string | null>(null);
   const resultRows = useVisibleRows({
     reservedRows: searchError ? 8 : 6,
@@ -85,7 +85,7 @@ export function SearchView() {
     if (!stream.isRunning && !stream.error && stream.lines.length > 0 && !hasRefreshed.current) {
       hasRefreshed.current = true;
       void fetchInstalled();
-      // BK-001: notificar a Brew-TUI-Bar via IPC del paquete recien instalado.
+      // BK-001: notificar a BrewTUI-Bar via IPC del paquete recien instalado.
       const installed = pendingInstallRef.current;
       if (installed) {
         pendingInstallRef.current = null;
@@ -94,7 +94,7 @@ export function SearchView() {
           action: 'install',
           packages: [installed],
           remainingOutdated: 0,
-          source: 'brew-tui',
+          source: 'brewtui-bar',
         });
       }
     }

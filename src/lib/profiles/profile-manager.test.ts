@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock dependencies to isolate profile-manager logic
 vi.mock('../data-dir.js', () => ({
-  PROFILES_DIR: '/tmp/brew-tui-test-profiles',
+  PROFILES_DIR: '/tmp/brewtui-bar-test-profiles',
   ensureDataDirs: vi.fn().mockResolvedValue(undefined),
 }));
 

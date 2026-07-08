@@ -46,7 +46,7 @@ export interface SyncEnvelope {
   encrypted: string;
   iv: string;
   tag: string;
-  updatedAt: string; // ISO 8601 — plaintext for Brew-TUI-Bar monitoring
+  updatedAt: string; // ISO 8601 — plaintext for BrewTUI-Bar monitoring
 }
 
 // BK-006: 'merge-union' aparecia en este union pero applyConflictResolutions()

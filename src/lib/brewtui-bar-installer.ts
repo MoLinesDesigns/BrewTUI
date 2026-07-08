@@ -10,10 +10,10 @@ import { t } from '../i18n/index.js';
 import { fetchWithTimeout } from './fetch-timeout.js';
 
 const execFileAsync = promisify(execFile);
-const BREWTUIBAR_APP_PATH = '/Applications/Brew-TUI-Bar.app';
+const BREWTUIBAR_APP_PATH = '/Applications/BrewTUI-Bar.app';
 const BREWTUIBAR_BUNDLE_ID = 'com.molinesdesigns.brewtuibar';
-const BREWTUIBAR_PROCESS_NAME = 'Brew-TUI-Bar';
-const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/Brew-TUI/releases/latest/download/Brew-TUI-Bar.app.zip';
+const BREWTUIBAR_PROCESS_NAME = 'BrewTUI-Bar';
+const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/BrewTUI/releases/latest/download/BrewTUI-Bar.app.zip';
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 export async function isBrewTUIBarInstalled(): Promise<boolean> {
@@ -27,7 +27,7 @@ export async function isBrewTUIBarInstalled(): Promise<boolean> {
 
 /// Reads CFBundleIdentifier of an installed .app bundle. Used to detect when
 /// another app has claimed a path we care about (e.g. a third-party clone at
-/// /Applications/Brew-TUI-Bar.app, or a foreign app sitting at the legacy
+/// /Applications/BrewTUI-Bar.app, or a foreign app sitting at the legacy
 /// /Applications/BrewBar.app path). Exported so `doctor` can surface the
 /// installed bundle ID in its diagnostic dump.
 export async function bundleIdAt(appPath: string): Promise<string | null> {
@@ -48,7 +48,7 @@ async function installedBundleId(): Promise<string | null> {
   return bundleIdAt(BREWTUIBAR_APP_PATH);
 }
 
-/// Returns true if the Brew-TUI-Bar process is currently running.
+/// Returns true if the BrewTUI-Bar process is currently running.
 /// Used by the installer to decide whether to quit + relaunch after an update.
 export async function isBrewTUIBarRunning(): Promise<boolean> {
   if (process.platform !== 'darwin') return false;
@@ -61,7 +61,7 @@ export async function isBrewTUIBarRunning(): Promise<boolean> {
   }
 }
 
-/// Asks Brew-TUI-Bar to quit gracefully (LSUIElement → no dialogs), then falls back
+/// Asks BrewTUI-Bar to quit gracefully (LSUIElement → no dialogs), then falls back
 /// to pkill if it hasn't exited within 3 s. Required before reemplazar el bundle:
 /// `ditto -xk` sobre una app en ejecución deja un bundle viejo con un Info.plist
 /// nuevo, lo cual confunde el monitor de last-action y los watchers FSEvents.
@@ -83,7 +83,7 @@ async function quitBrewTUIBar(): Promise<void> {
   }
 }
 
-/// Install Brew-TUI-Bar. As of 2.1.0 we no longer gate on Pro: Free users get
+/// Install BrewTUI-Bar. As of 2.1.0 we no longer gate on Pro: Free users get
 /// the bundle too and see the in-app upgrade prompt when they click the menu
 /// bar icon. The `_isPro` parameter is kept for backwards compatibility with
 /// existing call sites but is ignored.
@@ -106,7 +106,7 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
   }
 
   // EP-013: Use unique temp path
-  const TMP_ZIP = join(tmpdir(), 'Brew-TUI-Bar-' + randomUUID() + '.zip');
+  const TMP_ZIP = join(tmpdir(), 'BrewTUI-Bar-' + randomUUID() + '.zip');
 
   // Download zip (120s timeout for large binary)
   const res = await fetchWithTimeout(DOWNLOAD_URL, {}, 120_000);
@@ -207,7 +207,7 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
     throw new Error(t('cli_brewtuibarDownloadFailed', { error: 'SHA-256 checksum unavailable — cannot verify download integrity' }));
   }
 
-  // Si Brew-TUI-Bar está corriendo, cerrarla antes de tocar el bundle. Sin esto
+  // Si BrewTUI-Bar está corriendo, cerrarla antes de tocar el bundle. Sin esto
   // `ditto -xk` sobreescribe los recursos de un proceso vivo y la app queda
   // en estado degradado hasta el próximo lanzamiento.
   const wasRunning = await isBrewTUIBarRunning();
@@ -237,7 +237,7 @@ export async function installBrewTUIBar(_isPro: boolean, force = false): Promise
   }
 }
 
-/// Launches Brew-TUI-Bar detached from the parent process so it survives terminal close.
+/// Launches BrewTUI-Bar detached from the parent process so it survives terminal close.
 /// `open -g -a` runs the app in the background without bringing it to foreground.
 export async function launchBrewTUIBar(): Promise<void> {
   if (process.platform !== 'darwin') return;

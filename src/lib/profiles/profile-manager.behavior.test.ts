@@ -22,7 +22,7 @@ vi.mock('node:fs/promises', () => ({
   rename: mocks.rename,
 }));
 vi.mock('../data-dir.js', () => ({
-  PROFILES_DIR: '/tmp/brew-tui/profiles',
+  PROFILES_DIR: '/tmp/brewtui-bar/profiles',
   ensureDataDirs: mocks.ensureDataDirs,
 }));
 vi.mock('../brew-cli.js', () => ({
@@ -104,20 +104,20 @@ describe('profile-manager behavior', () => {
     await saveProfile(true, profile);
 
     expect(mocks.writeFile).toHaveBeenCalledWith(
-      '/tmp/brew-tui/profiles/Work Mac.json.tmp',
+      '/tmp/brewtui-bar/profiles/Work Mac.json.tmp',
       JSON.stringify({ version: 1, profile }, null, 2),
       { encoding: 'utf-8', mode: 0o600 },
     );
     expect(mocks.rename).toHaveBeenCalledWith(
-      '/tmp/brew-tui/profiles/Work Mac.json.tmp',
-      '/tmp/brew-tui/profiles/Work Mac.json',
+      '/tmp/brewtui-bar/profiles/Work Mac.json.tmp',
+      '/tmp/brewtui-bar/profiles/Work Mac.json',
     );
 
     await updateProfile(true, 'Work Mac', 'Laptop', 'new desc');
-    expect(mocks.rm).toHaveBeenCalledWith('/tmp/brew-tui/profiles/Work Mac.json');
+    expect(mocks.rm).toHaveBeenCalledWith('/tmp/brewtui-bar/profiles/Work Mac.json');
     expect(mocks.rename).toHaveBeenLastCalledWith(
-      '/tmp/brew-tui/profiles/Laptop.json.tmp',
-      '/tmp/brew-tui/profiles/Laptop.json',
+      '/tmp/brewtui-bar/profiles/Laptop.json.tmp',
+      '/tmp/brewtui-bar/profiles/Laptop.json',
     );
   });
 

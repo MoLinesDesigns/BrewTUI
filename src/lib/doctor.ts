@@ -4,13 +4,13 @@ import { access, stat } from 'node:fs/promises';
 import { homedir, arch } from 'node:os';
 import { join } from 'node:path';
 import { useLicenseStore } from '../stores/license-store.js';
-import { bundleIdAt, isBrewTUIBarInstalled, isBrewTUIBarRunning } from './brew-tui-bar-installer.js';
+import { bundleIdAt, isBrewTUIBarInstalled, isBrewTUIBarRunning } from './brewtui-bar-installer.js';
 import { readBrewTUIBarVersion, checkBrewTUIBarVersion } from './version-check.js';
 
 const execFileAsync = promisify(execFile);
 
 const EXPECTED_BUNDLE_ID = 'com.molinesdesigns.brewtuibar';
-const APP_PATH = '/Applications/Brew-TUI-Bar.app';
+const APP_PATH = '/Applications/BrewTUI-Bar.app';
 const LEGACY_APP_PATH = '/Applications/BrewBar.app';
 
 type Line = { label: string; value: string; ok?: boolean | null };
@@ -50,15 +50,15 @@ async function findBrewBinary(): Promise<string | null> {
 export async function runDoctor(): Promise<void> {
   const cliVersion = process.env.APP_VERSION ?? '0.0.0';
 
-  // ── Brew-TUI ──────────────────────────────────────────────────────────
-  console.log(format('Brew-TUI', [
+  // ── BrewTUI-Bar ──────────────────────────────────────────────────────────
+  console.log(format('BrewTUI', [
     { label: 'CLI version', value: cliVersion },
     { label: 'Platform', value: `${process.platform} (${arch()})` },
     { label: 'Node', value: process.version },
   ]));
   console.log('');
 
-  // ── Brew-TUI-Bar (macOS only) ─────────────────────────────────────────
+  // ── BrewTUI-Bar (macOS only) ─────────────────────────────────────────
   if (process.platform === 'darwin') {
     const lines: Line[] = [];
     try {
@@ -88,7 +88,7 @@ export async function runDoctor(): Promise<void> {
     } catch (err) {
       lines.push({ label: '(probe error)', value: err instanceof Error ? err.message : String(err) });
     }
-    console.log(format('Brew-TUI-Bar (macOS companion)', lines));
+    console.log(format('BrewTUI-Bar (macOS companion)', lines));
     console.log('');
 
     // Legacy bundle from the BrewBar era. As of 3.0.0 we no longer auto-clean
@@ -131,7 +131,7 @@ export async function runDoctor(): Promise<void> {
   console.log('');
 
   // ── Environment ───────────────────────────────────────────────────────
-  const dataDir = join(homedir(), '.brew-tui');
+  const dataDir = join(homedir(), '.brewtui-bar');
   const machineIdPath = join(dataDir, 'machine-id');
   const machineIdPresent = await stat(machineIdPath).then(() => true).catch(() => false);
   console.log(format('Environment', [

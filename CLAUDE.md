@@ -150,11 +150,13 @@ Express 5 ESM backend at `/Volumes/SSD/Projects/Backends/brewtui`, deployed to N
 
 ## Naming
 
-- **Brew-TUI** — branding in UI, user-facing text, docs
-- **brew-tui** — CLI command, npm package name, filesystem paths (`~/.brew-tui/`)
-- **Brew-TUI-Bar** — menubar app branding, `CFBundleDisplayName`, `Brew-TUI-Bar.app` filename, `Brew-TUI-Bar` process name (the rename from "BrewBar" landed in 2.0.0)
+- **BrewTUI** — commercial branding in UI, user-facing text, docs (no hyphen between Brew and TUI)
+- **BrewTUI-Bar** — menubar app commercial branding, `CFBundleDisplayName`, marketing copy
+- **brew-tui** — CLI command, npm package name, filesystem paths (`~/.brew-tui/`) — unchanged
+- **Brew-TUI-Bar.app** / **Brew-TUI-Bar** process name — on-disk bundle + `pgrep` target (legacy hyphenation kept for compatibility; do not rename without a migration release)
 - **brew-tui-bar** — cask name in the tap, `install-brew-tui-bar` CLI subcommand
 - **`com.molinesdesigns.brewtuibar`** — `CFBundleIdentifier` (no hyphens, Apple convention). The legacy bundle ID `com.molinesdesigns.brewbar` only survives as a string literal in `CrashReporter.keychainService` to preserve existing keychain entries — see [[brewbar_notary_setup]] in auto-memory.
+- **BrewTUI API** — backend service branding (`brewtui` repo, `api.molinesdesigns.com`)
 
 ## Adding a New View
 

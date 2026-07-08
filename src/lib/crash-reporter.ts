@@ -6,11 +6,11 @@ import { getMachineId } from './data-dir.js';
 
 // Opt-in crash reporting. The TUI never sends data unless the user has
 // configured an endpoint, either via the env var below or via the persisted
-// config file at ~/.brew-tui/crash-reporter.json. The dashboard backend is
+// config file at ~/.brewtui-bar/crash-reporter.json. The dashboard backend is
 // expected to live on the user's own infrastructure (NAS).
 const ENDPOINT_ENV = 'BREW_TUI_CRASH_ENDPOINT';
 const TOKEN_ENV = 'BREW_TUI_CRASH_TOKEN';
-const CONFIG_PATH = join(homedir(), '.brew-tui', 'crash-reporter.json');
+const CONFIG_PATH = join(homedir(), '.brewtui-bar', 'crash-reporter.json');
 const POST_TIMEOUT_MS = 5_000;
 
 interface CrashReporterConfig {
@@ -20,7 +20,7 @@ interface CrashReporterConfig {
 }
 
 interface CrashReport {
-  app: 'brew-tui';
+  app: 'brewtui-bar';
   version: string;
   platform: string;
   os: string;
@@ -95,7 +95,7 @@ function buildReport(level: 'fatal' | 'error', err: unknown, context: Record<str
   const message = err instanceof Error ? err.message : String(err);
   const stack = err instanceof Error && typeof err.stack === 'string' ? err.stack : null;
   return {
-    app: 'brew-tui',
+    app: 'brewtui-bar',
     version,
     platform: platform(),
     os: release(),

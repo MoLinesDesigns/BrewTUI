@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSync = vi.fn();
 
-vi.mock('./lib/brew-tui-bar-installer.js', () => ({
+vi.mock('./lib/brewtui-bar-installer.js', () => ({
   syncAndLaunchBrewTUIBar: (...args: unknown[]) => mockSync(...args),
 }));
 

@@ -76,7 +76,7 @@ export function OutdatedView() {
   >(null);
   const hasRefreshed = useRef(false);
   // Names submitted to `brew upgrade` so that, once the stream finishes and the
-  // outdated list is refreshed, we can write the Brew-TUI-Bar handoff with what was
+  // outdated list is refreshed, we can write the BrewTUI-Bar handoff with what was
   // actually upgraded plus the remaining outdated count.
   const pendingUpgradeRef = useRef<string[] | null>(null);
   const [impact, setImpact] = useState<UpgradeImpact | null>(null);
@@ -108,7 +108,7 @@ export function OutdatedView() {
           action: 'upgrade',
           packages: pkgs,
           remainingOutdated: remaining,
-          source: 'brew-tui',
+          source: 'brewtui-bar',
         }).catch((err) => logger.warn('Failed to write last-action.json', err));
       });
     }

@@ -77,7 +77,7 @@ function recordAttempt(success: boolean): void {
 
 // SECURITY (SEG-009 v2): the signing key lives only on the brewtui-api NAS
 // (LICENSE_SIGNING_PRIVATE_KEY env var). The Ed25519 public counterpart is
-// embedded here AND in menubar/Brew-TUI-Bar/Sources/Services/LicenseChecker.swift —
+// embedded here AND in menubar/BrewTUI-Bar/Sources/Services/LicenseChecker.swift —
 // both verify the signed envelope offline without round-tripping the network.
 // Exposing the public key is by design: a verifier needs it; forging signatures
 // without the private half is computationally infeasible.
@@ -163,7 +163,7 @@ export async function loadLicense(): Promise<LicenseData | null> {
     // v1: legacy AES-GCM envelope or unencrypted blob. Both are rejected —
     // the symmetric encryption key was shipped in the public bundle, so
     // accepting v1 would defeat the point of the signature migration. The
-    // user just needs to run `brew-tui revalidate` once; activate() / the
+    // user just needs to run `brewtui-bar revalidate` once; activate() / the
     // periodic revalidation will overwrite the file with a v2 envelope on
     // the next successful round-trip to the backend.
     if (file.version === 1) {

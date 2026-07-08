@@ -1,5 +1,5 @@
 /**
- * Semantic color tokens for Brew-TUI.
+ * Semantic color tokens for BrewTUI-Bar.
  *
  * These constants provide a single source of truth for UI colors.
  * Views should gradually adopt these instead of hardcoded hex strings.

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Runs after `npm install -g brew-tui` (which is what `brew install brew-tui`
-// does internally). Auto-installs and launches Brew-TUI-Bar so that users get
+// Runs after `npm install -g brewtui-bar` (which is what `brew install brewtui-bar`
+// does internally). Auto-installs and launches BrewTUI-Bar so that users get
 // the menu bar app without needing a separate `brew install --cask` step.
 //
 // Non-fatal by design: any failure here only logs a warning and exits 0. We
 // never want a transient network / disk / permissions issue to break the npm
 // install itself.
-import { syncAndLaunchBrewTUIBar } from './lib/brew-tui-bar-installer.js';
+import { syncAndLaunchBrewTUIBar } from './lib/brewtui-bar-installer.js';
 import { t } from './i18n/index.js';
 
 /// Exported so vitest can drive the gate logic without spawning the script.
@@ -28,8 +28,8 @@ export async function runPostinstall(): Promise<void> {
 
   try {
     // Shared with the CLI cold-start path: installs when missing, reinstalls
-    // when outdated, then launches. So upgrading `brew-tui` (formula or npm)
-    // also brings Brew-TUI-Bar.app up to the matching version automatically.
+    // when outdated, then launches. So upgrading `brewtui-bar` (formula or npm)
+    // also brings BrewTUI-Bar.app up to the matching version automatically.
     await syncAndLaunchBrewTUIBar();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

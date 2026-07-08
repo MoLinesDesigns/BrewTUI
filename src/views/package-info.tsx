@@ -84,7 +84,7 @@ export function PackageInfoView() {
         .then((f) => { if (mountedRef.current) { setFormula(f); } })
         .catch(() => { /* ignore refresh errors */ });
 
-      // Brew-TUI-Bar handoff for upgrade/install/uninstall actions started here.
+      // BrewTUI-Bar handoff for upgrade/install/uninstall actions started here.
       // Refetch the outdated list so remainingOutdated is accurate, then write.
       const action = activeActionRef.current;
       if (action === 'upgrade' || action === 'install' || action === 'uninstall') {
@@ -96,7 +96,7 @@ export function PackageInfoView() {
             action,
             packages: [packageName],
             remainingOutdated: remaining,
-            source: 'brew-tui',
+            source: 'brewtui-bar',
           }).catch((err) => logger.warn('Failed to write last-action.json', err));
         });
       }

@@ -93,7 +93,7 @@ function timestampToFilename(iso: string): string {
 }
 
 /** Cap on retained snapshots. Older auto snapshots are pruned to keep
- *  the rollback feature from filling ~/.brew-tui/snapshots/ indefinitely.
+ *  the rollback feature from filling ~/.brewtui-bar/snapshots/ indefinitely.
  *  20 entries fits roughly 2-3 weeks of typical usage. */
 export const SNAPSHOT_RETENTION_LIMIT = 20;
 

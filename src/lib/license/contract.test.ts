@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { isLicenseData, type LicenseData } from './types.js';
 
 // ARQ-001: license.json is the cross-language contract between the TS TUI and
-// the Swift Brew-TUI-Bar. Both sides parse the same envelope, so the *shape* of the
+// the Swift BrewTUI-Bar. Both sides parse the same envelope, so the *shape* of the
 // inner LicenseData has to stay stable. This fixture is the canonical payload —
 // any field added on the TS side has to land here AND in the Swift LicenseData
-// struct, with the equivalent test in Brew-TUI-BarTests pinned to the same JSON.
+// struct, with the equivalent test in BrewTUI-BarTests pinned to the same JSON.
 const FIXTURE: LicenseData = {
   key: 'POLAR-XXXX-YYYY-ZZZZ',
   instanceId: '00000000-0000-0000-0000-000000000001',

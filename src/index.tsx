@@ -14,9 +14,9 @@ const [,, command, arg] = process.argv;
 
 async function runCli() {
   // --version / -v: print and exit before any TUI/Ink/data-dir setup so that
-  // Brew-TUI-Bar (and any tooling) can read the version cheaply via execFile.
+  // BrewTUI-Bar (and any tooling) can read the version cheaply via execFile.
   // stdout stays a single bare version string for script compatibility; any
-  // diagnostics about a Brew-TUI-Bar version mismatch go to stderr only.
+  // diagnostics about a BrewTUI-Bar version mismatch go to stderr only.
   if (command === '--version' || command === '-v' || command === 'version') {
     const cliVersion = process.env.APP_VERSION ?? '0.0.0';
     process.stdout.write(cliVersion + '\n');
@@ -50,8 +50,8 @@ async function runCli() {
       if (license.expiresAt) {
         console.log(t('cli_expires', { date: formatDate(license.expiresAt) }));
       }
-      // The user just became Pro — install + launch Brew-TUI-Bar now instead
-      // of waiting for the next `brew-tui` invocation. No-op on non-macOS and
+      // The user just became Pro — install + launch BrewTUI-Bar now instead
+      // of waiting for the next `brewtui-bar` invocation. No-op on non-macOS and
       // safe on failure (the cold-start path on the next run will retry).
       await ensureBrewTUIBarRunning();
     } catch (err) {
@@ -184,7 +184,7 @@ async function runCli() {
         const { loadPolicy } = await import('./lib/compliance/policy-io.js');
         const { checkCompliance } = await import('./lib/compliance/compliance-checker.js');
         // Try loading from default location
-        const policy = await loadPolicy(`${process.env['HOME'] ?? '~'}/.brew-tui/policy.yaml`).catch(() => null);
+        const policy = await loadPolicy(`${process.env['HOME'] ?? '~'}/.brewtui-bar/policy.yaml`).catch(() => null);
         if (policy) {
           const report = await checkCompliance(policy, true);
           console.log(`Compliance: ${report.score}% (${report.violations.length} violation(s))`);
@@ -197,8 +197,16 @@ async function runCli() {
     return;
   }
 
-  if (command === 'install-brew-tui-bar') {
-    const { installBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
+  if (
+    command === 'install-menubar'
+    || command === 'install-brewtui-bar'
+    || command === 'install-brew-tui-bar'
+    || command === 'install-brewbar'
+  ) {
+    if (command === 'install-brew-tui-bar' || command === 'install-brewbar') {
+      console.warn(`brewtui-bar ${command} is deprecated — use brewtui-bar install-menubar`);
+    }
+    const { installBrewTUIBar } = await import('./lib/brewtui-bar-installer.js');
     try {
       console.log(t('cli_brewtuibarInstalling'));
       // 2.1.0: no Pro gate — Free users get the bundle too and see the
@@ -212,8 +220,16 @@ async function runCli() {
     return;
   }
 
-  if (command === 'uninstall-brew-tui-bar') {
-    const { uninstallBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
+  if (
+    command === 'uninstall-menubar'
+    || command === 'uninstall-brewtui-bar'
+    || command === 'uninstall-brew-tui-bar'
+    || command === 'uninstall-brewbar'
+  ) {
+    if (command === 'uninstall-brew-tui-bar' || command === 'uninstall-brewbar') {
+      console.warn(`brewtui-bar ${command} is deprecated — use brewtui-bar uninstall-menubar`);
+    }
+    const { uninstallBrewTUIBar } = await import('./lib/brewtui-bar-installer.js');
     try {
       await uninstallBrewTUIBar();
       console.log(t('cli_brewtuibarUninstalled'));
@@ -244,7 +260,7 @@ async function runCli() {
     return;
   }
 
-  // Auto-install + auto-launch Brew-TUI-Bar for Pro users on macOS.
+  // Auto-install + auto-launch BrewTUI-Bar for Pro users on macOS.
   // Runs before the TUI clears the screen so progress messages are visible on cold install.
   await ensureBrewTUIBarRunning();
 
@@ -263,7 +279,7 @@ async function ensureBrewTUIBarRunning() {
   // downstream reads see the right state.
   await useLicenseStore.getState().initialize();
 
-  const { syncAndLaunchBrewTUIBar } = await import('./lib/brew-tui-bar-installer.js');
+  const { syncAndLaunchBrewTUIBar } = await import('./lib/brewtui-bar-installer.js');
   await syncAndLaunchBrewTUIBar();
 }
 

@@ -212,14 +212,14 @@ export function InstalledView() {
             setConfirmUninstall(null);
             void stream.run(['uninstall', name]).then(() => {
               fetchInstalled();
-              // BK-001: notificar a Brew-TUI-Bar via IPC del paquete desinstalado
+              // BK-001: notificar a BrewTUI-Bar via IPC del paquete desinstalado
               // para que su banner y contador de outdated se actualicen.
               void writeLastAction({
                 timestamp: new Date().toISOString(),
                 action: 'uninstall',
                 packages: [name],
                 remainingOutdated: 0,
-                source: 'brew-tui',
+                source: 'brewtui-bar',
               });
             });
           }}

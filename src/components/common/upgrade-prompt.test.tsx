@@ -11,10 +11,10 @@ describe('<UpgradePrompt>', () => {
     expect((lastFrame() ?? '').trim()).toBe('');
   });
 
-  it('renders Pro headers and the brew-tui activate command for a Pro view', () => {
+  it('renders Pro headers and the brewtui-bar activate command for a Pro view', () => {
     const { lastFrame } = render(<UpgradePrompt viewId="profiles" />);
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('brew-tui activate');
+    expect(frame).toContain('brewtui-bar activate');
     expect(frame).toContain('https://');
   });
 

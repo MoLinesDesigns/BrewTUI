@@ -12,8 +12,8 @@ import { isSyncPayload, type SyncPayload } from './types.js';
 // (Polar issues UUID-style keys), so the cost-hardening of scrypt isn't
 // what's protecting the key — the secrecy of the license key is. HKDF is
 // also faster, so machines don't pay scrypt's CPU tax on every sync.
-const ENCRYPTION_SECRET = 'brew-tui-sync-aes256gcm-v1';
-const HKDF_SALT = 'brew-tui-sync-salt-v1';
+const ENCRYPTION_SECRET = 'brewtui-bar-sync-aes256gcm-v1';
+const HKDF_SALT = 'brewtui-bar-sync-salt-v1';
 
 const keyCache = new Map<string, Buffer>();
 

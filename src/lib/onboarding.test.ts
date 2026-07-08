@@ -17,8 +17,8 @@ async function loadModule() {
   vi.doMock('node:fs/promises', () => fs);
   vi.doMock('./data-dir.js', () => ({
     ensureDataDirs,
-    ONBOARDING_FLAG_PATH: '/tmp/brew-tui/onboarding-completed',
-    DATA_DIR: '/tmp/brew-tui',
+    ONBOARDING_FLAG_PATH: '/tmp/brewtui-bar/onboarding-completed',
+    DATA_DIR: '/tmp/brewtui-bar',
   }));
 
   return import('./onboarding.js');
@@ -53,9 +53,9 @@ describe('onboarding', () => {
     await mod.markOnboardingComplete();
 
     expect(ensureDataDirs).toHaveBeenCalled();
-    expect(fs.mkdir).toHaveBeenCalledWith('/tmp/brew-tui', { recursive: true, mode: 0o700 });
+    expect(fs.mkdir).toHaveBeenCalledWith('/tmp/brewtui-bar', { recursive: true, mode: 0o700 });
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/tmp/brew-tui/onboarding-completed',
+      '/tmp/brewtui-bar/onboarding-completed',
       '2026-05-27T09:30:00.000Z',
       { encoding: 'utf-8', mode: 0o600 },
     );

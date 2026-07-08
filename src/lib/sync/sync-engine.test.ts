@@ -33,7 +33,7 @@ vi.mock('../license/license-manager.js', () => ({
 }));
 
 vi.mock('../data-dir.js', () => ({
-  DATA_DIR: '/tmp/.brew-tui-test',
+  DATA_DIR: '/tmp/.brewtui-bar-test',
   getMachineId: vi.fn(async () => 'test-machine-uuid'),
 }));
 

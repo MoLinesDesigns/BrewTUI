@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Generate promo codes for Brew-TUI Pro.
+ * Generate promo codes for BrewTUI-Bar Pro.
  *
  * Usage:
  *   npx tsx scripts/generate-promos.ts                          # 10 trial codes, 14 days

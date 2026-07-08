@@ -16,7 +16,7 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 vi.mock('../data-dir.js', () => ({
-  HISTORY_PATH: '/tmp/.brew-tui/history.json',
+  HISTORY_PATH: '/tmp/.brewtui-bar/history.json',
   ensureDataDirs: vi.fn().mockResolvedValue(undefined),
 }));
 

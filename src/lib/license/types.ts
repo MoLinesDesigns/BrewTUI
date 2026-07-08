@@ -37,7 +37,7 @@ export function isLicenseData(value: unknown): value is LicenseData {
  *
  * v1 envelopes (encrypted: {iv,tag,encrypted}) and legacy unencrypted
  * envelopes ({license}) are still represented here so the loader can detect
- * and reject them with a helpful message ("run brew-tui revalidate").
+ * and reject them with a helpful message ("run brewtui-bar revalidate").
  */
 export interface LicenseFile {
   version: 1 | 2;

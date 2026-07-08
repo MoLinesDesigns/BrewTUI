@@ -3,11 +3,11 @@ import { promisify } from 'node:util';
 import { access } from 'node:fs/promises';
 
 const execFileAsync = promisify(execFile);
-const BREWTUIBAR_INFO_PLIST = '/Applications/Brew-TUI-Bar.app/Contents/Info.plist';
+const BREWTUIBAR_INFO_PLIST = '/Applications/BrewTUI-Bar.app/Contents/Info.plist';
 
 // CONTRACT_VERSION is bumped only when the cross-platform contract changes
 // (license schema, encryption scheme, IPC). Marketing version drifts often;
-// contract version drifts rarely. Brew-TUI-Bar must embed the same number.
+// contract version drifts rarely. BrewTUI-Bar must embed the same number.
 // TODO: surface this number from a shared file once the next contract bump lands.
 export const CONTRACT_VERSION = 1;
 

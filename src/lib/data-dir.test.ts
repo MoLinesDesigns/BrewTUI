@@ -17,7 +17,7 @@ async function loadModule() {
   fs.rename.mockReset();
   randomUUID.mockReset();
 
-  vi.doMock('node:os', () => ({ homedir: () => '/tmp/brew-tui-home' }));
+  vi.doMock('node:os', () => ({ homedir: () => '/tmp/brewtui-bar-home' }));
   vi.doMock('node:fs/promises', () => fs);
   vi.doMock('node:crypto', () => ({ randomUUID }));
 
@@ -36,23 +36,23 @@ describe('data-dir', () => {
       action: 'install' as const,
       packages: ['wget'],
       remainingOutdated: 2,
-      source: 'brew-tui' as const,
+      source: 'brewtui-bar' as const,
     };
 
     await mod.writeLastAction(payload);
 
-    expect(fs.mkdir).toHaveBeenCalledWith('/tmp/brew-tui-home/.brew-tui', {
+    expect(fs.mkdir).toHaveBeenCalledWith('/tmp/brewtui-bar-home/.brewtui-bar', {
       recursive: true,
       mode: 0o700,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/tmp/brew-tui-home/.brew-tui/last-action.json.tmp',
+      '/tmp/brewtui-bar-home/.brewtui-bar/last-action.json.tmp',
       JSON.stringify(payload, null, 2),
       { encoding: 'utf-8', mode: 0o600 },
     );
     expect(fs.rename).toHaveBeenCalledWith(
-      '/tmp/brew-tui-home/.brew-tui/last-action.json.tmp',
-      '/tmp/brew-tui-home/.brew-tui/last-action.json',
+      '/tmp/brewtui-bar-home/.brewtui-bar/last-action.json.tmp',
+      '/tmp/brewtui-bar-home/.brewtui-bar/last-action.json',
     );
   });
 
@@ -61,9 +61,9 @@ describe('data-dir', () => {
     await mod.ensureDataDirs();
 
     expect(fs.mkdir.mock.calls).toEqual([
-      ['/tmp/brew-tui-home/.brew-tui', { recursive: true, mode: 0o700 }],
-      ['/tmp/brew-tui-home/.brew-tui/profiles', { recursive: true, mode: 0o700 }],
-      ['/tmp/brew-tui-home/.brew-tui/snapshots', { recursive: true, mode: 0o700 }],
+      ['/tmp/brewtui-bar-home/.brewtui-bar', { recursive: true, mode: 0o700 }],
+      ['/tmp/brewtui-bar-home/.brewtui-bar/profiles', { recursive: true, mode: 0o700 }],
+      ['/tmp/brewtui-bar-home/.brewtui-bar/snapshots', { recursive: true, mode: 0o700 }],
     ]);
   });
 
@@ -90,7 +90,7 @@ describe('data-dir', () => {
     expect(randomUUID).toHaveBeenCalledTimes(1);
     expect(fs.writeFile).toHaveBeenCalledTimes(1);
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/tmp/brew-tui-home/.brew-tui/machine-id',
+      '/tmp/brewtui-bar-home/.brewtui-bar/machine-id',
       'generated-machine',
       { encoding: 'utf-8', mode: 0o600 },
     );

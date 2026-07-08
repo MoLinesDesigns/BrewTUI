@@ -2,7 +2,7 @@
 
 /**
  * Generate a test Pro license for local development/testing.
- * Creates a valid encrypted license.json in ~/.brew-tui/
+ * Creates a valid encrypted license.json in ~/.brewtui-bar/
  *
  * Usage:
  *   node scripts/test-pro.js          # Create test Pro license
@@ -14,13 +14,13 @@ import { createCipheriv, randomBytes, randomUUID, hkdfSync } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const DATA_DIR = join(homedir(), '.brew-tui');
+const DATA_DIR = join(homedir(), '.brewtui-bar');
 const LICENSE_PATH = join(DATA_DIR, 'license.json');
 const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 
 // Same encryption constants as src/lib/license/license-manager.ts
-const ENCRYPTION_SECRET = 'brew-tui-license-aes256gcm-v1';
-const HKDF_SALT = 'brew-tui-salt-v1';
+const ENCRYPTION_SECRET = 'brewtui-bar-license-aes256gcm-v1';
+const HKDF_SALT = 'brewtui-bar-salt-v1';
 
 function getMachineId() {
   if (existsSync(MACHINE_ID_PATH)) {
@@ -89,6 +89,6 @@ console.log('');
 console.log('Now you can:');
 console.log('  1. npm run dev           \u2192 TUI with all Pro features');
 console.log('  2. Open BrewBar.app      \u2192 Should pass license check');
-console.log('  3. brew-tui status       \u2192 Should show Plan: Pro');
+console.log('  3. brewtui-bar status       \u2192 Should show Plan: Pro');
 console.log('');
 console.log('To remove: node scripts/test-pro.js --clear');

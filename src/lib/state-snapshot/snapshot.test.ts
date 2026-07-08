@@ -10,7 +10,7 @@ vi.mock('../brew-cli.js', () => ({
 }));
 
 // Use a real temp dir so save/load tests exercise actual fs I/O
-const TEST_SNAPSHOTS_DIR = join(tmpdir(), `brew-tui-snap-test-${process.pid}`);
+const TEST_SNAPSHOTS_DIR = join(tmpdir(), `brewtui-bar-snap-test-${process.pid}`);
 
 vi.mock('../data-dir.js', () => ({
   SNAPSHOTS_DIR: TEST_SNAPSHOTS_DIR,

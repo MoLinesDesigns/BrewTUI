@@ -1,11 +1,11 @@
 const en = {
   // ── App chrome ──
-  app_title: 'Brew-TUI',
+  app_title: 'BrewTUI-Bar',
   pro_badge: 'PRO',
-  app_version: 'Brew-TUI v{{version}}',
+  app_version: 'BrewTUI-Bar v{{version}}',
 
   // ── UX-002: first-run welcome ──
-  welcome_title: 'Welcome to Brew-TUI',
+  welcome_title: 'Welcome to BrewTUI-Bar',
   welcome_intro: 'A visual terminal interface for Homebrew. Browse installed packages, see what is outdated, manage services and run upgrades — all from the keyboard.',
   welcome_keysHeader: 'Essential keys',
   welcome_keyMenu: 'Open the side menu (then ↑↓ + Enter)',
@@ -15,7 +15,7 @@ const en = {
   welcome_keySelect: 'Open / confirm the highlighted item',
   welcome_keyBack: 'Go back / cancel',
   welcome_keyLocale: 'Toggle language (English / Spanish)',
-  welcome_keyQuit: 'Quit Brew-TUI',
+  welcome_keyQuit: 'Quit BrewTUI-Bar',
   welcome_proHeader: 'Optional Pro features',
   welcome_proIntro: 'Profiles, smart cleanup, history, security audit, sync and more — activate from the Account view with a license key.',
   welcome_continueHint: 'Press Enter, Space or Esc to continue →',
@@ -313,11 +313,11 @@ const en = {
   account_keyLabel: 'Key:',
   account_expiresLabel: 'Expires:',
   account_activatedLabel: 'Activated:',
-  account_upgradeTitle: 'Upgrade to Brew-TUI Pro',
-  account_unlockDesc: 'Unlock Profiles, Smart Cleanup, History, Security Audit, and Brew-TUI-Bar (macOS menu bar companion).',
+  account_upgradeTitle: 'Upgrade to BrewTUI-Bar Pro',
+  account_unlockDesc: 'Unlock Profiles, Smart Cleanup, History, Security Audit, and BrewTUI-Bar (macOS menu bar companion).',
   account_pricing: '5.45\u20AC/month or 48\u20AC/year (save 27%)',
   account_runActivate: 'Run:',
-  account_activateCmd: 'brew-tui activate <key>',
+  account_activateCmd: 'brewtui-bar activate <key>',
   account_licenseExpired: 'Your license has expired. Renew to continue using Pro features.',
   account_deactivating: 'Deactivating...',
   account_loading: 'Loading license status...',
@@ -348,9 +348,9 @@ const en = {
   upgrade_buyUrl: 'https://buy.polar.sh/polar_cl_yQsiUeDelyyEQznbWffD1j77JAyP24ra7iEVQ22PA4h',
   upgrade_buyUrlTeam: 'https://buy.polar.sh/polar_cl_CO6xqSzKgFiQJwXnhZYGqisOP04Wspi0KKZSn38NjFZ?quantity=3',
   upgrade_activateWith: 'Then activate with:',
-  upgrade_activateCmd: 'brew-tui activate <your-license-key>',
-  upgrade_proLabel: 'Brew-TUI Pro \u2014 5.45\u20AC/month or 48\u20AC/year \u2014 Includes Brew-TUI-Bar for macOS',
-  upgrade_teamLabel: 'Brew-TUI Team \u2014 8\u20AC/seat/month \u2014 Includes everything in Pro plus Compliance',
+  upgrade_activateCmd: 'brewtui-bar activate <your-license-key>',
+  upgrade_proLabel: 'BrewTUI-Bar Pro \u2014 5.45\u20AC/month or 48\u20AC/year \u2014 Includes BrewTUI-Bar for macOS',
+  upgrade_teamLabel: 'BrewTUI-Bar Team \u2014 8\u20AC/seat/month \u2014 Includes everything in Pro plus Compliance',
 
   // ── Progress Log ──
   progress_noOutput: 'No output yet',
@@ -365,7 +365,7 @@ const en = {
   profileMgr_importDone: 'Done! Installed {{count}} packages.',
 
   // ── CLI ──
-  cli_usageActivate: 'Usage: brew-tui activate <license-key>',
+  cli_usageActivate: 'Usage: brewtui-bar activate <license-key>',
   cli_activated: '\u2714 Pro activated for {{email}}',
   cli_plan: '  Plan: {{plan}}',
   cli_expires: '  Expires: {{date}}',
@@ -377,8 +377,8 @@ const en = {
   cli_planExpired: 'Plan: Expired',
   cli_confirmDeactivate: 'Deactivate your Pro license on this machine? (y/N): ',
   cli_deactivateCancelled: 'Deactivation cancelled.',
-  cli_upgradeHint: 'Run `brew-tui activate <key>` to upgrade to Pro.',
-  cli_revalidateHint: 'Run `brew-tui revalidate` to refresh your current license.',
+  cli_upgradeHint: 'Run `brewtui-bar activate <key>` to upgrade to Pro.',
+  cli_revalidateHint: 'Run `brewtui-bar revalidate` to refresh your current license.',
   cli_email: 'Email: {{email}}',
   cli_status: 'Status: {{status}}',
   cli_revalidated: '\u2714 License revalidated.',
@@ -386,20 +386,20 @@ const en = {
   cli_revalidateFailed: '\u2718 License revalidation failed. Renew your subscription or activate a valid key.',
   cli_rateLimited: 'Too many activation attempts. Try again in {{minutes}} minutes.',
   cli_cooldown: 'Please wait before trying again.',
-  cli_brewtuibarInstalling: 'Downloading Brew-TUI-Bar...',
-  cli_brewtuibarInstalled: '\u2714 Brew-TUI-Bar installed to /Applications/Brew-TUI-Bar.app',
-  cli_brewtuibarAlreadyInstalled: 'Brew-TUI-Bar is already installed. Use --force to reinstall.',
-  cli_brewtuibarUninstalled: '\u2714 Brew-TUI-Bar removed from /Applications.',
-  cli_brewtuibarNotInstalled: 'Brew-TUI-Bar is not installed.',
-  cli_brewtuibarMacOnly: '\u2718 Brew-TUI-Bar is only available on macOS.',
-  cli_brewtuibarDownloadFailed: '\u2718 Failed to download Brew-TUI-Bar: {{error}}',
-  cli_brewtuibarAutoFailed: '\u26A0 Brew-TUI-Bar auto-launch failed: {{error}}',
-  cli_brewtuibarUpdating: 'Updating Brew-TUI-Bar from {{installed}} to {{expected}} to match Brew-TUI...',
-  cli_brewtuibarVersionMismatch: '\u26A0 Brew-TUI-Bar {{installed}} is out of sync with Brew-TUI {{expected}}. Run: brew-tui install-brew-tui-bar --force',
-  cli_brewtuibarForeignBundle: '\u2718 /Applications/Brew-TUI-Bar.app exists but its bundle ID is `{{id}}`, not com.molinesdesigns.brewtuibar. Refusing to touch a foreign app. Remove or rename it first.',
-  postinstall_skipped: 'Note: Brew-TUI-Bar auto-install skipped: {{error}}',
-  postinstall_manualHint: 'You can install it manually later with: brew-tui install-brew-tui-bar',
-  cli_versionMismatchWarning: '⚠ Brew-TUI-Bar {{installed}} is out of sync with this CLI ({{expected}}). It will be updated automatically the next time you run `brew-tui` or restart the app.',
+  cli_brewtuibarInstalling: 'Downloading BrewTUI-Bar...',
+  cli_brewtuibarInstalled: '\u2714 BrewTUI-Bar installed to /Applications/BrewTUI-Bar.app',
+  cli_brewtuibarAlreadyInstalled: 'BrewTUI-Bar is already installed. Use --force to reinstall.',
+  cli_brewtuibarUninstalled: '\u2714 BrewTUI-Bar removed from /Applications.',
+  cli_brewtuibarNotInstalled: 'BrewTUI-Bar is not installed.',
+  cli_brewtuibarMacOnly: '\u2718 BrewTUI-Bar is only available on macOS.',
+  cli_brewtuibarDownloadFailed: '\u2718 Failed to download BrewTUI-Bar: {{error}}',
+  cli_brewtuibarAutoFailed: '\u26A0 BrewTUI-Bar auto-launch failed: {{error}}',
+  cli_brewtuibarUpdating: 'Updating BrewTUI-Bar from {{installed}} to {{expected}} to match BrewTUI-Bar...',
+  cli_brewtuibarVersionMismatch: '\u26A0 BrewTUI-Bar {{installed}} is out of sync with BrewTUI-Bar {{expected}}. Run: brewtui-bar install-menubar --force',
+  cli_brewtuibarForeignBundle: '\u2718 /Applications/BrewTUI-Bar.app exists but its bundle ID is `{{id}}`, not com.molinesdesigns.brewtuibar. Refusing to touch a foreign app. Remove or rename it first.',
+  postinstall_skipped: 'Note: BrewTUI-Bar auto-install skipped: {{error}}',
+  postinstall_manualHint: 'You can install it manually later with: brewtui-bar install-menubar',
+  cli_versionMismatchWarning: '⚠ BrewTUI-Bar {{installed}} is out of sync with this CLI ({{expected}}). It will be updated automatically the next time you run `brewtui-bar` or restart the app.',
   cli_deactivateRemoteFailed: '\u26A0 Warning: Could not reach the server to deactivate remotely. The license was removed locally but may still count as active.',
 
   // ── License degradation (Layer 15) ──
@@ -437,8 +437,8 @@ const en = {
   upgrade_all_warning: 'Note: this will upgrade all currently outdated packages, which may differ from the original set.',
 
   // ── SEG-007: Delete account ──
-  delete_account_confirm: 'Delete all Brew-TUI data (~/.brew-tui)? This removes your license, profiles, and history. This cannot be undone.',
-  delete_account_success: 'All Brew-TUI data has been removed.',
+  delete_account_confirm: 'Delete all BrewTUI-Bar data (~/.brewtui-bar)? This removes your license, profiles, and history. This cannot be undone.',
+  delete_account_success: 'All BrewTUI-Bar data has been removed.',
 
   // ── SCR-012: Upgrade All packages list ──
   outdated_upgradeAllList: 'Packages to upgrade: {{list}}',
@@ -568,7 +568,7 @@ const en = {
 
   // ── Upgrade Prompt — Rollback / Brewfile ──
   upgrade_rollback: 'Smart Rollback',
-  upgrade_rollbackDesc: 'Restore your Homebrew state from any past snapshot. Brew-TUI captures a snapshot before every install and upgrade so you can roll back a bad update with one keystroke.',
+  upgrade_rollbackDesc: 'Restore your Homebrew state from any past snapshot. BrewTUI-Bar captures a snapshot before every install and upgrade so you can roll back a bad update with one keystroke.',
   upgrade_brewfile: 'Declarative Brewfile',
   upgrade_brewfileDesc: 'Pin your toolchain in a versioned Brewfile and reconcile any machine to it. Drift score, missing/extra detection and one-keystroke alignment.',
 };

@@ -1,9 +1,10 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, access, rename } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 
-export const DATA_DIR = join(homedir(), '.brew-tui');
+const LEGACY_DATA_DIR = join(homedir(), '.brew-tui');
+export const DATA_DIR = join(homedir(), '.brewtui-bar');
 export const PROFILES_DIR = join(DATA_DIR, 'profiles');
 export const LICENSE_PATH = join(DATA_DIR, 'license.json');
 export const HISTORY_PATH = join(DATA_DIR, 'history.json');
@@ -11,8 +12,8 @@ export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
 export const MACHINE_ID_PATH = join(DATA_DIR, 'machine-id');
 export const ONBOARDING_FLAG_PATH = join(DATA_DIR, 'onboarding-completed');
 export const ANALYTICS_CONSENT_PATH = join(DATA_DIR, 'analytics-consent');
-// Cross-process notification surface for Brew-TUI-Bar. Brew-TUI writes here after a
-// brew action completes; Brew-TUI-Bar watches the file with DispatchSource and shows
+// Cross-process notification surface for BrewTUI-Bar. BrewTUI-Bar writes here after a
+// brew action completes; BrewTUI-Bar watches the file with DispatchSource and shows
 // a banner with the result + remaining outdated count.
 export const LAST_ACTION_PATH = join(DATA_DIR, 'last-action.json');
 
@@ -21,7 +22,7 @@ export interface LastAction {
   action: 'upgrade' | 'install' | 'uninstall';
   packages: string[];       // names actually upgraded/installed/uninstalled
   remainingOutdated: number; // total outdated packages still pending after the action
-  source: 'brew-tui';
+  source: 'brewtui-bar';
 }
 
 // Atomic write: write to a temp sibling then rename so partial reads from the
@@ -31,11 +32,25 @@ export async function writeLastAction(payload: LastAction): Promise<void> {
   const json = JSON.stringify(payload, null, 2);
   const tmp = `${LAST_ACTION_PATH}.tmp`;
   await writeFile(tmp, json, { encoding: 'utf-8', mode: 0o600 });
-  const { rename } = await import('node:fs/promises');
   await rename(tmp, LAST_ACTION_PATH);
 }
 
+async function migrateLegacyDataDirIfNeeded(): Promise<void> {
+  try {
+    await access(LEGACY_DATA_DIR);
+  } catch {
+    return;
+  }
+  try {
+    await access(DATA_DIR);
+    return;
+  } catch {
+    await rename(LEGACY_DATA_DIR, DATA_DIR);
+  }
+}
+
 export async function ensureDataDirs(): Promise<void> {
+  await migrateLegacyDataDirIfNeeded();
   await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
   await mkdir(PROFILES_DIR, { recursive: true, mode: 0o700 });
   await mkdir(SNAPSHOTS_DIR, { recursive: true, mode: 0o700 });

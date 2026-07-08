@@ -11,9 +11,9 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 // When the Ink TUI owns stdout (raw mode), writing to console corrupts the frame.
-// We detect this and redirect logs to a file under ~/.brew-tui/logs/ instead.
-const LOG_DIR = join(homedir(), '.brew-tui', 'logs');
-const LOG_FILE = join(LOG_DIR, 'brew-tui.log');
+// We detect this and redirect logs to a file under ~/.brewtui-bar/logs/ instead.
+const LOG_DIR = join(homedir(), '.brewtui-bar', 'logs');
+const LOG_FILE = join(LOG_DIR, 'brewtui-bar.log');
 let logDirReady = false;
 
 function ensureLogDir(): boolean {

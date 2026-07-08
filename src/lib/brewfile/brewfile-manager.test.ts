@@ -13,7 +13,7 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 vi.mock('../data-dir.js', () => ({
-  DATA_DIR: '/fake/.brew-tui',
+  DATA_DIR: '/fake/.brewtui-bar',
   ensureDataDirs: vi.fn(),
 }));
 

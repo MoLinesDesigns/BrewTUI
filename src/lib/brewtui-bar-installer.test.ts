@@ -63,24 +63,24 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe('brew-tui-bar-installer: isBrewTUIBarInstalled', () => {
-  it('returns true when /Applications/Brew-TUI-Bar.app is reachable', async () => {
+describe('brewtui-bar-installer: isBrewTUIBarInstalled', () => {
+  it('returns true when /Applications/BrewTUI-Bar.app is reachable', async () => {
     mockAccess.mockResolvedValue(undefined);
-    const { isBrewTUIBarInstalled } = await import('./brew-tui-bar-installer.js');
+    const { isBrewTUIBarInstalled } = await import('./brewtui-bar-installer.js');
     expect(await isBrewTUIBarInstalled()).toBe(true);
   });
 
   it('returns false when access throws', async () => {
     mockAccess.mockRejectedValue(new Error('ENOENT'));
-    const { isBrewTUIBarInstalled } = await import('./brew-tui-bar-installer.js');
+    const { isBrewTUIBarInstalled } = await import('./brewtui-bar-installer.js');
     expect(await isBrewTUIBarInstalled()).toBe(false);
   });
 });
 
-describe('brew-tui-bar-installer: installBrewTUIBar gating', () => {
+describe('brewtui-bar-installer: installBrewTUIBar gating', () => {
   it('rejects when not running on macOS', async () => {
     setPlatform('linux');
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/cli_brewtuibarMacOnly/);
   });
 
@@ -96,7 +96,7 @@ describe('brew-tui-bar-installer: installBrewTUIBar gating', () => {
     });
     mockReadFile.mockResolvedValue(Buffer.from('zip-bytes'));
     mockExecFile.mockResolvedValue('');
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     // No throw on integrity guard alone — the SHA-256 check kicks in next,
     // so we only assert that the early "ProRequired" guard is gone.
     await expect(installBrewTUIBar(false, false)).rejects.not.toThrow(/cli_brewtuibarProRequired/);
@@ -105,18 +105,18 @@ describe('brew-tui-bar-installer: installBrewTUIBar gating', () => {
   it('rejects when already installed and force is false', async () => {
     setPlatform('darwin');
     mockAccess.mockResolvedValue(undefined);
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/cli_brewtuibarAlreadyInstalled/);
   });
 
-  it('refuses to touch /Applications/Brew-TUI-Bar.app when its bundle ID is foreign', async () => {
+  it('refuses to touch /Applications/BrewTUI-Bar.app when its bundle ID is foreign', async () => {
     setPlatform('darwin');
     mockAccess.mockResolvedValue(undefined); // installed
     mockExecFile.mockImplementation(async (cmd: string, args: string[]) => {
       if (cmd === 'defaults' && args[0] === 'read') return 'com.example.someone-else\n';
       return '';
     });
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, true)).rejects.toThrow(/cli_brewtuibarForeignBundle/);
     // ditto must never be invoked when the bundle ID is foreign
     const dittoCalls = mockExecFile.mock.calls.filter((c) => c[0] === 'ditto');
@@ -124,7 +124,7 @@ describe('brew-tui-bar-installer: installBrewTUIBar gating', () => {
   });
 });
 
-describe('brew-tui-bar-installer: integrity (NUEVO-003)', () => {
+describe('brewtui-bar-installer: integrity (NUEVO-003)', () => {
   function setupSuccessfulDownload({ checksumOk, hashLine }: { checksumOk: boolean; hashLine?: string } = { checksumOk: false }) {
     setPlatform('darwin');
     mockAccess.mockRejectedValue(new Error('ENOENT')); // not installed
@@ -148,22 +148,22 @@ describe('brew-tui-bar-installer: integrity (NUEVO-003)', () => {
 
   it('refuses to install when the SHA-256 checksum is unavailable', async () => {
     setupSuccessfulDownload({ checksumOk: false });
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/SHA-256 checksum unavailable/);
     // ditto must not have been invoked
     expect(mockExecFile).not.toHaveBeenCalled();
   });
 
   it('refuses to install when the SHA-256 hash does not match', async () => {
-    setupSuccessfulDownload({ checksumOk: true, hashLine: 'a'.repeat(64) + '  Brew-TUI-Bar.app.zip' });
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    setupSuccessfulDownload({ checksumOk: true, hashLine: 'a'.repeat(64) + '  BrewTUI-Bar.app.zip' });
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/SHA-256 mismatch/);
     expect(mockExecFile).not.toHaveBeenCalled();
   });
 
   it('refuses to install when the SHA-256 hash is malformed', async () => {
     setupSuccessfulDownload({ checksumOk: true, hashLine: 'not-a-hash' });
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/SHA-256 checksum unavailable/);
   });
 
@@ -175,12 +175,12 @@ describe('brew-tui-bar-installer: integrity (NUEVO-003)', () => {
       body: new ReadableStream({ start(c) { c.close(); } }),
       headers: { get: () => String(300 * 1024 * 1024) }, // 300 MB
     });
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).rejects.toThrow(/200 MB size limit/);
   });
 });
 
-describe('brew-tui-bar-installer: installBrewTUIBar happy path (QA-009)', () => {
+describe('brewtui-bar-installer: installBrewTUIBar happy path (QA-009)', () => {
   it('downloads, verifies SHA-256 and unzips to /Applications', async () => {
     setPlatform('darwin');
     mockAccess.mockRejectedValue(new Error('ENOENT')); // not installed
@@ -190,7 +190,7 @@ describe('brew-tui-bar-installer: installBrewTUIBar happy path (QA-009)', () => 
 
     mockFetch.mockImplementation((url: string) => {
       if (url.endsWith('.sha256')) {
-        return Promise.resolve({ ok: true, text: async () => `${realHash}  Brew-TUI-Bar.app.zip` });
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewTUI-Bar.app.zip` });
       }
       return Promise.resolve({
         ok: true,
@@ -201,7 +201,7 @@ describe('brew-tui-bar-installer: installBrewTUIBar happy path (QA-009)', () => 
     mockReadFile.mockResolvedValue(fileBuffer);
     mockExecFile.mockResolvedValue('');
 
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(installBrewTUIBar(true, false)).resolves.toBeUndefined();
 
     // ditto invoked exactly once with our temp zip → /Applications
@@ -212,8 +212,8 @@ describe('brew-tui-bar-installer: installBrewTUIBar happy path (QA-009)', () => 
   });
 });
 
-describe('brew-tui-bar-installer: auto-restart on update', () => {
-  it('quits Brew-TUI-Bar before unzip and relaunches it after when it was running', async () => {
+describe('brewtui-bar-installer: auto-restart on update', () => {
+  it('quits BrewTUI-Bar before unzip and relaunches it after when it was running', async () => {
     setPlatform('darwin');
     // App instalada + force=true para reinstalar en sitio.
     mockAccess.mockResolvedValue(undefined);
@@ -222,7 +222,7 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
     const realHash = createHash('sha256').update(fileBuffer).digest('hex');
     mockFetch.mockImplementation((url: string) => {
       if (url.endsWith('.sha256')) {
-        return Promise.resolve({ ok: true, text: async () => `${realHash}  Brew-TUI-Bar.app.zip` });
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewTUI-Bar.app.zip` });
       }
       return Promise.resolve({
         ok: true,
@@ -242,7 +242,7 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
       return '';
     });
 
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await installBrewTUIBar(true, true);
 
     const calls = mockExecFile.mock.calls.map((c) => c[0]);
@@ -255,7 +255,7 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
     expect(dittoIdx).toBeLessThan(openIdx);
   });
 
-  it('does not quit or relaunch when Brew-TUI-Bar is not running', async () => {
+  it('does not quit or relaunch when BrewTUI-Bar is not running', async () => {
     setPlatform('darwin');
     mockAccess.mockRejectedValue(new Error('ENOENT'));
     const fileBuffer = Buffer.from('zip-bytes');
@@ -263,7 +263,7 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
     const realHash = createHash('sha256').update(fileBuffer).digest('hex');
     mockFetch.mockImplementation((url: string) => {
       if (url.endsWith('.sha256')) {
-        return Promise.resolve({ ok: true, text: async () => `${realHash}  Brew-TUI-Bar.app.zip` });
+        return Promise.resolve({ ok: true, text: async () => `${realHash}  BrewTUI-Bar.app.zip` });
       }
       return Promise.resolve({
         ok: true,
@@ -275,7 +275,7 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
     // pgrep siempre devuelve stdout vacío → "no running".
     mockExecFile.mockResolvedValue('');
 
-    const { installBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { installBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await installBrewTUIBar(true, false);
 
     const calls = mockExecFile.mock.calls.map((c) => c[0]);
@@ -285,17 +285,17 @@ describe('brew-tui-bar-installer: auto-restart on update', () => {
   });
 });
 
-describe('brew-tui-bar-installer: uninstallBrewTUIBar', () => {
-  it('rejects when Brew-TUI-Bar is not installed', async () => {
+describe('brewtui-bar-installer: uninstallBrewTUIBar', () => {
+  it('rejects when BrewTUI-Bar is not installed', async () => {
     mockAccess.mockRejectedValue(new Error('ENOENT'));
-    const { uninstallBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { uninstallBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await expect(uninstallBrewTUIBar()).rejects.toThrow(/cli_brewtuibarNotInstalled/);
   });
 
   it('removes the app bundle when installed', async () => {
     mockAccess.mockResolvedValue(undefined);
-    const { uninstallBrewTUIBar } = await import('./brew-tui-bar-installer.js');
+    const { uninstallBrewTUIBar } = await import('./brewtui-bar-installer.js');
     await uninstallBrewTUIBar();
-    expect(mockRm).toHaveBeenCalledWith('/Applications/Brew-TUI-Bar.app', expect.objectContaining({ recursive: true, force: true }));
+    expect(mockRm).toHaveBeenCalledWith('/Applications/BrewTUI-Bar.app', expect.objectContaining({ recursive: true, force: true }));
   });
 });

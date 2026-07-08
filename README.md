@@ -1,4 +1,4 @@
-# Brew-TUI
+# BrewTUI
 
 ### Your Homebrew, finally visible.
 
@@ -10,7 +10,7 @@
 
 A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
 
-![Brew-TUI demo](assets/demo.gif)
+![BrewTUI demo](assets/demo.gif)
 
 ```bash
 brew tap MoLinesDesigns/tap
@@ -19,16 +19,16 @@ brew install brew-tui      # then just type:  brew-tui
 
 ---
 
-## Why Brew-TUI?
+## Why BrewTUI?
 
-You don't memorize `brew outdated && brew upgrade && brew services list && brew leaves`. You forget half of them. Brew-TUI puts every command behind one keystroke and shows you what `brew` never tells you until something breaks: orphans, vulnerabilities, services that died last Tuesday.
+You don't memorize `brew outdated && brew upgrade && brew services list && brew leaves`. You forget half of them. BrewTUI puts every command behind one keystroke and shows you what `brew` never tells you until something breaks: orphans, vulnerabilities, services that died last Tuesday.
 
-| Without Brew-TUI | With Brew-TUI |
+| Without BrewTUI | With BrewTUI |
 |---|---|
 | `brew outdated` → wall of text → grep | Press **3** → list with version arrows → `Enter` to upgrade |
 | `brew services list` → restart by hand | Press **4** → toggle services with one key |
 | Vulnerable packages? | Press **9** → cross-checked against [OSV.dev](https://osv.dev) (Pro) |
-| Forgot to update? | **Brew-TUI-Bar** lives in your menu bar and tells you (Pro) |
+| Forgot to update? | **BrewTUI-Bar** lives in your menu bar and tells you (Pro) |
 
 ---
 
@@ -68,14 +68,14 @@ npx brew-tui
 |---------|----------------|
 | **Smart Rollback** | Auto-snapshots after every install/upgrade/uninstall/pin; revert with bottle/versioned/pin strategies. Press `R` from a flagged CVE to jump straight to the rollback plan |
 | **Cross-machine Sync** | iCloud Drive backend, AES-256-GCM encrypted client-side. Brewfile and snapshots stay aligned across all your Macs with interactive conflict resolution |
-| **CVE Real-time** | Brew-TUI-Bar polls [OSV.dev](https://osv.dev) hourly. Critical/high CVEs trigger native macOS notifications and a badge count |
+| **CVE Real-time** | BrewTUI-Bar polls [OSV.dev](https://osv.dev) hourly. Critical/high CVEs trigger native macOS notifications and a badge count |
 | **Declarative Brewfile** | YAML desired state, drift score 0-100, interactive reconciliation. Closer to a lightweight Nix-flake than `brew bundle` |
 | **Impact Analysis** | Pre-upgrade risk panel (low/medium/high) with dependency tree and reverse-deps that will be affected, surfaced before each upgrade |
 | **Profiles** | Replicate your exact setup on a new Mac in one command |
 | **Smart Cleanup** | Reclaim gigabytes by listing orphans ranked by size |
 | **Action History** | "What did I install last week?" — answered |
 | **Security Audit** | Cross-checks every installed package against [OSV.dev](https://osv.dev) live |
-| **Brew-TUI-Bar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
+| **BrewTUI-Bar** | A menu bar app that watches your packages while you sleep — auto-installs and auto-launches the moment you go Pro |
 
 ### Team Tier — €8/seat/mo or €81,60/seat/year (-15%, min 3 seats)
 
@@ -134,16 +134,16 @@ brew-tui delete-account    # Remove all local data (~/.brew-tui/)
 
 ### Language
 
-Brew-TUI supports **English** and **Spanish**. Language is detected from your system locale (`LANG`), or you can:
+BrewTUI supports **English** and **Spanish**. Language is detected from your system locale (`LANG`), or you can:
 
 - Pass `--lang=es` or `--lang=en` as a CLI flag
 - Press `L` inside the TUI to toggle
 
 ---
 
-## Brew-TUI-Bar (Pro)
+## BrewTUI-Bar (Pro)
 
-Brew-TUI-Bar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
+BrewTUI-Bar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
 
 - Shows a badge with outdated package count
 - Sends push notifications when updates are available
@@ -152,10 +152,10 @@ Brew-TUI-Bar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
 - Configurable check interval (1h / 4h / 8h)
 - Supports Launch at Login
 
-### Install Brew-TUI-Bar
+### Install BrewTUI-Bar
 
 ```bash
-# Via Brew-TUI CLI (Pro license required)
+# Via BrewTUI CLI (Pro license required)
 brew-tui install-brew-tui-bar
 brew-tui install-brew-tui-bar --force   # Reinstall / update
 brew-tui uninstall-brew-tui-bar         # Remove
@@ -169,7 +169,7 @@ brew install --cask MoLinesDesigns/tap/brewbar
 ```bash
 cd menubar
 tuist generate
-xcodebuild -workspace Brew-TUI-Bar.xcworkspace -scheme Brew-TUI-Bar build
+xcodebuild -workspace BrewTUI-Bar.xcworkspace -scheme BrewTUI-Bar build
 ```
 
 Requires [Tuist](https://tuist.io), Xcode, and macOS 14+.
@@ -200,7 +200,7 @@ Views (React/Ink) --> Stores (Zustand) --> brew-api --> Parsers --> brew CLI (sp
 ## Security
 
 - License data encrypted with AES-256-GCM, machine-bound via UUID
-- SHA-256 verification on Brew-TUI-Bar binary downloads
+- SHA-256 verification on BrewTUI-Bar binary downloads
 - Bundle integrity check at startup (fail-closed)
 - Runtime validation of all external API responses (Polar, OSV)
 - Rate limiting on license activation (5 attempts / 15min lockout)
@@ -232,7 +232,7 @@ src/
     parsers/       # JSON and text parsers for brew output
   i18n/            # English + Spanish translations
   utils/           # Colors, spacing, logger, formatting
-menubar/           # Brew-TUI-Bar (Swift 6 / SwiftUI / Tuist)
+menubar/           # BrewTUI-Bar (Swift 6 / SwiftUI / Tuist)
 ```
 
 ---
@@ -241,7 +241,7 @@ menubar/           # Brew-TUI-Bar (Swift 6 / SwiftUI / Tuist)
 
 ```bash
 git clone https://github.com/MoLinesDesigns/Brew-TUI.git
-cd Brew-TUI
+cd BrewTUI
 npm install
 npm run dev          # Run with tsx (requires interactive TTY)
 npm run typecheck    # tsc --noEmit

@@ -1,10 +1,11 @@
 {
-  "name": "brew-tui",
-  "version": "4.3.2",
-  "description": "Brew-TUI — Visual TUI for Homebrew package management",
+  "name": "brewtui-bar",
+  "version": "5.0.0",
+  "description": "BrewTUI-Bar — Visual TUI and menu bar companion for Homebrew",
   "type": "module",
   "bin": {
-    "brew-tui": "bin/brew-tui.js"
+    "brewtui-bar": "bin/brewtui-bar.js",
+    "brew-tui": "bin/brew-tui-legacy.js"
   },
   "main": "./build/index.js",
   "files": [
@@ -15,12 +16,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MoLinesDesigns/Brew-TUI.git"
+    "url": "git+https://github.com/MoLinesDesigns/BrewTUI.git"
   },
   "bugs": {
-    "url": "https://github.com/MoLinesDesigns/Brew-TUI/issues"
+    "url": "https://github.com/MoLinesDesigns/BrewTUI/issues"
   },
-  "homepage": "https://github.com/MoLinesDesigns/Brew-TUI#readme",
+  "homepage": "https://github.com/MoLinesDesigns/BrewTUI#readme",
   "author": "MoLines Designs",
   "scripts": {
     "dev": "tsx src/index.tsx",
@@ -43,7 +44,8 @@
     "tui",
     "terminal",
     "cli",
-    "package-manager"
+    "package-manager",
+    "menubar"
   ],
   "license": "MIT",
   "engines": {

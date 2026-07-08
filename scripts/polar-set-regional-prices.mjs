@@ -107,7 +107,7 @@ function fmt(cents, currency) {
 }
 
 async function listProducts() {
-  console.log('━━ Polar products in the Brew-TUI project ━━\n');
+  console.log('━━ Polar products in the BrewTUI-Bar project ━━\n');
   for (const [kind, id] of Object.entries(PRODUCTS)) {
     let product;
     try { product = await polar('GET', `/products/${id}`); }
