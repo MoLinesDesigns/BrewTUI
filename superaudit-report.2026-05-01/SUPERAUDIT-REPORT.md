@@ -7,7 +7,7 @@
 ## Estadisticas globales
 
 * **Fecha de auditoria:** 2026-05-01
-* **Proyecto:** Brew-TUI + BrewBar v0.6.1
+* **Proyecto:** BrewTUI-Bar + BrewBar v0.6.1
 * **Total hallazgos:** 98
 * **Criticos:** 2 | **Altos:** 22 | **Medios:** 38 | **Bajos:** 36
 * **Dominios auditados:** 14 de 14
@@ -46,8 +46,8 @@
 
 ## Datos del proyecto
 
-* **Nombre del proyecto:** Brew-TUI + BrewBar
-* **Version actual:** 0.6.1 (npm / GitHub Release / BrewBar). Nota: la formula Homebrew tap (`homebrew/Formula/brew-tui.rb`) todavia apunta a 0.5.3 — desincronizacion documentada.
+* **Nombre del proyecto:** BrewTUI-Bar + BrewBar
+* **Version actual:** 0.6.1 (npm / GitHub Release / BrewBar). Nota: la formula Homebrew tap (`homebrew/Formula/brewtui-bar.rb`) todavia apunta a 0.5.3 — desincronizacion documentada.
 * **Plataformas:** macOS (CLI via Node.js, TUI en terminal) + macOS 14+ (BrewBar, app nativa en menu bar)
 * **Stack principal:**
   * TUI: TypeScript 6, React 19, Ink 7 (terminal renderer), Zustand 5 — ESM-only, Node >= 22
@@ -58,7 +58,7 @@
   * Licencias: Polar API (SaaS), AES-256-GCM para license.json en disco
   * Seguridad CVE: OSV.dev API (batch endpoint)
   * Sync: iCloud Drive con AES-256-GCM
-* **Repositorio:** https://github.com/MoLinesDesigns/Brew-TUI.git
+* **Repositorio:** https://github.com/MoLinesDesigns/BrewTUI-Bar.git
 * **Commit auditado:** 72b6d84 (chore: release v0.6.1)
 * **Rama auditada:** main
 * **Fecha de auditoria:** 2026-05-01
@@ -78,7 +78,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI es un proyecto hibrido con dos codebases independientes: un TUI de terminal en TypeScript/React/Ink (141 archivos, 16.596 lineas) y BrewBar, una app nativa de macOS en Swift 6/SwiftUI (22 archivos, 3.837 lineas incluyendo tests). Ambas herramientas invocan `brew` directamente sin compartir codigo ni IPC. El proyecto implementa un modelo freemium con dos tiers (Pro / Team) sobre Polar API, cifrado AES-256-GCM, machine-binding y 11 features Pro/Team gateadas. La suite de tests TypeScript cuenta con 35 archivos de test (4.923 lineas); BrewBar tiene 2 archivos de test Swift (519 lineas). La version actual publicada es 0.6.1 en npm y GitHub Releases; la formula Homebrew tap permanece en 0.5.3.
+BrewTUI-Bar es un proyecto hibrido con dos codebases independientes: un TUI de terminal en TypeScript/React/Ink (141 archivos, 16.596 lineas) y BrewBar, una app nativa de macOS en Swift 6/SwiftUI (22 archivos, 3.837 lineas incluyendo tests). Ambas herramientas invocan `brew` directamente sin compartir codigo ni IPC. El proyecto implementa un modelo freemium con dos tiers (Pro / Team) sobre Polar API, cifrado AES-256-GCM, machine-binding y 11 features Pro/Team gateadas. La suite de tests TypeScript cuenta con 35 archivos de test (4.923 lineas); BrewBar tiene 2 archivos de test Swift (519 lineas). La version actual publicada es 0.6.1 en npm y GitHub Releases; la formula Homebrew tap permanece en 0.5.3.
 
 ## Metricas generales
 
@@ -100,11 +100,11 @@ Brew-TUI es un proyecto hibrido con dos codebases independientes: un TUI de term
 
 | Canal | Estado | Version publicada |
 |-------|--------|-------------------|
-| npm (`brew-tui`) | Publicado | 0.6.1 |
+| npm (`brewtui-bar`) | Publicado | 0.6.1 |
 | GitHub Releases | Publicado | v0.6.1 |
-| Homebrew Formula (`brew-tui`) | Desactualizado | 0.5.3 |
+| Homebrew Formula (`brewtui-bar`) | Desactualizado | 0.5.3 |
 | Homebrew Cask (`brewbar`) | Desactualizado + URL rota | 0.1.0 |
-| Bun standalone (`dist-standalone/brew-tui-bun`) | No documentado | Desconocida |
+| Bun standalone (`dist-standalone/brewtui-bar-bun`) | No documentado | Desconocida |
 
 ---
 
@@ -125,10 +125,10 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 | `ENCRYPTION_SECRET` AES en bundle npm | No conforme | Alta | `src/lib/license/license-manager.ts:78-79`, `src/lib/sync/crypto.ts:6-7` | Migrar a macOS Keychain |
 | Clave AES derivada hex en binario Swift | No conforme | Alta | `LicenseChecker.swift:50`: literal hex de 64 caracteres | Rederivarlo en runtime o migrar a Keychain |
 | Homebrew Cask `0.1.0` + URL rota | No conforme | Alta | `homebrew/Casks/brewbar.rb:2,5` — `MoLinesGitHub` (usuario incorrecto) | Corregir URL a `MoLinesDesigns`, actualizar version a `0.6.1` |
-| Homebrew Formula `0.5.3` | No conforme | Alta | `homebrew/Formula/brew-tui.rb:3` | Actualizar URL y SHA256 a `0.6.1` |
+| Homebrew Formula `0.5.3` | No conforme | Alta | `homebrew/Formula/brewtui-bar.rb:3` | Actualizar URL y SHA256 a `0.6.1` |
 | `jsr.json` version `0.5.2` | No conforme | Alta | `jsr.json:3` | Sincronizar con `package.json` |
 | BrewBar no notarizado | No conforme | Alta | `exportOptions.plist`: `method: none`; ausencia de `notarytool` | Agregar `xcrun notarytool submit --wait` al script de release |
-| `dist-standalone/brew-tui-bun` en git (65 MB) | No conforme | Media | `git ls-files dist-standalone/brew-tui-bun` | Agregar a `.gitignore`; ejecutar `git rm --cached` |
+| `dist-standalone/brewtui-bar-bun` en git (65 MB) | No conforme | Media | `git ls-files dist-standalone/brewtui-bar-bun` | Agregar a `.gitignore`; ejecutar `git rm --cached` |
 | URL repositorio erronea en `package.json` | No conforme | Media | `package.json:17` apunta a `MoLinesGitHub` en lugar de `MoLinesDesigns` | Actualizar `package.json`, README, Formula y Cask |
 | `tsup target: node18` vs `engines: >=22` | No conforme | Baja | `tsup.config.ts:9` | Cambiar a `'node22'` |
 | `.gitattributes` ausente | No conforme | Baja | Sin normalizacion de line endings ni marcadores de binary | Crear con `* text=auto` |
@@ -144,7 +144,7 @@ El proyecto tiene una base de gobierno razonablemente solida: `package.json` inc
 
 ## Resumen ejecutivo
 
-La arquitectura de Brew-TUI es solida en sus capas principales: la separacion entre `lib/`, `stores/` y `views/` en TypeScript esta bien mantenida y la convencion de que los modulos `lib/` no importen stores se cumple sin excepcion. En Swift, el modelo de actores (`SecurityMonitor`, `SyncMonitor`) y `@MainActor` esta aplicado correctamente. Los problemas detectados son en su mayoria deuda menor con dos excepciones de mayor peso: la divergencia de politica de degradacion de licencia entre los dos codebases (mismo archivo en disco, logica diferente) y la ausencia de seam de DI para `SyncMonitor`.
+La arquitectura de BrewTUI-Bar es solida en sus capas principales: la separacion entre `lib/`, `stores/` y `views/` en TypeScript esta bien mantenida y la convencion de que los modulos `lib/` no importen stores se cumple sin excepcion. En Swift, el modelo de actores (`SecurityMonitor`, `SyncMonitor`) y `@MainActor` esta aplicado correctamente. Los problemas detectados son en su mayoria deuda menor con dos excepciones de mayor peso: la divergencia de politica de degradacion de licencia entre los dos codebases (mismo archivo en disco, logica diferente) y la ausencia de seam de DI para `SyncMonitor`.
 
 ## Hallazgos principales
 
@@ -200,7 +200,7 @@ El frontend del proyecto es un hibrido bien articulado: un TUI de terminal React
 
 ## Resumen ejecutivo
 
-Brew-TUI y BrewBar ofrecen una experiencia coherente para usuarios intermedios de Homebrew, pero presentan fricciones significativas en el primer arranque (ausencia total de onboarding), en flujos Pro clave (sin confirmacion antes de reconciliar Brewfile, sin accion de revalidacion en TUI), y dos bugs de severidad Alta que rompen la internacionalizacion. El fallo mas critico desde el punto de vista de notificaciones es la colision de identificadores en `SchedulerService.swift`, que silencia todas las alertas CVE y Sync subsiguientes a la primera. El modelo de degradacion de licencia esta desincronizado entre TUI (7/14/30 dias) y BrewBar (30 dias planos).
+BrewTUI-Bar y BrewBar ofrecen una experiencia coherente para usuarios intermedios de Homebrew, pero presentan fricciones significativas en el primer arranque (ausencia total de onboarding), en flujos Pro clave (sin confirmacion antes de reconciliar Brewfile, sin accion de revalidacion en TUI), y dos bugs de severidad Alta que rompen la internacionalizacion. El fallo mas critico desde el punto de vista de notificaciones es la colision de identificadores en `SchedulerService.swift`, que silencia todas las alertas CVE y Sync subsiguientes a la primera. El modelo de degradacion de licencia esta desincronizado entre TUI (7/14/30 dias) y BrewBar (30 dias planos).
 
 ## Hallazgos principales
 
@@ -261,7 +261,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa.
 | `ecosystem: 'Homebrew'` en OSV API (TS) | No conforme | Critica | `osv-api.ts:125,143,181` — rechaza con HTTP 400; Security Audit siempre retorna 0 CVEs | Cambiar a `'Bitnami'` en las tres ocurrencias |
 | `isExpired()` falla abierto en fecha invalida | No conforme | Alta | `license-manager.ts:214-217`: `NaN < Date.now()` es false; licencias con fecha corrupta nunca expiran | `isExpired` debe retornar `true` cuando la fecha es invalida o no parseable |
 | Deadlock en `BrewProcess.swift:99` | No conforme | Alta | `readDataToEndOfFile()` sincrono en `terminationHandler`; buffers > 64 KB causan deadlock | Migrar a lectura incremental con `availableData` |
-| Snapshots sin poda en `~/.brew-tui/snapshots/` | No conforme | Alta | `snapshot.ts:95-107`, `rollback-engine.ts:204-209` — sin poda automatica | Implementar `pruneSnapshots(maxCount = 20)` |
+| Snapshots sin poda en `~/.brewtui-bar/snapshots/` | No conforme | Alta | `snapshot.ts:95-107`, `rollback-engine.ts:204-209` — sin poda automatica | Implementar `pruneSnapshots(maxCount = 20)` |
 | Cuatro implementaciones divergentes de `getMachineId` | No conforme | Alta | `polar-api.ts`, `license-manager.ts`, `sync-engine.ts`, `promo.ts` — `sync-engine.ts:53` cae a `hostname()` | Extraer funcion unica a `data-dir.ts` con mutex |
 | AES secrets en bundle npm | No conforme | Alta | `license-manager.ts:78-79`, `sync/crypto.ts:6-7` | Incorporar `machineId` como salt adicional en `scryptSync` |
 | Hex AES literal en binario Swift | No conforme | Alta | `LicenseChecker.swift:50-53`: hex de 64 caracteres | Eliminar literal; rederivarlo en runtime |
@@ -289,7 +289,7 @@ El proyecto tiene una postura de seguridad activa y documentada: AES-256-GCM sob
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
 | Tokens npm con credenciales reales en `.claude/settings.local.json` | No conforme | Critica | `settings.local.json:56,58`: dos tokens `npm_*` en texto plano; blast radius: publicacion maliciosa en npm | Revocar ambos tokens. Agregar `.claude/` al `.gitignore`. Usar tokens con scope `publish` restringido |
-| `ENCRYPTION_SECRET` literal en bundle npm | No conforme | Alta | `license-manager.ts:78`: `'brew-tui-license-aes256gcm-v1'`; `sync/crypto.ts:6`: `'brew-tui-sync-aes256gcm-v1'` — bundle publicado en npm | Derivar la clave combinando la constante con el machine-id; alternativa: Keychain |
+| `ENCRYPTION_SECRET` literal en bundle npm | No conforme | Alta | `license-manager.ts:78`: `'brewtui-bar-license-aes256gcm-v1'`; `sync/crypto.ts:6`: `'brewtui-bar-sync-aes256gcm-v1'` — bundle publicado en npm | Derivar la clave combinando la constante con el machine-id; alternativa: Keychain |
 | Hex AES precomputada en binario Swift | No conforme | Alta | `LicenseChecker.swift:50-53`: `let hex = "5c3b2ae2a3066bca28773f36db347d8c8a0a396d4b9fab628331446acd6d4126"` — recuperable via `strings` | Incluir machine-id como factor en la derivacion; migrar a Keychain |
 | Watermark: `consent = true` por defecto | No conforme | Media | `watermark.ts`: `getWatermark(license, consent = true)` | Cambiar a `consent = false`; requerir consentimiento explicito |
 | Token crash reporter en `UserDefaults` | No conforme | Media | `CrashReporter.swift:45-46` | Mover a Keychain |
@@ -372,7 +372,7 @@ El proyecto rinde bien para una app de terminal y un menubar pequeno: el bundle 
 
 ## Resumen ejecutivo
 
-La infraestructura de localizacion de Brew-TUI es solida: el modulo i18n del TUI garantiza paridad completa en tiempo de compilacion (427 claves, en + es), y BrewBar usa String Catalog con variantes de plural correctas; no se detecta texto hardcodeado visible en produccion (la excepcion son los bugs de `sync.tsx:127` y `brewfile.tsx:70,261` ya catalogados en seccion 6). El estado de release presenta riesgos serios: BrewBar carece completamente de notarizacion, tres canales de distribucion publican versiones desincronizadas, y el pipeline CI solo cubre Ubuntu/Node sin ningun paso Swift.
+La infraestructura de localizacion de BrewTUI-Bar es solida: el modulo i18n del TUI garantiza paridad completa en tiempo de compilacion (427 claves, en + es), y BrewBar usa String Catalog con variantes de plural correctas; no se detecta texto hardcodeado visible en produccion (la excepcion son los bugs de `sync.tsx:127` y `brewfile.tsx:70,261` ya catalogados en seccion 6). El estado de release presenta riesgos serios: BrewBar carece completamente de notarizacion, tres canales de distribucion publican versiones desincronizadas, y el pipeline CI solo cubre Ubuntu/Node sin ningun paso Swift.
 
 ## Metricas de localizacion
 
@@ -445,7 +445,7 @@ De 16 vistas auditadas:
 
 ## Resumen ejecutivo
 
-El proyecto carece de servidor HTTP propio. Las "endpoints" auditables se reducen a cuatro integraciones HTTP salientes (Polar, OSV.dev, Promo backend propio, y descarga de release de GitHub), ocho subcomandos del binario `brew-tui` y ~25 invocaciones distintas de `brew`. La superficie HTTP esta razonablemente protegida en Polar y GitHub Releases (TLS sistema, validacion de host, timeouts, SHA-256 obligatorio). Se conservan tres defectos sin corregir: (a) `ecosystem: 'Homebrew'` en TypeScript hacia OSV (Critica); (b) `promo.ts` sin `validateApiUrl`; (c) `brewUpdate()` sin timeout.
+El proyecto carece de servidor HTTP propio. Las "endpoints" auditables se reducen a cuatro integraciones HTTP salientes (Polar, OSV.dev, Promo backend propio, y descarga de release de GitHub), ocho subcomandos del binario `brewtui-bar` y ~25 invocaciones distintas de `brew`. La superficie HTTP esta razonablemente protegida en Polar y GitHub Releases (TLS sistema, validacion de host, timeouts, SHA-256 obligatorio). Se conservan tres defectos sin corregir: (a) `ecosystem: 'Homebrew'` en TypeScript hacia OSV (Critica); (b) `promo.ts` sin `validateApiUrl`; (c) `brewUpdate()` sin timeout.
 
 ## Inventario de endpoints
 
@@ -533,7 +533,7 @@ Los 98 hallazgos se distribuyen en los siguientes dominios:
 
 | ID | Hallazgo | Riesgo | Accion inmediata |
 |----|----------|--------|------------------|
-| SEG-001 | Dos tokens npm en `.claude/settings.local.json:56,58` en texto plano | Publicacion maliciosa de `brew-tui` en npmjs.com | Revocar tokens. Agregar `.claude/` a `.gitignore`. Tokens con scope restringido |
+| SEG-001 | Dos tokens npm en `.claude/settings.local.json:56,58` en texto plano | Publicacion maliciosa de `brewtui-bar` en npmjs.com | Revocar tokens. Agregar `.claude/` a `.gitignore`. Tokens con scope restringido |
 | BK-001 | `ecosystem: 'Homebrew'` en `osv-api.ts:125,143,181` → OSV HTTP 400 → 0 CVEs siempre | Feature Pro Security Audit completamente roto | Cambiar a `'Bitnami'` en las tres ocurrencias; publicar hotfix npm 0.6.2 |
 
 ## Plan "Proximas 5 PRs"
@@ -587,7 +587,7 @@ Los 98 hallazgos se distribuyen en los siguientes dominios:
 2. **Security Audit Pro completamente inoperativo** — devuelve 0 CVEs siempre. Ver BK-001.
 3. **Canal de distribucion BrewBar roto** — HTTP 404 para cualquier instalacion via Homebrew. Ver GOV-002.
 4. **BrewBar no notarizado** — Gatekeeper bloquea a usuarios que descargan directamente. Ver GOV-005.
-5. **Formula y Cask desactualizados** — usuarios de Homebrew reciben `brew-tui` 0.5.3. Ver GOV-003.
+5. **Formula y Cask desactualizados** — usuarios de Homebrew reciben `brewtui-bar` 0.5.3. Ver GOV-003.
 6. **`isExpired()` falla abierta en fecha invalida** — potencialmente explotable con SEG-002. Ver BK-004.
 7. **Notificaciones CVE silenciadas despues de la primera** — feature de seguridad de BrewBar inoperativo. Ver UX-001.
 
@@ -604,7 +604,7 @@ Los 98 hallazgos se distribuyen en los siguientes dominios:
 
 1. **[Critico — ahora mismo]** Revocar ambos tokens npm en npmjs.com y agregar `.claude/` al `.gitignore` del repo — Ver SEG-001
 2. **[Critico — PR inmediato]** Cambiar `'Homebrew'` → `'Bitnami'` en `osv-api.ts:125,143,181` y publicar hotfix npm 0.6.2 — Ver BK-001
-3. **[Alta — PR 2]** Corregir URL del Cask (`MoLinesGitHub` → `MoLinesDesigns`), actualizar versiones en `brewbar.rb`, `brew-tui.rb` y `jsr.json` a 0.6.1 — Ver GOV-002, GOV-003, GOV-004
+3. **[Alta — PR 2]** Corregir URL del Cask (`MoLinesGitHub` → `MoLinesDesigns`), actualizar versiones en `brewbar.rb`, `brewtui-bar.rb` y `jsr.json` a 0.6.1 — Ver GOV-002, GOV-003, GOV-004
 4. **[Alta — PR 3]** Agregar `ConfirmDialog` en `brewfile.tsx`, `sync.tsx` y `compliance.tsx`; corregir identificadores de notificacion en `SchedulerService.swift`; eliminar `FileTimestamp` de `PrivacyInfo.xcprivacy` — Ver UI-001, UI-002, UI-003, UX-001, GOV-006
 5. **[Alta — PR 3]** Corregir `isExpired()` para retornar `true` en fecha invalida — Ver BK-004
 6. **[Alta — PR 4]** Extraer `getMachineId()` a funcion unica en `data-dir.ts`; eliminar fallback a `hostname()` — Ver BK-005

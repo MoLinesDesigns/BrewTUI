@@ -8,7 +8,7 @@ const ICLOUD_BASE = join(
   homedir(),
   'Library', 'Mobile Documents', 'com~apple~CloudDocs',
 );
-export const ICLOUD_SYNC_DIR = join(ICLOUD_BASE, 'BrewTUI');
+export const ICLOUD_SYNC_DIR = join(ICLOUD_BASE, 'BrewTUI-Bar');
 export const ICLOUD_SYNC_PATH = join(ICLOUD_SYNC_DIR, 'sync.json');
 
 export async function isICloudAvailable(): Promise<boolean> {

@@ -61,7 +61,7 @@ describe('icloud-backend', () => {
     await expect(mod.readSyncEnvelope()).resolves.toBeNull();
     expect(fs.stat).toHaveBeenNthCalledWith(
       2,
-      '/Users/tester/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI/.sync.json.icloud',
+      '/Users/tester/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI-Bar/.sync.json.icloud',
     );
   });
 
@@ -95,7 +95,7 @@ describe('icloud-backend', () => {
 
     await mod.writeSyncEnvelope(envelope);
 
-    const dir = '/Users/tester/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI';
+    const dir = '/Users/tester/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI-Bar';
     expect(fs.mkdir).toHaveBeenCalledWith(dir, { recursive: true, mode: 0o700 });
     expect(fs.writeFile).toHaveBeenCalledWith(
       `${dir}/sync.json.tmp`,

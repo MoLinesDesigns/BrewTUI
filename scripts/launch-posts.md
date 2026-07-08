@@ -1,4 +1,4 @@
-# Launch Posts — Brew-TUI v0.5.2 (Power Release)
+# Launch Posts — BrewTUI-Bar v0.5.2 (Power Release)
 
 Ready-to-paste content for each platform.
 
@@ -6,16 +6,16 @@ Ready-to-paste content for each platform.
 
 ## Hacker News — Show HN
 
-**Title:** Show HN: Brew-TUI v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
+**Title:** Show HN: BrewTUI-Bar v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
 
-**URL:** https://github.com/MoLinesDesigns/Brew-TUI
+**URL:** https://github.com/MoLinesDesigns/BrewTUI-Bar
 
 **Text (no URL submission — use this if you want a text post instead):**
 
 ```
-Show HN: Brew-TUI v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
+Show HN: BrewTUI-Bar v0.5.1 – Visual Homebrew with rollback, sync and CVE alerts
 
-I shipped v0.5.1 of Brew-TUI, a terminal UI for Homebrew built with React +
+I shipped v0.5.1 of BrewTUI-Bar, a terminal UI for Homebrew built with React +
 Ink. The free tier replaces typing `brew` commands with a navigable
 interface (dashboard, search, install, upgrade, services, doctor).
 The 0.5 line adds six features I kept missing in my own workflow:
@@ -64,9 +64,9 @@ Brewfile, impact, profiles, cleanup, history, security-audit) is €9.95/mo
 or €82/year. Team (everything in Pro + Compliance) is €8/seat/mo, min 3
 seats.
 
-  npm install -g brew-tui
+  npm install -g brewtui-bar
   # or
-  brew tap MoLinesDesigns/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brewtui-bar
 
 Honest known limitations:
 - macOS only for BrewBar; the TUI itself runs anywhere Homebrew runs but
@@ -74,9 +74,9 @@ Honest known limitations:
 - Sync requires iCloud Drive enabled (no provider abstraction yet).
 - The OSV polling cadence is fixed at 1h to be polite to the API.
 
-Repo: https://github.com/MoLinesDesigns/Brew-TUI
+Repo: https://github.com/MoLinesDesigns/BrewTUI-Bar
 Landing: https://molinesdesigns.com/brewtui/
-Changelog: https://github.com/MoLinesDesigns/Brew-TUI/blob/main/CHANGELOG.md
+Changelog: https://github.com/MoLinesDesigns/BrewTUI-Bar/blob/main/CHANGELOG.md
 
 Happy to take feedback on the conflict-resolution model, the YAML drift
 scoring, or the Pro/Team split.
@@ -99,11 +99,11 @@ scoring, or the Pro/Team split.
 
 ## Product Hunt
 
-**Name:** Brew-TUI
+**Name:** BrewTUI-Bar
 **Tagline:** A visual terminal UI for Homebrew package management
 **Description:**
 ```
-Brew-TUI brings a full visual interface to Homebrew — right in your terminal.
+BrewTUI-Bar brings a full visual interface to Homebrew — right in your terminal.
 
 Instead of memorizing brew commands, navigate with keyboard shortcuts through
 a dashboard, package browser, search, upgrade manager, service controller,
@@ -139,8 +139,8 @@ English and Spanish supported.
 ```
 
 **Links:**
-- Website: https://github.com/MoLinesDesigns/Brew-TUI
-- npm: https://www.npmjs.com/package/brew-tui
+- Website: https://github.com/MoLinesDesigns/BrewTUI-Bar
+- npm: https://www.npmjs.com/package/brewtui-bar
 
 **Submit at:** https://www.producthunt.com/posts/new (requires posting access)
 
@@ -148,7 +148,7 @@ English and Spanish supported.
 
 ## Reddit — r/commandline
 
-**Title:** Brew-TUI: A visual terminal UI for Homebrew (React + Ink)
+**Title:** BrewTUI-Bar: A visual terminal UI for Homebrew (React + Ink)
 
 **Body:**
 ```
@@ -165,14 +165,14 @@ What it does:
 - Detailed package info with deps and caveats
 
 Install:
-  npm install -g brew-tui
+  npm install -g brewtui-bar
   # or
-  brew tap MoLinesDesigns/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brewtui-bar
 
 Built with TypeScript, React 18, Ink 5. Keyboard-driven: 1-0 jump
 to views, j/k scroll, / to search, Tab cycles views.
 
-GitHub: https://github.com/MoLinesDesigns/Brew-TUI
+GitHub: https://github.com/MoLinesDesigns/BrewTUI-Bar
 
 Feedback welcome!
 ```
@@ -183,28 +183,28 @@ Feedback welcome!
 
 ## Reddit — r/macapps
 
-**Title:** Brew-TUI + BrewBar: Visual Homebrew management from terminal and menu bar
+**Title:** BrewTUI-Bar + BrewBar: Visual Homebrew management from terminal and menu bar
 
 **Body:**
 ```
 Two tools for managing Homebrew on macOS:
 
-**Brew-TUI** — Terminal UI with dashboard, package browser, search,
+**BrewTUI-Bar** — Terminal UI with dashboard, package browser, search,
 upgrade manager, service control, and diagnostics. Keyboard-driven.
 
 **BrewBar** — Menu bar companion app (Swift/SwiftUI) that shows outdated
 package counts, sends notifications, and lets you upgrade without
 opening a terminal.
 
-Install Brew-TUI:
-  npm install -g brew-tui
+Install BrewTUI-Bar:
+  npm install -g brewtui-bar
   # or
-  brew tap MoLinesDesigns/tap && brew install brew-tui
+  brew tap MoLinesDesigns/tap && brew install brewtui-bar
 
-BrewBar installs from inside Brew-TUI:
-  brew-tui install-brewbar
+BrewBar installs from inside BrewTUI-Bar:
+  brewtui-bar install-brewbar
 
-GitHub: https://github.com/MoLinesDesigns/Brew-TUI
+GitHub: https://github.com/MoLinesDesigns/BrewTUI-Bar
 ```
 
 ---

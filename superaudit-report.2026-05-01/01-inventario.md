@@ -4,13 +4,13 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI es un proyecto hibrido con dos codebases independientes que comparten solo el repositorio git: un TUI de terminal en TypeScript/React/Ink (141 archivos, 16.596 lineas) y BrewBar, una app nativa de macOS en Swift 6/SwiftUI (22 archivos, 3.837 lineas incluyendo tests). Ambas herramientas invocan `brew` directamente sin compartir codigo ni IPC. El proyecto implementa un modelo freemium con dos tiers (Pro / Team) sobre Polar API, cifrado AES-256-GCM, machine-binding y un conjunto de 11 features Pro/Team gateadas. La suite de tests TypeScript cuenta con 35 archivos de test (4.923 lineas); BrewBar tiene 2 archivos de test Swift (519 lineas). La version actual publicada es 0.6.1 en npm y GitHub Releases; la formula Homebrew tap permanece en 0.5.3.
+BrewTUI-Bar es un proyecto hibrido con dos codebases independientes que comparten solo el repositorio git: un TUI de terminal en TypeScript/React/Ink (141 archivos, 16.596 lineas) y BrewBar, una app nativa de macOS en Swift 6/SwiftUI (22 archivos, 3.837 lineas incluyendo tests). Ambas herramientas invocan `brew` directamente sin compartir codigo ni IPC. El proyecto implementa un modelo freemium con dos tiers (Pro / Team) sobre Polar API, cifrado AES-256-GCM, machine-binding y un conjunto de 11 features Pro/Team gateadas. La suite de tests TypeScript cuenta con 35 archivos de test (4.923 lineas); BrewBar tiene 2 archivos de test Swift (519 lineas). La version actual publicada es 0.6.1 en npm y GitHub Releases; la formula Homebrew tap permanece en 0.5.3.
 
 ---
 
 ## 1.1 Inventario de plataformas y targets
 
-* [x] CLI/TUI macOS — `brew-tui` (Node ≥ 22, ESM, npm package)
+* [x] CLI/TUI macOS — `brewtui-bar` (Node ≥ 22, ESM, npm package)
 * [x] App macOS menu bar — `BrewBar` (Swift 6, macOS 14+, Sonoma+)
 * [ ] App iPhone — No aplica (no hay target iOS)
 * [ ] App iPad — No aplica
@@ -28,10 +28,10 @@ Brew-TUI es un proyecto hibrido con dos codebases independientes que comparten s
 
 | Target | Plataforma | Bundle ID / Package | Deployment Target | Tipo |
 |--------|------------|---------------------|-------------------|------|
-| `brew-tui` (bin) | Node.js / macOS (CLI) | `brew-tui` (npm) | Node ≥ 22 | CLI + TUI (Ink/React) |
+| `brewtui-bar` (bin) | Node.js / macOS (CLI) | `brewtui-bar` (npm) | Node ≥ 22 | CLI + TUI (Ink/React) |
 | `BrewBar` | macOS | `com.molinesdesigns.brewbar` | macOS 14.0 (Sonoma) | App nativa (.app, LSUIElement, no Dock icon) |
 | `BrewBarTests` | macOS | `com.molinesdesigns.brewbar.tests` | macOS 14.0 | Unit tests target (Swift Testing framework) |
-| `brew-tui` (Homebrew Formula) | macOS | — | Node ≥ 22 via `node@22` dep | Distribucion via tap |
+| `brewtui-bar` (Homebrew Formula) | macOS | — | Node ≥ 22 via `node@22` dep | Distribucion via tap |
 | `brewbar` (Homebrew Cask) | macOS | — | macOS ≥ Sonoma | Distribucion via tap |
 
 **Notas de configuracion BrewBar:**
@@ -45,7 +45,7 @@ Brew-TUI es un proyecto hibrido con dos codebases independientes que comparten s
 - `"type": "module"` (ESM puro), `tsconfig` module: NodeNext
 - `tsup.config.ts` target: `node18` — **desincronizacion**: engines declara `>=22`
 - Build output: `./build/index.js` (ESM, hidden sourcemaps)
-- Shim de entrada: `bin/brew-tui.js` (una linea: `import '../build/index.js'`)
+- Shim de entrada: `bin/brewtui-bar.js` (una linea: `import '../build/index.js'`)
 - Compile-time defines: `process.env.APP_VERSION`, `process.env.NODE_ENV = "production"`, `__TEST_MODE__ = false`
 
 ---
@@ -78,7 +78,7 @@ Brew-TUI es un proyecto hibrido con dos codebases independientes que comparten s
 | lib — compliance (Team) | `src/lib/compliance/` | 7 | 735 | `compliance-checker.ts`, `compliance-remediator.ts`, `policy-io.ts`, `types.ts` |
 | lib — impact (Pro) | `src/lib/impact/` | 3 | 247 | `impact-analyzer.ts`, `types.ts` |
 | lib — diff-engine | `src/lib/diff-engine/` | 2 | 376 | `diff.ts` — comparacion de snapshots Homebrew |
-| lib — state-snapshot | `src/lib/state-snapshot/` | 2 | 407 | `snapshot.ts` — captura de estado Homebrew en disco (`~/.brew-tui/snapshots/`) |
+| lib — state-snapshot | `src/lib/state-snapshot/` | 2 | 407 | `snapshot.ts` — captura de estado Homebrew en disco (`~/.brewtui-bar/snapshots/`) |
 
 **Total TypeScript/TSX:** 141 archivos, 16.596 lineas (prod + test)
 **Solo tests TypeScript:** 35 archivos, 4.923 lineas
@@ -101,10 +101,10 @@ Brew-TUI es un proyecto hibrido con dos codebases independientes que comparten s
 
 | Modulo | Ruta | Descripcion |
 |--------|------|-------------|
-| Homebrew Formula | `homebrew/Formula/brew-tui.rb` | Formula para la CLI (version 0.5.3 — desactualizada) |
+| Homebrew Formula | `homebrew/Formula/brewtui-bar.rb` | Formula para la CLI (version 0.5.3 — desactualizada) |
 | Homebrew Cask | `homebrew/Casks/brewbar.rb` | Cask para BrewBar.app (version 0.1.0 — desactualizada) |
-| MacPorts | `homebrew/macports/brew-tui.tcl` | Portfile MacPorts (no auditado en profundidad) |
-| Standalone Bun | `dist-standalone/brew-tui-bun` | Binario standalone compilado con Bun (distribucion alternativa) |
+| MacPorts | `homebrew/macports/brewtui-bar.tcl` | Portfile MacPorts (no auditado en profundidad) |
+| Standalone Bun | `dist-standalone/brewtui-bar-bun` | Binario standalone compilado con Bun (distribucion alternativa) |
 | GitHub Actions CI | `.github/workflows/ci.yml` | ubuntu-latest, Node 22, `npm ci && npm run validate` |
 | Scripts | `scripts/` | `publish-all.sh`, `generate-promos.ts`, `record-demo.sh`, `test-pro.js`, vhx tapes para demo |
 
@@ -213,7 +213,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Pantallas involucradas:** `ProfilesView` (lista), `ProfileListMode`, `ProfileDetailMode`, `ProfileCreateFlow`, `ProfileEditFlow`
 * **Casos de uso:** Crear/editar/aplicar/eliminar perfiles de paquetes (conjuntos de formulae/casks); exportar con watermark
 * **APIs asociadas:** `profile-manager.ts`; `brew-api` para aplicar; `watermark.ts` para exports
-* **Persistencia asociada:** `~/.brew-tui/profiles/` (archivos JSON por perfil)
+* **Persistencia asociada:** `~/.brewtui-bar/profiles/` (archivos JSON por perfil)
 * **Estados criticos:** Aplicacion de perfil instala/desinstala paquetes; watermark con zero-width Unicode requiere `consent` explicito
 * **Tier:** Pro
 * **Riesgo funcional:** Alto — aplicar perfil puede instalar o desinstalar paquetes
@@ -239,7 +239,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Pantallas involucradas:** Lista cronologica de operaciones Homebrew (install/upgrade/uninstall/pin)
 * **Casos de uso:** Auditar cambios pasados en el entorno Homebrew; filtrar por tipo y fecha
 * **APIs asociadas:** `history-logger.ts`
-* **Persistencia asociada:** `~/.brew-tui/history.json`
+* **Persistencia asociada:** `~/.brewtui-bar/history.json`
 * **Estados criticos:** Archivo de historial puede crecer sin limite definido
 * **Tier:** Pro
 * **Riesgo funcional:** Bajo
@@ -252,7 +252,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Pantallas involucradas:** Lista de snapshots disponibles, plan de rollback generado, confirmacion y ejecucion
 * **Casos de uso:** Revertir el estado de Homebrew a un snapshot anterior; estrategias bottle/versioned/pin
 * **APIs asociadas:** `rollback-engine.ts`; `state-snapshot/snapshot.ts`; `execBrew` para aplicar rollback
-* **Persistencia asociada:** `~/.brew-tui/snapshots/` (un JSON por snapshot)
+* **Persistencia asociada:** `~/.brewtui-bar/snapshots/` (un JSON por snapshot)
 * **Estados criticos:** Snapshots se capturan automaticamente post-operacion; rollback es destructivo (desinstala versiones actuales)
 * **Tier:** Pro
 * **Riesgo funcional:** Alto — operacion destructiva que modifica el entorno
@@ -278,7 +278,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Pantallas involucradas:** Estado de sync, resolucion interactiva de conflictos, detalle de maquinas sincronizadas
 * **Casos de uso:** Sincronizar estado Homebrew entre maquinas via iCloud Drive; detectar conflictos; resolver manualmente
 * **APIs asociadas:** `sync-engine.ts`; `crypto.ts` (AES-256-GCM); `backends/icloud-backend.ts`; `state-snapshot`
-* **Persistencia asociada:** `~/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI/sync.json` (cifrado AES-GCM); `~/.brew-tui/sync-config.json`
+* **Persistencia asociada:** `~/Library/Mobile Documents/com~apple~CloudDocs/BrewTUI-Bar/sync.json` (cifrado AES-GCM); `~/.brewtui-bar/sync-config.json`
 * **Estados criticos:** Conflictos entre maquinas con estado divergente; cifrado/descifrado del envelope; badge de drift en BrewBar via `SyncMonitor`
 * **Tier:** Pro
 * **Riesgo funcional:** Alto — sync puede sobrescribir estado local; depende de disponibilidad de iCloud
@@ -290,8 +290,8 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Modulo:** `src/views/security-audit.tsx`
 * **Pantallas involucradas:** Lista de vulnerabilidades CVE por paquete instalado, severidad (CRITICAL/HIGH/MEDIUM/LOW), cache de 30 min, atajo `R` para ir a Rollback
 * **Casos de uso:** Detectar vulnerabilidades CVE en paquetes Homebrew instalados via OSV.dev; navegar a rollback para paquetes vulnerables
-* **APIs asociadas:** `security/osv-api.ts` → `https://api.osv.dev/v1/querybatch` (ecosistema Bitnami); `audit-runner.ts`; cache en `~/.brew-tui/cve-cache.json`
-* **Persistencia asociada:** `~/.brew-tui/cve-cache.json` (TTL: 30 min TUI / 60 min BrewBar)
+* **APIs asociadas:** `security/osv-api.ts` → `https://api.osv.dev/v1/querybatch` (ecosistema Bitnami); `audit-runner.ts`; cache en `~/.brewtui-bar/cve-cache.json`
+* **Persistencia asociada:** `~/.brewtui-bar/cve-cache.json` (TTL: 30 min TUI / 60 min BrewBar)
 * **Estados criticos:** Rate del OSV API; ecosistema `Bitnami` no cubre todos los paquetes Homebrew; cache compartida entre TUI y BrewBar
 * **Tier:** Pro
 * **Riesgo funcional:** Medio — falsos negativos posibles (paquetes fuera del catalogo Bitnami)
@@ -317,7 +317,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Pantallas involucradas:** Estado de licencia (plan, email, expiracion), acciones (activar, revalidar, desactivar), pricing Pro/Team
 * **Casos de uso:** Ver estado actual de la licencia, activar/desactivar, ver tier y fecha de expiracion
 * **APIs asociadas:** `license-store` → `license-manager.ts` → `polar-api.ts`
-* **Persistencia asociada:** `~/.brew-tui/license.json` (AES-256-GCM cifrado)
+* **Persistencia asociada:** `~/.brewtui-bar/license.json` (AES-256-GCM cifrado)
 * **Estados criticos:** Rate limiting (30s cooldown, lockout 15 min tras 5 intentos); grace period 7 dias offline; machine binding via `machineId`
 * **Tier:** Free (visible para todos)
 * **Riesgo funcional:** Critico — acceso a todos los features Pro/Team depende de este modulo
@@ -360,7 +360,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 | Polar API | `https://api.polar.sh/v1/customer-portal/license-keys` | Bearer token (license key) | Activacion, validacion, desactivacion de licencias |
 | OSV.dev API | `https://api.osv.dev/v1/querybatch` | Ninguna | Consulta batch de CVEs por paquete/version |
 | Promo API | `https://api.molinesdesigns.com/api/promo` | Bearer token (machine-bound) | Canjes de codigos promocionales |
-| GitHub Releases | `https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip` | Ninguna | Descarga de BrewBar.app para install-brewbar |
+| GitHub Releases | `https://github.com/MoLinesGitHub/BrewTUI-Bar/releases/latest/download/BrewBar.app.zip` | Ninguna | Descarga de BrewBar.app para install-brewbar |
 
 ### Swift / BrewBar (dependencias del sistema)
 
@@ -378,11 +378,11 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 
 | Canal | Estado | Version publicada |
 |-------|--------|-------------------|
-| npm (`brew-tui`) | Publicado | 0.6.1 |
+| npm (`brewtui-bar`) | Publicado | 0.6.1 |
 | GitHub Releases | Publicado | v0.6.1 |
-| Homebrew Formula (`brew-tui`) | Desactualizado | 0.5.3 (tap: MoLinesGitHub/homebrew-tap) |
+| Homebrew Formula (`brewtui-bar`) | Desactualizado | 0.5.3 (tap: MoLinesGitHub/homebrew-tap) |
 | Homebrew Cask (`brewbar`) | Desactualizado | 0.1.0 |
-| Bun standalone (`dist-standalone/brew-tui-bun`) | No documentado en README | Desconocida |
+| Bun standalone (`dist-standalone/brewtui-bar-bun`) | No documentado en README | Desconocida |
 
 ---
 
@@ -394,7 +394,7 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Total archivos Swift (menubar/BrewBar/):** 20 fuente + 2 test = 22 archivos
 * **Total lineas Swift (aprox):** 3.318 fuente + 519 tests = 3.837 lineas
 * **Total lineas de codigo del proyecto (aprox):** 20.433
-* **Total targets (binarios/apps):** 3 (brew-tui CLI, BrewBar.app, BrewBarTests)
+* **Total targets (binarios/apps):** 3 (brewtui-bar CLI, BrewBar.app, BrewBarTests)
 * **Total views/pantallas TUI:** 16 routables (15 en `VIEWS` de navigation-store + `search`, accesible solo via shortcut `/`)
 * **Total features Pro:** 7 vistas gateadas en `PRO_VIEWS` (`profiles`, `smart-cleanup`, `history`, `rollback`, `brewfile`, `sync`, `security-audit`) + 1 feature Pro inline no gateada (Impact Analysis en vista `outdated`)
 * **Total features Team:** 1 view gateada (`compliance`)
@@ -407,4 +407,4 @@ Las features del TUI se identifican por el `ViewId` en `src/lib/types.ts`. La li
 * **Cobertura de tests TypeScript:** 35/141 archivos tienen tests (24.8%). Todos los modulos de `lib/` tienen tests; views y la mayoria de components no tienen tests de integracion/UI
 * **Cobertura de tests Swift (BrewBar):** 2 archivos de test para modelos y servicios; Services y Views no tienen tests E2E
 * **Secretos en repositorio:** Ninguno detectado. `ENCRYPTION_SECRET` y `SCRYPT_SALT` estan hardcodeados en el bundle npm (documentado como limitacion arquitectonica conocida en `license-manager.ts`)
-* **Datos de usuario en disco (`~/.brew-tui/`):** `license.json` (cifrado), `machine-id`, `history.json`, `cve-cache.json`, `profiles/`, `snapshots/`, `sync-config.json`; todos con permisos `0o700` (directorio) / `0o600` (archivos sensibles)
+* **Datos de usuario en disco (`~/.brewtui-bar/`):** `license.json` (cifrado), `machine-id`, `history.json`, `cve-cache.json`, `profiles/`, `snapshots/`, `sync-config.json`; todos con permisos `0o700` (directorio) / `0o600` (archivos sensibles)

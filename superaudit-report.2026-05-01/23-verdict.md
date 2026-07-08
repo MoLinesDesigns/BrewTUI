@@ -43,7 +43,7 @@
 
 Los siguientes riesgos son bloqueantes o degradan significativamente la experiencia de produccion:
 
-1. **Tokens npm activos en texto plano en disco** — Un acceso no autorizado al equipo del desarrollador permite publicar un paquete `brew-tui` malicioso en npmjs.com afectando a todos los usuarios del CLI. Ver SEG-001.
+1. **Tokens npm activos en texto plano en disco** — Un acceso no autorizado al equipo del desarrollador permite publicar un paquete `brewtui-bar` malicioso en npmjs.com afectando a todos los usuarios del CLI. Ver SEG-001.
 
 2. **Security Audit Pro completamente inoperativo** — Todos los usuarios Pro que ejecutan el Security Audit reciben "0 vulnerabilidades" sin importar su estado real. El canal de BrewBar funciona correctamente pero el TUI no. Ver BK-001.
 
@@ -51,7 +51,7 @@ Los siguientes riesgos son bloqueantes o degradan significativamente la experien
 
 4. **BrewBar no notarizado** — Los usuarios que descargan BrewBar directamente o via Homebrew Cask (cuando se corrija la URL) son bloqueados por Gatekeeper en macOS Ventura y Sonoma sin posibilidad de ejecucion. Ver GOV-005.
 
-5. **Formula y Cask desactualizados** — Usuarios de Homebrew Formula reciben `brew-tui` 0.5.3 (sin los fixes de seguridad y bugs de 0.6.x). Ver GOV-003.
+5. **Formula y Cask desactualizados** — Usuarios de Homebrew Formula reciben `brewtui-bar` 0.5.3 (sin los fixes de seguridad y bugs de 0.6.x). Ver GOV-003.
 
 6. **`isExpired()` falla abierta en fecha invalida** — Una licencia con fecha corrupta o manipulada nunca expira; potencialmente explotable en combinacion con SEG-002. Ver BK-004.
 
@@ -80,7 +80,7 @@ Acciones ordenadas por prioridad, con referencias a los hallazgos correspondient
 
 2. **[Prioridad critica — PR inmediato]** Cambiar `'Homebrew'` → `'Bitnami'` en `osv-api.ts:125,143,181` y publicar hotfix npm 0.6.2 — Ver BK-001
 
-3. **[Prioridad alta — PR 2]** Corregir URL del Cask (`MoLinesGitHub` → `MoLinesDesigns`), actualizar versiones en `brewbar.rb`, `brew-tui.rb` y `jsr.json` a 0.6.1 — Ver GOV-002, GOV-003, GOV-004
+3. **[Prioridad alta — PR 2]** Corregir URL del Cask (`MoLinesGitHub` → `MoLinesDesigns`), actualizar versiones en `brewbar.rb`, `brewtui-bar.rb` y `jsr.json` a 0.6.1 — Ver GOV-002, GOV-003, GOV-004
 
 4. **[Prioridad alta — PR 3]** Agregar `ConfirmDialog` en `brewfile.tsx`, `sync.tsx` y `compliance.tsx`; corregir identificadores de notificacion en `SchedulerService.swift`; eliminar `FileTimestamp` de `PrivacyInfo.xcprivacy` — Ver UI-001, UI-002, UI-003, UX-001, GOV-006
 

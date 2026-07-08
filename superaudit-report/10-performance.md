@@ -18,14 +18,14 @@ El stack TUI tiene cuidados de rendimiento explicitos y bien comentados (`PERF-0
 * [x] `fetchAll()` en `brew-store.ts` lanza fetches en paralelo via `Promise.allSettled`
 * [x] `LicenseInitializer` y `checkBundleIntegrity()` en `app.tsx` se ejecutan una sola vez al montar
 * [ ] `maxBuffer` no configurado — **Baja**: `execBrew` acumula `stdout` sin techo en una variable string; `brew info --json=v2 --installed` puede generar varios MB sin liberar
-* [ ] Sin medicion empirica de cold start — **No medido**: el reporte no profila tiempos reales (TTI desde `brew-tui` hasta primer frame); la auditoria solo cubre la estructura
+* [ ] Sin medicion empirica de cold start — **No medido**: el reporte no profila tiempos reales (TTI desde `brewtui-bar` hasta primer frame); la auditoria solo cubre la estructura
 
 ### Hallazgos
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
 | `execBrew` sin techo de stdout | Parcial | Baja | `src/lib/brew-cli.ts:20` — `stdout += d.toString()` sin limite | Anadir guard de tamaño (p.ej. abortar si supera 32 MB) o cambiar a stream para `brew info --json` grandes |
-| Cold start no profiled | No medido | Info | — | Capturar `time node bin/brew-tui.js status` (subcommand barato) como baseline reproducible |
+| Cold start no profiled | No medido | Info | — | Capturar `time node bin/brewtui-bar.js status` (subcommand barato) como baseline reproducible |
 
 ---
 

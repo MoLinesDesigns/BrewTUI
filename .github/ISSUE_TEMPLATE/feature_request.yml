@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an improvement for Brew-TUI.
+description: Suggest an improvement for BrewTUI-Bar.
 title: "[Feature]: "
 labels:
   - enhancement
@@ -15,7 +15,7 @@ body:
     id: proposal
     attributes:
       label: Proposal
-      description: What should Brew-TUI do differently?
+      description: What should BrewTUI-Bar do differently?
     validations:
       required: true
   - type: dropdown

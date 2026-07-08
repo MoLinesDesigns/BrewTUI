@@ -1,9 +1,8 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { mkdir, readFile, writeFile, access, rename } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 
-const LEGACY_DATA_DIR = join(homedir(), '.brew-tui');
 export const DATA_DIR = join(homedir(), '.brewtui-bar');
 export const PROFILES_DIR = join(DATA_DIR, 'profiles');
 export const LICENSE_PATH = join(DATA_DIR, 'license.json');
@@ -35,22 +34,7 @@ export async function writeLastAction(payload: LastAction): Promise<void> {
   await rename(tmp, LAST_ACTION_PATH);
 }
 
-async function migrateLegacyDataDirIfNeeded(): Promise<void> {
-  try {
-    await access(LEGACY_DATA_DIR);
-  } catch {
-    return;
-  }
-  try {
-    await access(DATA_DIR);
-    return;
-  } catch {
-    await rename(LEGACY_DATA_DIR, DATA_DIR);
-  }
-}
-
 export async function ensureDataDirs(): Promise<void> {
-  await migrateLegacyDataDirIfNeeded();
   await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
   await mkdir(PROFILES_DIR, { recursive: true, mode: 0o700 });
   await mkdir(SNAPSHOTS_DIR, { recursive: true, mode: 0o700 });

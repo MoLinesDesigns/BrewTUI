@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-La infraestructura de localizacion de Brew-TUI es solida: el modulo i18n del TUI garantiza paridad completa en tiempo de compilacion (427 claves, en + es), y BrewBar usa String Catalog con variantes de plural correctas; no se detecta texto hardcodeado visible en produccion. Sin embargo, el estado de release presenta riesgos serios: BrewBar carece completamente de notarizacion, tres canales de distribucion publican versiones desincronizadas (Formula en 0.5.3, Cask en 0.1.0, jsr.json en 0.5.2 frente al 0.6.1 actual), el Cask apunta a un usuario GitHub incorrecto que produce HTTP 404, y el pipeline CI solo cubre Ubuntu/Node sin ningun paso Swift, codesign ni notarize.
+La infraestructura de localizacion de BrewTUI-Bar es solida: el modulo i18n del TUI garantiza paridad completa en tiempo de compilacion (427 claves, en + es), y BrewBar usa String Catalog con variantes de plural correctas; no se detecta texto hardcodeado visible en produccion. Sin embargo, el estado de release presenta riesgos serios: BrewBar carece completamente de notarizacion, tres canales de distribucion publican versiones desincronizadas (Formula en 0.5.3, Cask en 0.1.0, jsr.json en 0.5.2 frente al 0.6.1 actual), el Cask apunta a un usuario GitHub incorrecto que produce HTTP 404, y el pipeline CI solo cubre Ubuntu/Node sin ningun paso Swift, codesign ni notarize.
 
 ---
 
@@ -125,10 +125,10 @@ La infraestructura de localizacion de Brew-TUI es solida: el modulo i18n del TUI
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Homebrew Formula 2 versiones atrasada | Pendiente | Alta | `homebrew/Formula/brew-tui.rb` linea 4: URL apunta a `brew-tui-0.5.3.tgz`. Version actual: 0.6.1. Usuarios que instalan via `brew install` obtienen 0.5.3 | Actualizar URL y SHA256 a 0.6.1 en cada release. Integrar en `scripts/publish-all.sh` o en CI post-publish |
-| Homebrew Cask version incorrecta y URL rota | Pendiente | Alta | `homebrew/Casks/brewbar.rb` linea 2: `version "0.1.0"`. Linea 5: URL usa `MoLinesGitHub/Brew-TUI` — `git remote` muestra `MoLinesDesigns/Brew-TUI`. HTTP 404 garantizado incluso despues de un bump de version | Corregir el usuario GitHub a `MoLinesDesigns`, actualizar a 0.6.1, y anadir al proceso de sincronizacion. Verificar con `brew audit --cask brewbar` |
+| Homebrew Formula 2 versiones atrasada | Pendiente | Alta | `homebrew/Formula/brewtui-bar.rb` linea 4: URL apunta a `brewtui-bar-0.5.3.tgz`. Version actual: 0.6.1. Usuarios que instalan via `brew install` obtienen 0.5.3 | Actualizar URL y SHA256 a 0.6.1 en cada release. Integrar en `scripts/publish-all.sh` o en CI post-publish |
+| Homebrew Cask version incorrecta y URL rota | Pendiente | Alta | `homebrew/Casks/brewbar.rb` linea 2: `version "0.1.0"`. Linea 5: URL usa `MoLinesGitHub/BrewTUI-Bar` — `git remote` muestra `MoLinesDesigns/BrewTUI-Bar`. HTTP 404 garantizado incluso despues de un bump de version | Corregir el usuario GitHub a `MoLinesDesigns`, actualizar a 0.6.1, y anadir al proceso de sincronizacion. Verificar con `brew audit --cask brewbar` |
 | jsr.json 3 versiones atrasada | Pendiente | Alta | `jsr.json` linea 3: `"version": "0.5.2"`. Version actual: 0.6.1. `publish-all.sh` publica a JSR pero no actualiza `jsr.json` previamente | Actualizar `jsr.json` como primer paso de `publish-all.sh` antes del `npx jsr publish` |
-| `publish-all.sh` no sincroniza todos los canales | Pendiente | Media | `scripts/publish-all.sh`: publica a npm, GitHub Packages, JSR. Actualizaciones de `homebrew/Formula/brew-tui.rb`, `homebrew/Casks/brewbar.rb` y `jsr.json` aparecen solo como comentarios "Next steps". No hay paso de notarizacion | Automatizar: (1) bump de `jsr.json`, (2) actualizacion de Formula y Cask con SHA256 calculado del tarball publicado, (3) `xcrun notarytool submit` del zip de BrewBar |
+| `publish-all.sh` no sincroniza todos los canales | Pendiente | Media | `scripts/publish-all.sh`: publica a npm, GitHub Packages, JSR. Actualizaciones de `homebrew/Formula/brewtui-bar.rb`, `homebrew/Casks/brewbar.rb` y `jsr.json` aparecen solo como comentarios "Next steps". No hay paso de notarizacion | Automatizar: (1) bump de `jsr.json`, (2) actualizacion de Formula y Cask con SHA256 calculado del tarball publicado, (3) `xcrun notarytool submit` del zip de BrewBar |
 | CHANGELOG con huecos de version | Pendiente | Baja | `CHANGELOG.md`: documentadas 0.1.0, 0.2.0, 0.4.1, 0.5.0, 0.5.1, 0.5.2, 0.5.3, 0.6.1. Sin entradas para 0.3.x, 0.4.0, 0.6.0 | Anadir entradas retroactivas o una nota de "versiones internas no publicadas" para mantener coherencia del historial publico |
 
 ---
@@ -141,14 +141,14 @@ Los siguientes pasos son necesarios para un release 0.6.1 (o siguiente) tecnicam
 
 - [ ] **Notarizar BrewBar**: Ejecutar `xcrun notarytool submit BrewBar.zip --apple-id ... --team-id GD6M44DYPQ --wait` y `xcrun stapler staple BrewBar.app` antes de publicar el zip. Actualizar `exportOptions.plist` a `method: developer-id`.
 - [ ] **Corregir Cask URL**: Cambiar `MoLinesGitHub` a `MoLinesDesigns` en `homebrew/Casks/brewbar.rb` y actualizar version a 0.6.1. Verificar con `brew audit --cask brewbar`.
-- [ ] **Actualizar Homebrew Formula**: Actualizar URL en `homebrew/Formula/brew-tui.rb` a `brew-tui-0.6.1.tgz` y recalcular SHA256.
+- [ ] **Actualizar Homebrew Formula**: Actualizar URL en `homebrew/Formula/brewtui-bar.rb` a `brewtui-bar-0.6.1.tgz` y recalcular SHA256.
 - [ ] **Actualizar jsr.json**: Sincronizar `"version"` a `0.6.1` antes de ejecutar `npx jsr publish`.
 - [ ] **Anadir CI macOS**: Crear job en `.github/workflows/ci.yml` con `macos-latest` que compile BrewBar en Release para detectar regresiones Swift.
 
 ### Recomendados (Media)
 
 - [ ] **Auditar entrada FileTimestamp**: Verificar si alguna dependencia del sistema usa timestamp de fichero. Eliminar la entrada de `PrivacyInfo.xcprivacy` si no hay justificacion o documentar el uso.
-- [ ] **Automatizar publish-all.sh**: El script debe actualizar `jsr.json`, `Formula/brew-tui.rb` y `Casks/brewbar.rb` de forma no interactiva, incluyendo el paso de notarizacion de BrewBar.
+- [ ] **Automatizar publish-all.sh**: El script debe actualizar `jsr.json`, `Formula/brewtui-bar.rb` y `Casks/brewbar.rb` de forma no interactiva, incluyendo el paso de notarizacion de BrewBar.
 - [ ] **Regenerar xcarchive**: Ejecutar `xcodebuild archive -scheme BrewBar -archivePath build/BrewBar.xcarchive` tras el bump de version para que el archivo en disco refleje 0.6.1.
 
 ### Mejoras (Baja)

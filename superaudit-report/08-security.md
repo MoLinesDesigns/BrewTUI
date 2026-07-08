@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-GCM con derivacion HKDF-SHA256 machine-bound, escrituras atomicas con permisos restrictivos, arquitectura anti-tamper multicapa (canary, anti-debug, integridad de bundle, pro-guard) y ausencia de secretos en el repositorio rastreado. Se detectan dos hallazgos de severidad Alta activos: una fuga de PII (email y clave de licencia) al log del sistema macOS desde `LicenseChecker.swift` con `privacy: .public`, y ausencia de validacion de `PKG_PATTERN` en `compliance-remediator.ts` que permite inyeccion de argumentos a `brew`. La deuda de migracion de la clave scrypt legacy (TODO pendiente desde v0.6.3, proyecto en v1.2.0) y dos vulnerabilidades moderadas de dependencias npm completan el cuadro de riesgo, todo ello manejable con acciones concretas descritas en este reporte.
+El proyecto BrewTUI-Bar + BrewBar presenta una base criptografica solida: AES-256-GCM con derivacion HKDF-SHA256 machine-bound, escrituras atomicas con permisos restrictivos, arquitectura anti-tamper multicapa (canary, anti-debug, integridad de bundle, pro-guard) y ausencia de secretos en el repositorio rastreado. Se detectan dos hallazgos de severidad Alta activos: una fuga de PII (email y clave de licencia) al log del sistema macOS desde `LicenseChecker.swift` con `privacy: .public`, y ausencia de validacion de `PKG_PATTERN` en `compliance-remediator.ts` que permite inyeccion de argumentos a `brew`. La deuda de migracion de la clave scrypt legacy (TODO pendiente desde v0.6.3, proyecto en v1.2.0) y dos vulnerabilidades moderadas de dependencias npm completan el cuadro de riesgo, todo ello manejable con acciones concretas descritas en este reporte.
 
 ---
 
@@ -20,7 +20,7 @@ El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-G
 * [x] Transporte exclusivamente HTTPS para todas las APIs externas (Polar, OSV, promo, crash)
 * [x] Sin excepciones `NSAllowsArbitraryLoads` en ATS
 * [x] Sin URL schemes registrados en `CFBundleURLTypes`
-* [x] `NSPasteboard` usado solo para comandos CLI no sensibles ("npm install -g brew-tui", "brew-tui install-brewbar --force")
+* [x] `NSPasteboard` usado solo para comandos CLI no sensibles ("npm install -g brewtui-bar", "brewtui-bar install-brewbar --force")
 * [x] Hardened Runtime habilitado en Release (`ENABLE_HARDENED_RUNTIME: YES`)
 * [x] Developer ID + notarizacion (`CODE_SIGN_IDENTITY: Developer ID Application`, `--timestamp`)
 * [x] `spawn` en BrewBar usa rutas absolutas (`/opt/homebrew/bin/brew`, `/usr/local/bin/brew`)
@@ -52,7 +52,7 @@ El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-G
 | `brew` via PATH en TUI | Parcial | Media | `brew-cli.ts` — `spawn('brew', args, ...)` sin ruta absoluta; PATH heredado del entorno del usuario | Buscar brew en rutas canonicas (`/opt/homebrew/bin/brew`, `/usr/local/bin/brew`) antes de hacer spawn, igual que BrewBar |
 | Vulnerabilidades npm (brace-expansion, ws) | No conforme | Media | `npm audit`: brace-expansion < 3.0.3 (ReDoS, CVSS 5.3) y ws < 8.17.1 (memory disclosure, CVSS 5.3); ambas con fix disponible | Ejecutar `npm audit fix`; verificar que no haya breaking changes en dependencias transitivas |
 | `embedInvisibleWatermark` sin llamadores | No conforme | Baja | `watermark.ts` exporta la funcion; busqueda en `src/` devuelve zero referencias productivas; solo `getWatermark()` (watermark visible) se usa en `profile-manager.ts:119` | Implementar llamada en el flujo de exportacion de perfiles con `consent=true`, o documentar explicitamente como funcionalidad diferida y eliminar del surface publico |
-| Rate limit volatil (UX-004) | Parcial | Baja | `license-manager.ts` — objeto `tracker` en memoria; reinicio del proceso limpia lockout | Persistir el estado del lockout en `~/.brew-tui/rate-limit.json` con modo `0o600`; leer en inicio para resistir reinicios rapidos |
+| Rate limit volatil (UX-004) | Parcial | Baja | `license-manager.ts` — objeto `tracker` en memoria; reinicio del proceso limpia lockout | Persistir el estado del lockout en `~/.brewtui-bar/rate-limit.json` con modo `0o600`; leer en inicio para resistir reinicios rapidos |
 | Entitlements sin archivo explicitamente versionado | Parcial | Baja | `codesign --display --entitlements - BrewBar.app` → `<dict/>`; `Project.swift` no define `entitlements:` en `.target()` | Crear `BrewBar/BrewBar.entitlements` con el conjunto minimo y referenciarlo en `Project.swift` para auditabilidad y control deliberado |
 | `checkBundleIntegrity` limitado a post-carga | Parcial | Baja | `integrity.ts` — baseline capturado al cargar el modulo; parches aplicados antes de `require` o en memoria no son detectados | Documentar la limitacion en comentario; considerar firma de codigo como complemento (ya existe via Developer ID) |
 
@@ -102,9 +102,9 @@ El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-G
 * [x] Sin permisos de sistema solicitados en `Info.plist` (camara, microfono, ubicacion, fotos, contactos, calendario)
 * [x] Watermark visible requiere parametro `consent` explicitamente `true` en la llamada
 * [x] `delete-account` / `deleteAccount()` subcomando documentado y disponible
-* [x] Datos almacenados localmente en `~/.brew-tui/` (sin servidor central de datos de usuario)
+* [x] Datos almacenados localmente en `~/.brewtui-bar/` (sin servidor central de datos de usuario)
 * [x] Machine-id es UUID anonimo generado localmente; no vinculado a identidad real del usuario
-* [ ] `PrivacyInfo.xcprivacy` declara APIs de timestamp de archivo y espacio en disco si se usan — **Baja**: BrewBar usa `FileManager` para leer `~/.brew-tui/` y el directorio iCloud; las razones de acceso a file timestamp y disk space no estan declaradas si los frameworks subyacentes las requieren
+* [ ] `PrivacyInfo.xcprivacy` declara APIs de timestamp de archivo y espacio en disco si se usan — **Baja**: BrewBar usa `FileManager` para leer `~/.brewtui-bar/` y el directorio iCloud; las razones de acceso a file timestamp y disk space no estan declaradas si los frameworks subyacentes las requieren
 * [ ] Watermark invisible efectivamente desplegado — **Baja**: `embedInvisibleWatermark` no tiene llamadores en produccion (ver 13.1)
 * [ ] Politica de retencion de datos definida formalmente — **Baja**: `history.json` y `sync.json` crecen sin limite explicito de registros/tiempo documentado
 
@@ -112,7 +112,7 @@ El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-G
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Razones de API de filesystem no declaradas en PrivacyInfo.xcprivacy | Parcial | Baja | `PrivacyInfo.xcprivacy` — solo UserDefaults declarado; `FileManager` accede a timestamps de archivos en `~/.brew-tui/` y al directorio iCloud; Apple puede requerir razon `C617.1` (file timestamp) y `E174.1` (disk space) | Auditar llamadas a `FileManager` en BrewBar; anadir las razones faltantes al array `NSPrivacyAccessedAPITypes` |
+| Razones de API de filesystem no declaradas en PrivacyInfo.xcprivacy | Parcial | Baja | `PrivacyInfo.xcprivacy` — solo UserDefaults declarado; `FileManager` accede a timestamps de archivos en `~/.brewtui-bar/` y al directorio iCloud; Apple puede requerir razon `C617.1` (file timestamp) y `E174.1` (disk space) | Auditar llamadas a `FileManager` en BrewBar; anadir las razones faltantes al array `NSPrivacyAccessedAPITypes` |
 | Politica de retencion de datos no definida | No conforme | Baja | `history.json` no tiene limite de entradas; `sync.json` en iCloud no tiene TTL; no hay documentacion de retencion | Definir y documentar limite de entradas en `history.json` (p.ej. max 500); anadir TTL o compactacion periodica en sync |
 
 ---
@@ -127,8 +127,8 @@ El proyecto Brew-TUI + BrewBar presenta una base criptografica solida: AES-256-G
 | `brew` resuelto via PATH heredado — riesgo de PATH hijack | App / TUI | Media | `src/lib/brew-cli.ts` — `spawn('brew', args, ...)` sin ruta absoluta | Buscar brew en rutas canonicas (`/opt/homebrew/bin/brew`, `/usr/local/bin/brew`) antes del spawn, con fallback al resultado de `which brew` solo si la ruta es absoluta y el archivo es ejecutable |
 | Vulnerabilidades moderadas en dependencias npm (brace-expansion, ws) | Supply Chain | Media | `npm audit` — brace-expansion < 3.0.3 (ReDoS, CVSS 5.3), ws < 8.17.1 (memory disclosure, CVSS 5.3); fix disponible via `npm audit fix` | Ejecutar `npm audit fix`; verificar compatibilidad de semver antes de merge; anadir `npm audit --audit-level=moderate` al gate de CI/pre-push |
 | `embedInvisibleWatermark` no desplegado en produccion | App / TUI | Baja | `src/lib/license/watermark.ts` — funcion exportada sin llamadores en `src/`; solo `getWatermark()` (texto visible) se usa en `profile-manager.ts:119` | Implementar llamada en exportacion de perfiles con `consent` del usuario, o retirar del API publica y marcar como `@internal` hasta implementacion real |
-| Rate limit de activacion volatil — reinicio limpia lockout | App / TUI | Baja | `src/lib/license/license-manager.ts` — `tracker` en memoria (UX-004 documentado); reinicio del proceso elimina el contador de fallos | Persistir estado del lockout en `~/.brew-tui/rate-limit.json` con modo `0o600`; leer y aplicar al iniciar el modulo |
+| Rate limit de activacion volatil — reinicio limpia lockout | App / TUI | Baja | `src/lib/license/license-manager.ts` — `tracker` en memoria (UX-004 documentado); reinicio del proceso elimina el contador de fallos | Persistir estado del lockout en `~/.brewtui-bar/rate-limit.json` con modo `0o600`; leer y aplicar al iniciar el modulo |
 | Entitlements de BrewBar no versionado explicitamente en el repositorio | App / BrewBar | Baja | `menubar/Project.swift` — sin `entitlements:` en la llamada a `.target()`; `codesign --display` muestra `<dict/>` en runtime | Crear `menubar/BrewBar/BrewBar.entitlements` con las capacidades minimas necesarias y referenciarlo en `Project.swift`; facilita auditorias y evita regresiones por cambios en defaults de Tuist |
 | `checkBundleIntegrity` no detecta parches pre-carga o en memoria | App / TUI | Baja | `src/lib/license/integrity.ts` — baseline capturado al importar el modulo; modificaciones previas al primer `require` son indetectables | Documentar la limitacion como comentario en el codigo; la firma Developer ID + Hardened Runtime es la defensa complementaria real para parches en disco |
 | Razones de API de filesystem no declaradas en `PrivacyInfo.xcprivacy` | Privacidad / BrewBar | Baja | `menubar/BrewBar/Resources/PrivacyInfo.xcprivacy` — solo UserDefaults (`1C8F.1`) declarado; accesos a timestamps de archivos (`C617.1`) y disk space (`E174.1`) potencialmente ausentes | Auditar uso de `FileManager` en BrewBar; anadir las razones requeridas; Apple Submission valida esto desde macOS 14.4 |
-| Ausencia de politica de retencion de datos para history.json y sync.json | Privacidad | Baja | `~/.brew-tui/history.json` crece sin limite; `sync.json` en iCloud sin TTL; sin documentacion de retencion | Definir limite de entradas maximas en `history.json` (sugerido: 500 entradas); implementar compactacion o TTL en sync; documentar en README |
+| Ausencia de politica de retencion de datos para history.json y sync.json | Privacidad | Baja | `~/.brewtui-bar/history.json` crece sin limite; `sync.json` en iCloud sin TTL; sin documentacion de retencion | Definir limite de entradas maximas en `history.json` (sugerido: 500 entradas); implementar compactacion o TTL en sync; documentar en README |

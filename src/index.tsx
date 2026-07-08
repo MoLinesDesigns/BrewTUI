@@ -200,10 +200,9 @@ async function runCli() {
   if (
     command === 'install-menubar'
     || command === 'install-brewtui-bar'
-    || command === 'install-brew-tui-bar'
     || command === 'install-brewbar'
   ) {
-    if (command === 'install-brew-tui-bar' || command === 'install-brewbar') {
+    if (command === 'install-brewbar') {
       console.warn(`brewtui-bar ${command} is deprecated — use brewtui-bar install-menubar`);
     }
     const { installBrewTUIBar } = await import('./lib/brewtui-bar-installer.js');
@@ -223,10 +222,9 @@ async function runCli() {
   if (
     command === 'uninstall-menubar'
     || command === 'uninstall-brewtui-bar'
-    || command === 'uninstall-brew-tui-bar'
     || command === 'uninstall-brewbar'
   ) {
-    if (command === 'uninstall-brew-tui-bar' || command === 'uninstall-brewbar') {
+    if (command === 'uninstall-brewbar') {
       console.warn(`brewtui-bar ${command} is deprecated — use brewtui-bar uninstall-menubar`);
     }
     const { uninstallBrewTUIBar } = await import('./lib/brewtui-bar-installer.js');

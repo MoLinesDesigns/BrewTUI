@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-El proyecto Brew-TUI dispone de una base de testing razonablemente solida para el codigo TypeScript (35 archivos de test, ~365 metodos, cobertura comprobable de los paths criticos de negocio), pero presenta gaps arquitectonicos significativos: ausencia total de medicion de cobertura de codigo, cero tests de UI para las 16 vistas de la TUI, y los tests Swift del componente BrewBar nunca se ejecutan en CI automatizado. La observabilidad es parcialmente funcional — el logging estructurado es correcto en ambas plataformas y el crash reporter es funcional aunque opt-in — pero la plataforma carece por completo de analytics y de metricas operativas instrumentadas, lo que impide medir KPIs de producto o SLOs de servicio.
+El proyecto BrewTUI-Bar dispone de una base de testing razonablemente solida para el codigo TypeScript (35 archivos de test, ~365 metodos, cobertura comprobable de los paths criticos de negocio), pero presenta gaps arquitectonicos significativos: ausencia total de medicion de cobertura de codigo, cero tests de UI para las 16 vistas de la TUI, y los tests Swift del componente BrewBar nunca se ejecutan en CI automatizado. La observabilidad es parcialmente funcional — el logging estructurado es correcto en ambas plataformas y el crash reporter es funcional aunque opt-in — pero la plataforma carece por completo de analytics y de metricas operativas instrumentadas, lo que impide medir KPIs de producto o SLOs de servicio.
 
 ---
 
@@ -179,7 +179,7 @@ El proyecto Brew-TUI dispone de una base de testing razonablemente solida para e
 
 ### Checklist
 
-* [x] **Crash reporting configurado** — TS: `src/lib/crash-reporter.ts` maneja `uncaughtException` y `unhandledRejection`; opt-in via `BREW_TUI_CRASH_ENDPOINT` o `~/.brew-tui/crash-reporter.json`. Valida HTTPS o LAN. Payload: machineId, error message, stack trace, timestamp. Swift: sin crash reporting SDK (no Crashlytics, Sentry, Bugsnag); depende del crash reporter integrado de macOS (CrashReporter / Apple crash logs).
+* [x] **Crash reporting configurado** — TS: `src/lib/crash-reporter.ts` maneja `uncaughtException` y `unhandledRejection`; opt-in via `BREW_TUI_CRASH_ENDPOINT` o `~/.brewtui-bar/crash-reporter.json`. Valida HTTPS o LAN. Payload: machineId, error message, stack trace, timestamp. Swift: sin crash reporting SDK (no Crashlytics, Sentry, Bugsnag); depende del crash reporter integrado de macOS (CrashReporter / Apple crash logs).
 * [ ] **Symbolication verificada** — TS: N/A (Node.js, stack traces en texto). Swift: sin script de upload de dSYM en Fastfile ni en CI. El repositorio no contiene configuracion de Fastlane con `upload_symbols_to_crashlytics` ni equivalente. Los crashes de BrewBar produciran stack traces sin simbolos en produccion si el binario esta distribuido fuera del App Store.
 * [ ] **Trazas utiles** — TS: el crash reporter envia stack trace completo. Swift: sin breadcrumbs ni custom keys adjuntados a los crash reports. El logger de BrewBar escribe a `os.Logger` (Unified Log) pero esos logs no se envian a ningun sistema de crash reporting externo.
 * [ ] **Alertas caidas criticas** — Sin configuracion de alertas automaticas para crashes. El crash reporter TS es pasivo (envia al endpoint si esta configurado). Sin dashboard, sin webhook, sin alerta por email en caso de crash rate elevado.

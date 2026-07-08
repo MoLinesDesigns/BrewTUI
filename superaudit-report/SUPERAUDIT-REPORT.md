@@ -1,4 +1,4 @@
-# SUPERAUDIT-REPORT — Brew-TUI + BrewBar
+# SUPERAUDIT-REPORT — BrewTUI-Bar + BrewBar
 
 > Generado por: report-consolidator | Fecha: 2026-05-21
 
@@ -8,19 +8,19 @@
 
 | Campo | Valor |
 |-------|-------|
-| Producto | Brew-TUI + BrewBar |
+| Producto | BrewTUI-Bar + BrewBar |
 | Versión auditada | 1.2.1 |
 | Commit | 3e15a94 |
 | Fecha | 2026-05-21 |
 | Auditor | super-audit (automatizado) |
 | Plataformas | CLI macOS (Node ≥22, TUI) · App macOS menubar (Swift 6, macOS 14+) |
-| Repositorio | https://github.com/MoLinesDesigns/Brew-TUI.git |
+| Repositorio | https://github.com/MoLinesDesigns/BrewTUI-Bar.git |
 
 ---
 
 ## Resumen ejecutivo
 
-Brew-TUI 1.2.1 es un gestor visual de Homebrew con modelo freemium (Free / Pro / Team) compuesto por una TUI React/Ink en TypeScript y la companion app BrewBar en Swift 6/SwiftUI. La auditoría cubre 14 dominios técnicos y produce 61 hallazgos únicos (deduplicados): 1 Crítico, 14 Altos, 22 Medios y 24 Bajos.
+BrewTUI-Bar 1.2.1 es un gestor visual de Homebrew con modelo freemium (Free / Pro / Team) compuesto por una TUI React/Ink en TypeScript y la companion app BrewBar en Swift 6/SwiftUI. La auditoría cubre 14 dominios técnicos y produce 61 hallazgos únicos (deduplicados): 1 Crítico, 14 Altos, 22 Medios y 24 Bajos.
 
 El punto más grave es la inyección de argumentos brew en el módulo de compliance Team (SEG-001, Crítico): paquetes arbitrarios pueden instalarse desde un PolicyFile JSON artesanal sin validación. Le siguen dos vectores de inyección adicionales, PII expuesta en el Unified Log de macOS, y un test de CI que falla bloqueando todo `git push`. Funcionalmente, el canal IPC TUI↔BrewBar está roto para instalaciones y desinstalaciones, y el tier Team tiene dos funcionalidades rotas en `account.tsx`.
 
@@ -99,9 +99,9 @@ La base del proyecto es sólida: sistema de licencias AES-256-GCM bien diseñado
 
 ## 0. Ficha de auditoría
 
-**Producto:** Brew-TUI + BrewBar — **Versión:** 1.2.1 — **Commit:** 3e15a94 — **Fecha:** 2026-05-21
+**Producto:** BrewTUI-Bar + BrewBar — **Versión:** 1.2.1 — **Commit:** 3e15a94 — **Fecha:** 2026-05-21
 
-Stack TUI: TypeScript strict, React 19.2.5, Ink 7.0.1, Zustand 5.0.12, ESM-only, tsup, Vitest. Stack BrewBar: Swift 6, SwiftUI, macOS 14+, Tuist, `SWIFT_STRICT_CONCURRENCY=complete`. IPC entre ambos: `~/.brew-tui/last-action.json` (escritura atómica tmp+rename en TS; `DispatchSourceFileSystemObject` en Swift). Modelo freemium con tiers Free, Pro y Team; licencia AES-256-GCM machine-bound en `~/.brew-tui/license.json`. Alcance: auditoría completa sin exclusiones.
+Stack TUI: TypeScript strict, React 19.2.5, Ink 7.0.1, Zustand 5.0.12, ESM-only, tsup, Vitest. Stack BrewBar: Swift 6, SwiftUI, macOS 14+, Tuist, `SWIFT_STRICT_CONCURRENCY=complete`. IPC entre ambos: `~/.brewtui-bar/last-action.json` (escritura atómica tmp+rename en TS; `DispatchSourceFileSystemObject` en Swift). Modelo freemium con tiers Free, Pro y Team; licencia AES-256-GCM machine-bound en `~/.brewtui-bar/license.json`. Alcance: auditoría completa sin exclusiones.
 
 *Nota de versión de stack: `CLAUDE.md` menciona Ink 5.x y React 18; los valores reales son Ink 7.0.1 y React 19.2.5 — delta registrado para auditoría de gobierno.*
 
@@ -121,7 +121,7 @@ Brechas de cobertura relevantes: `data-dir.ts` (canal IPC), `anti-tamper.ts`, `i
 
 La CI dual (Ubuntu para TS + macOS para Swift), el pre-push hook con `npm run validate` y la firma/notarización de BrewBar están correctamente configurados. Sin secretos hardcodeados en el repositorio rastreado.
 
-Hallazgos principales: `.playwright-mcp/` contiene 198 artefactos (YAML, PNG, logs) commiteados en el historial a pesar de la regla `.gitignore:34` — requiere `git rm -r --cached` (GOV-002, Alta). `CODEOWNERS:1` apunta a `@MoLinesGitHub` (org renombrada), desactivando reviews automáticos (GOV-001, Alta). `homebrew/Formula/brew-tui.rb` y `homebrew/Casks/brewbar.rb` en el repo declaran versión `0.7.0` cuando la publicada es `1.2.1` (GOV-003, Alta). El descriptor MacPorts tiene checksums `rmd160` con zeros inválidos (GOV-004, Media).
+Hallazgos principales: `.playwright-mcp/` contiene 198 artefactos (YAML, PNG, logs) commiteados en el historial a pesar de la regla `.gitignore:34` — requiere `git rm -r --cached` (GOV-002, Alta). `CODEOWNERS:1` apunta a `@MoLinesGitHub` (org renombrada), desactivando reviews automáticos (GOV-001, Alta). `homebrew/Formula/brewtui-bar.rb` y `homebrew/Casks/brewbar.rb` en el repo declaran versión `0.7.0` cuando la publicada es `1.2.1` (GOV-003, Alta). El descriptor MacPorts tiene checksums `rmd160` con zeros inválidos (GOV-004, Media).
 
 ---
 

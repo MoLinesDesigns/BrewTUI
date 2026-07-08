@@ -13,7 +13,7 @@ const execFileAsync = promisify(execFile);
 const BREWTUIBAR_APP_PATH = '/Applications/BrewTUI-Bar.app';
 const BREWTUIBAR_BUNDLE_ID = 'com.molinesdesigns.brewtuibar';
 const BREWTUIBAR_PROCESS_NAME = 'BrewTUI-Bar';
-const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/BrewTUI/releases/latest/download/BrewTUI-Bar.app.zip';
+const DOWNLOAD_URL = 'https://github.com/MoLinesDesigns/BrewTUI-Bar/releases/latest/download/BrewTUI-Bar.app.zip';
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 export async function isBrewTUIBarInstalled(): Promise<boolean> {

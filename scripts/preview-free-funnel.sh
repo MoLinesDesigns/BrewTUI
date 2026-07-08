@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Preview the Brew-TUI-Bar Free funnel without losing your real Pro state.
+# Preview the BrewTUI-Bar Free funnel without losing your real Pro state.
 #
 #   ./scripts/preview-free-funnel.sh preview   → enter Free mode
 #   ./scripts/preview-free-funnel.sh restore   → roll back
 #   ./scripts/preview-free-funnel.sh status    → where are we?
 #
 # How it works:
-#   preview  – stashes ~/.brew-tui/license.json into a timestamped .bak,
+#   preview  – stashes ~/.brewtui-bar/license.json into a timestamped .bak,
 #              clears the migration flags so the app behaves like a fresh
-#              install, and relaunches Brew-TUI-Bar. Writes a sentinel at
-#              /tmp/.brew-tui-free-preview.json so `restore` knows what to
+#              install, and relaunches BrewTUI-Bar. Writes a sentinel at
+#              /tmp/.brewtui-bar-free-preview.json so `restore` knows what to
 #              undo, and registers an EXIT trap that auto-restores if the
 #              script is killed mid-run.
 #   restore  – moves the stashed license back, relaunches the app, drops
@@ -18,15 +18,15 @@
 #
 # Safe by design: the original license is preserved as a backup file with a
 # timestamp; if anything goes sideways you can always re-locate the latest
-# license.json.bak.* in ~/.brew-tui/ and rename it manually.
+# license.json.bak.* in ~/.brewtui-bar/ and rename it manually.
 
 set -euo pipefail
 
-DATA_DIR="$HOME/.brew-tui"
+DATA_DIR="$HOME/.brewtui-bar"
 LICENSE_PATH="$DATA_DIR/license.json"
-SENTINEL="/tmp/.brew-tui-free-preview.json"
+SENTINEL="/tmp/.brewtui-bar-free-preview.json"
 APP_BUNDLE_ID="com.molinesdesigns.brewtuibar"
-APP_NAME="Brew-TUI-Bar"
+APP_NAME="BrewTUI-Bar"
 
 usage() {
   cat <<EOF
@@ -49,7 +49,7 @@ warn() { printf '\033[1;33m⚠\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m✘\033[0m %s\n' "$*" >&2; exit 1; }
 
 require_macos() {
-  [[ "$(uname -s)" == "Darwin" ]] || die "macOS only — Brew-TUI-Bar is a .app bundle."
+  [[ "$(uname -s)" == "Darwin" ]] || die "macOS only — BrewTUI-Bar is a .app bundle."
 }
 
 quit_app() {
@@ -97,7 +97,7 @@ cmd_preview() {
 
   local app_version
   app_version=$(/usr/bin/defaults read "/Applications/$APP_NAME.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "?")
-  log "Brew-TUI-Bar installed: $app_version"
+  log "BrewTUI-Bar installed: $app_version"
 
   local backup=""
   if [[ -f "$LICENSE_PATH" ]]; then
@@ -108,7 +108,7 @@ cmd_preview() {
     log "No existing license — already in Free state, just clearing flags."
   fi
 
-  # Migration flags live under the Brew-TUI-Bar bundle ID. Clearing them
+  # Migration flags live under the BrewTUI-Bar bundle ID. Clearing them
   # makes the next launch behave like a fresh install (the migrator no-ops
   # because there's nothing to migrate; the popover sees tier=basic +
   # wasEverActive=false → renders the Free funnel).
@@ -180,7 +180,7 @@ cmd_restore() {
   /bin/rm -f "$SENTINEL"
   quit_app
   launch_app
-  ok "Restored — Brew-TUI-Bar relaunched with your real state."
+  ok "Restored — BrewTUI-Bar relaunched with your real state."
 }
 
 main() {

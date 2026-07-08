@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI no expone endpoints propios; consume seis endpoints externos (tres en Polar, dos en `api.molinesdesigns.com` para promos, uno en OSV.dev) ademas de un canal IPC local con BrewBar via filesystem watcher. Esta seccion auditia cada endpoint individualmente: contrato, autenticacion, errores, idempotencia y rate-limiting. La superficie es pequena, los contratos estan tipados y validados en runtime en su mayoria, y los principales gaps son: trailing slash ausente en Polar, ausencia de retry en `promo.ts`, ausencia de manejo 429 en Polar y un patron de inyeccion de argumentos `brew` (no shell injection, sino flag injection) que escala desde `compliance-remediator.ts` y `brewfile-manager.ts`.
+BrewTUI-Bar no expone endpoints propios; consume seis endpoints externos (tres en Polar, dos en `api.molinesdesigns.com` para promos, uno en OSV.dev) ademas de un canal IPC local con BrewBar via filesystem watcher. Esta seccion auditia cada endpoint individualmente: contrato, autenticacion, errores, idempotencia y rate-limiting. La superficie es pequena, los contratos estan tipados y validados en runtime en su mayoria, y los principales gaps son: trailing slash ausente en Polar, ausencia de retry en `promo.ts`, ausencia de manejo 429 en Polar y un patron de inyeccion de argumentos `brew` (no shell injection, sino flag injection) que escala desde `compliance-remediator.ts` y `brewfile-manager.ts`.
 
 ---
 
@@ -19,7 +19,7 @@ Brew-TUI no expone endpoints propios; consume seis endpoints externos (tres en P
 | 5 | `https://api.molinesdesigns.com/api/promo/redeem` | POST | Sin auth | `promo.ts:146` | Si (`idempotencyKey` UUID) | Sin rate limit cliente |
 | 6 | `https://api.osv.dev/v1/querybatch` | POST | Sin auth | `lib/security/osv-client.ts` | Si (consulta pura) | 75 ms entre lotes + retry tras 429 |
 | 7 | `brew` CLI subprocess (local) | spawn | n/a | `brew-cli.ts:8,40` | depende del comando | Sin techo de stdout |
-| 8 | `~/.brew-tui/last-action.json` (IPC) | write | n/a | `data-dir.ts:writeLastAction` | Sobreescribe atomicamente | n/a |
+| 8 | `~/.brewtui-bar/last-action.json` (IPC) | write | n/a | `data-dir.ts:writeLastAction` | Sobreescribe atomicamente | n/a |
 
 ---
 
@@ -39,7 +39,7 @@ Brew-TUI no expone endpoints propios; consume seis endpoints externos (tres en P
 | EP-1.1 | Baja | `polar-api.ts:63` — `${BASE_URL}/${endpoint}` produce `/activate` sin trailing slash; CLAUDE.md indica que Polar especifica trailing slash; sin evidencia de fallo en produccion pero contraria a spec (307 + Authorization drop con curl -L) | Anadir trailing slash al template o por endpoint |
 | EP-1.2 | Media | `fetch-timeout.ts` `fetchWithRetry` por defecto solo reintenta `status >= 500`; un 429 con `Retry-After` no se respeta | Anadir `status === 429` a `retryOn` con backoff `Retry-After`-aware |
 | EP-1.3 | Baja | `polar-api.ts:95` — `machineId` UUID enviado en `label` sin hashear; identificador opaco pero correlacionable en logs Polar | Hash truncado SHA-256 antes de enviar como label |
-| EP-1.4 | Media (heredado de 11.2) | rate limiter en memoria — `kill -9` reinicia el contador | Persistir lockout en `~/.brew-tui/rate-limit-state.json` |
+| EP-1.4 | Media (heredado de 11.2) | rate limiter en memoria — `kill -9` reinicia el contador | Persistir lockout en `~/.brewtui-bar/rate-limit-state.json` |
 
 ### Conforme
 - HTTPS obligatorio, hostname validado (`validateApiUrl`)
@@ -178,10 +178,10 @@ EP-4.1 aplica.
 
 ## 13.9 Endpoint 8 — IPC last-action
 
-**Canal:** `~/.brew-tui/last-action.json` (write atomic TS, watch DispatchSourceFileSystemObject Swift)
+**Canal:** `~/.brewtui-bar/last-action.json` (write atomic TS, watch DispatchSourceFileSystemObject Swift)
 
 ### Contrato
-- Escritura: TS via `writeLastAction({ timestamp, action, packages, remainingOutdated, source: 'brew-tui' })` con tmp + rename atomico
+- Escritura: TS via `writeLastAction({ timestamp, action, packages, remainingOutdated, source: 'brewtui-bar' })` con tmp + rename atomico
 - Lectura: Swift `LastActionMonitor` observa el **directorio padre** (no el fichero — rename invalida fd a fichero)
 - Schema: `LastAction` Decodable Swift coherente con interface TS
 

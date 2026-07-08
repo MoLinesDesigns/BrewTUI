@@ -11,7 +11,7 @@ Set Theme "Dracula"
 Set TypingSpeed 60ms
 Set Padding 24
 
-Type "brew-tui --lang=en" Enter
+Type "brewtui-bar --lang=en" Enter
 Sleep 6s
 Type "9"
 Sleep 75s

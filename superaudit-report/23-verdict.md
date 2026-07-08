@@ -4,7 +4,7 @@
 
 ## Estado general del proyecto
 
-Brew-TUI 1.2.1 es un producto con una arquitectura sólida, convenciones bien establecidas y una cobertura de tests razonable para el módulo de licencias. Sin embargo, presenta **1 hallazgo Crítico activo** (inyección de flags en compliance-remediator) y **14 Altos**, de los cuales 3 afectan directamente a seguridad/privacidad, 1 bloquea el pipeline de release y 2 rompen funcionalidades facturadas del tier Team. El estado actual no es apto para publicación sin resolver los bloqueantes listados.
+BrewTUI-Bar 1.2.1 es un producto con una arquitectura sólida, convenciones bien establecidas y una cobertura de tests razonable para el módulo de licencias. Sin embargo, presenta **1 hallazgo Crítico activo** (inyección de flags en compliance-remediator) y **14 Altos**, de los cuales 3 afectan directamente a seguridad/privacidad, 1 bloquea el pipeline de release y 2 rompen funcionalidades facturadas del tier Team. El estado actual no es apto para publicación sin resolver los bloqueantes listados.
 
 | Área | Estado | Justificación |
 |------|--------|---------------|
@@ -73,9 +73,9 @@ El proyecto tiene una base de calidad sólida, pero la combinación de un hallaz
 
 2. **[DS-001 + ACC-001]** Añadir gate de `NO_COLOR`/`REDUCE_MOTION` en `BlinkingText` (TUI) y patrón `@Environment(\.accessibilityReduceMotion)` en `PopoverView` (BrewBar).
 
-3. **[BK-005]** Restringir `loadPolicy()` y `exportReport()` en `policy-io.ts` a rutas dentro de `~/.brew-tui/` usando `path.resolve` + guard contra `..`.
+3. **[BK-005]** Restringir `loadPolicy()` y `exportReport()` en `policy-io.ts` a rutas dentro de `~/.brewtui-bar/` usando `path.resolve` + guard contra `..`.
 
-4. **[GOV-001 + GOV-003]** Actualizar `.github/CODEOWNERS` a `@MoLinesDesigns`. Eliminar o actualizar `homebrew/Formula/brew-tui.rb` y `homebrew/Casks/brewbar.rb` (versión `0.7.0` vs `1.2.1` actual).
+4. **[GOV-001 + GOV-003]** Actualizar `.github/CODEOWNERS` a `@MoLinesDesigns`. Eliminar o actualizar `homebrew/Formula/brewtui-bar.rb` y `homebrew/Casks/brewbar.rb` (versión `0.7.0` vs `1.2.1` actual).
 
 5. **[REL-001]** Añadir preflight en `release.sh`: `xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" --limit 1 > /dev/null || exit 1` al inicio del script.
 

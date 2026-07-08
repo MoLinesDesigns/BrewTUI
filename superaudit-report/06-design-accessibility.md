@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-El proyecto Brew-TUI tiene un sistema de tokens bien definido para el stack TUI (colores semanticos en `colors.ts`, espaciado en `spacing.ts`) y una capa de tema en BrewBar con adaptacion a contraste elevado y Bold Text. Las principales carencias son la ausencia de soporte Reduce Motion en ambos stacks, un alto fijo en `SettingsView` que rompe Dynamic Type en accesibilidad, y una desviacion puntual de breakpoints en `dashboard.tsx`. La cobertura de localizacion es del 100% en ambos stacks.
+El proyecto BrewTUI-Bar tiene un sistema de tokens bien definido para el stack TUI (colores semanticos en `colors.ts`, espaciado en `spacing.ts`) y una capa de tema en BrewBar con adaptacion a contraste elevado y Bold Text. Las principales carencias son la ausencia de soporte Reduce Motion en ambos stacks, un alto fijo en `SettingsView` que rompe Dynamic Type en accesibilidad, y una desviacion puntual de breakpoints en `dashboard.tsx`. La cobertura de localizacion es del 100% en ambos stacks.
 
 ---
 
@@ -229,7 +229,7 @@ El proyecto Brew-TUI tiene un sistema de tokens bien definido para el stack TUI 
 
 ## Registro de accesibilidad por pantalla
 
-### TUI Brew-TUI (Ink — terminal)
+### TUI BrewTUI-Bar (Ink — terminal)
 
 | Pantalla | VoiceOver | Dynamic Type | Contraste | Reduce Motion | Hallazgo |
 |----------|-----------|--------------|-----------|---------------|----------|

@@ -43,7 +43,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 | `api.osv.dev/v1/querybatch` (Swift) | POST | Ninguna | Validado: count match (`SecurityMonitor.swift:149-151`) | `SecurityMonitorError` tipado | Idempotente | Conforme (usa 'Bitnami') |
 | `api.molinesdesigns.com/api/promo/validate` | POST | — (code en body) | Validado en runtime (`promo.ts:106-115`) | HTTP !ok mapeado | Idempotente | Sin validacion de URL host |
 | `api.molinesdesigns.com/api/promo/redeem` | POST | machineId en body | Validado en runtime (`promo.ts:155-164`) | HTTP !ok mapeado | Sin idempotency-key (dedup solo en cliente) | Un solo intento, sin retry |
-| `github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip` | GET | Ninguna | No validado (descarga y descomprime sin firma) | No especificado | N/A | No auditado en profundidad en este informe |
+| `github.com/MoLinesGitHub/BrewTUI-Bar/releases/latest/download/BrewBar.app.zip` | GET | Ninguna | No validado (descarga y descomprime sin firma) | No especificado | N/A | No auditado en profundidad en este informe |
 
 ---
 
@@ -119,7 +119,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
 | Deadlock potencial en `BrewProcess.swift` | No conforme | Alta | `menubar/BrewBar/Sources/Services/BrewProcess.swift:99` — `readDataToEndOfFile()` se llama dentro del `terminationHandler`. Si el output de `brew list --versions` supera ~64 KB (buffer de Pipe en macOS), brew bloquea en escritura, `terminationHandler` nunca se ejecuta y la continuacion queda colgada. El timeout externo (linea 122) eventualmente lo mata, pero con latencia de 60s | Usar lectura incremental con `availableData` en un loop o migrar a `AsyncStream` consumiendo el `FileHandle` en un Task separado |
-| Snapshots sin poda automatica | No conforme | Alta | `src/lib/state-snapshot/snapshot.ts:95-107` y `src/lib/rollback/rollback-engine.ts:204-209` — cada post-upgrade, post-rollback y post-reconcile crea un archivo nuevo; no hay `pruneSnapshots()`. Con uso intensivo del rollback view puede acumular cientos de archivos en `~/.brew-tui/snapshots/` | Implementar poda que retenga los N mas recientes (e.g. 20) o los mas antiguos de 30 dias |
+| Snapshots sin poda automatica | No conforme | Alta | `src/lib/state-snapshot/snapshot.ts:95-107` y `src/lib/rollback/rollback-engine.ts:204-209` — cada post-upgrade, post-rollback y post-reconcile crea un archivo nuevo; no hay `pruneSnapshots()`. Con uso intensivo del rollback view puede acumular cientos de archivos en `~/.brewtui-bar/snapshots/` | Implementar poda que retenga los N mas recientes (e.g. 20) o los mas antiguos de 30 dias |
 | Lock de historial sin TTL | No conforme | Media | `src/lib/history/history-logger.ts:13-24` — si el proceso muere entre `open('wx', lockPath)` y `unlink(lockPath)`, el archivo `.lock` queda huerfano y bloquea todas las escrituras futuras permanentemente | Anadir comprobacion de `mtime` del lockfile: si tiene mas de N segundos, eliminar y reintentar |
 
 ---
@@ -145,7 +145,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 
 ### Checklist
 
-* [x] Directorio `~/.brew-tui/` creado con `mode: 0o700` (`data-dir.ts:13`)
+* [x] Directorio `~/.brewtui-bar/` creado con `mode: 0o700` (`data-dir.ts:13`)
 * [x] Archivos sensibles escritos con `mode: 0o600` (license, history, profiles, snapshots)
 * [x] Escrituras atomicas via fichero `.tmp` + `rename()` en todos los modulos auditados
 * [x] `license.json` cifrado AES-256-GCM (`license-manager.ts:90-104`)
@@ -157,7 +157,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 * [ ] Snapshots: sin cap ni poda — **Alta**: ver 11.4
 * [x] Permisos del directorio iCloud no forzados (iCloud gestiona sus propios permisos)
 * [ ] Secretos en UserDefaults de BrewBar (no hay secretos; solo preferencias) — **No aplica**
-* [x] Tokens y licencia NO en UserDefaults (estan en `~/.brew-tui/license.json` cifrado)
+* [x] Tokens y licencia NO en UserDefaults (estan en `~/.brewtui-bar/license.json` cifrado)
 * [x] UserDefaults de BrewBar contiene solo preferencias: `checkInterval`, `notificationsEnabled`, `hasLaunchedBefore`, `didAutoRegisterLoginItem`, `lastSchedulerError`, `syncLastKnownUpdatedAt`
 * [ ] `lastSchedulerError` en UserDefaults expone timestamp + mensaje de error de sistema — **Baja**: informacion de debug, no secreto
 
@@ -192,7 +192,7 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Fallback a `hostname()` como machineId en sync | No conforme | Alta | `src/lib/sync/sync-engine.ts:53` — si `~/.brew-tui/machine-id` no existe (usuario nuevo sin activar Polar), la clave del mapa de maquinas pasa a ser el hostname. Dos maquinas con el mismo hostname (comun en redes de empresa o usuarios con mismo nombre de equipo) colisionan en el payload AES y se sobrescriben mutuamente | Crear el `machine-id` en `ensureDataDirs()` como parte del setup inicial, no como efecto secundario de la activacion; eliminar el fallback a `hostname()` |
+| Fallback a `hostname()` como machineId en sync | No conforme | Alta | `src/lib/sync/sync-engine.ts:53` — si `~/.brewtui-bar/machine-id` no existe (usuario nuevo sin activar Polar), la clave del mapa de maquinas pasa a ser el hostname. Dos maquinas con el mismo hostname (comun en redes de empresa o usuarios con mismo nombre de equipo) colisionan en el payload AES y se sobrescriben mutuamente | Crear el `machine-id` en `ensureDataDirs()` como parte del setup inicial, no como efecto secundario de la activacion; eliminar el fallback a `hostname()` |
 | iCloud: no se verifica `NSURLUbiquitousItemDownloadingStatusKey` | No conforme | Media | `src/lib/sync/backends/icloud-backend.ts:35-55` — `readFile(ICLOUD_SYNC_PATH)` puede fallar o leer datos parciales si el archivo esta en estado `placeholder` (no descargado) en iCloud. El error `ENOENT` se trata como "no existe todavia" en linea 47, enmascarando un placeholder no descargado | Antes de leer, llamar a `fs.stat()` y verificar que el archivo tiene tamanyo > 0; o usar `xattr` para comprobar `com.apple.quarantine` / estado iCloud |
 | `SyncMonitor.swift` lee `sync.json` de forma sincrona | No conforme | Media | `menubar/.../SyncMonitor.swift:25` — `Data(contentsOf: syncPath)` es una llamada de I/O sincrona dentro de un `actor`; puede bloquear el hilo del actor si iCloud esta descargando el archivo | Migrar a `URLSession.dataTask` o `async let` con `url.resourceValues(forKeys:)` para lectura asincrona |
 
@@ -224,4 +224,4 @@ El proyecto no tiene backend HTTP propio: toda la logica de servidor es externa 
 | Incompatibilidad de formato de severidad TS/Swift en cve-cache.json | No conforme | Media | `src/lib/security/types.ts:1` — `Severity = 'CRITICAL' \| 'HIGH' \| ...` (uppercase). `menubar/.../CVEAlert.swift:12-18` — `Severity: String, Codable` con raw values `case critical` (lowercase). Si el TUI llegara a leer el `cve-cache.json` escrito por Swift, el decodificado fallaria silenciosamente | Unificar convencion de casing; si el cache es compartido, definir un contrato de esquema JSON explicito con el mismo casing |
 | Historial: lock sin TTL deja el archivo bloqueado si el proceso falla | No conforme | Media | `src/lib/history/history-logger.ts:13-24` — `open(lockPath, 'wx')` crea el lock; si el proceso muere antes de `unlink`, las escrituras futuras fallaran con "History file is locked by another process" indefinidamente | Comprobar `mtime` del lockfile: si tiene mas de 30s, eliminarlo como lock huerfano antes de reintentar |
 | OSV TUI devuelve resultados vacios por ecosystem incorrecto | No conforme | Critica | `src/lib/security/osv-api.ts:181` — `ecosystem: 'Homebrew'` causa HTTP 400; `queryBatch` llama a `queryOneByOne` (linea 78); `queryOneByOne` tambien usa `'Homebrew'` (lineas 125, 143); la excepcion del 400 se captura y el paquete se omite (linea 131). Resultado: el Security Audit del TUI devuelve siempre 0 vulnerabilidades encontradas independientemente del estado real | Cambiar `'Homebrew'` por `'Bitnami'` en las tres ocurrencias de `osv-api.ts` |
-| Snapshots sin poda: crecimiento ilimitado en disco | No conforme | Alta | `src/lib/state-snapshot/snapshot.ts:95-107` — cada operacion (post-upgrade, post-rollback, post-reconcile) genera un fichero nuevo. Sin limite ni poda, el directorio `~/.brew-tui/snapshots/` crece indefinidamente | Anadir funcion `pruneSnapshots(maxCount = 20)` llamada tras cada `saveSnapshot` |
+| Snapshots sin poda: crecimiento ilimitado en disco | No conforme | Alta | `src/lib/state-snapshot/snapshot.ts:95-107` — cada operacion (post-upgrade, post-rollback, post-reconcile) genera un fichero nuevo. Sin limite ni poda, el directorio `~/.brewtui-bar/snapshots/` crece indefinidamente | Anadir funcion `pruneSnapshots(maxCount = 20)` llamada tras cada `saveSnapshot` |

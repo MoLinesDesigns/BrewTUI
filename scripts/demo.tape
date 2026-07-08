@@ -12,7 +12,7 @@ Set TypingSpeed 70ms
 Set PlaybackSpeed 1.0
 Set Padding 24
 
-Type "brew-tui --lang=en" Enter
+Type "brewtui-bar --lang=en" Enter
 Sleep 7s
 
 # ── Outdated ──

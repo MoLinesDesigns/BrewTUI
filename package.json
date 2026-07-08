@@ -4,8 +4,7 @@
   "description": "BrewTUI-Bar — Visual TUI and menu bar companion for Homebrew",
   "type": "module",
   "bin": {
-    "brewtui-bar": "bin/brewtui-bar.js",
-    "brew-tui": "bin/brew-tui-legacy.js"
+    "brewtui-bar": "bin/brewtui-bar.js"
   },
   "main": "./build/index.js",
   "files": [
@@ -16,12 +15,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MoLinesDesigns/BrewTUI.git"
+    "url": "git+https://github.com/MoLinesDesigns/BrewTUI-Bar.git"
   },
   "bugs": {
-    "url": "https://github.com/MoLinesDesigns/BrewTUI/issues"
+    "url": "https://github.com/MoLinesDesigns/BrewTUI-Bar/issues"
   },
-  "homepage": "https://github.com/MoLinesDesigns/BrewTUI#readme",
+  "homepage": "https://github.com/MoLinesDesigns/BrewTUI-Bar#readme",
   "author": "MoLines Designs",
   "scripts": {
     "dev": "tsx src/index.tsx",

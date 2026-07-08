@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Records the Brew-TUI demo as an asciinema cast and converts it to a GIF
+# Records the BrewTUI-Bar demo as an asciinema cast and converts it to a GIF
 # suitable for the README hero. Output: assets/demo.cast + assets/demo.gif
 #
-# Requirements: asciinema, agg, brew-tui (installed globally via npm or brew)
+# Requirements: asciinema, agg, brewtui-bar (installed globally via npm or brew)
 # Install with: brew install asciinema agg
 
 set -euo pipefail
@@ -32,7 +32,7 @@ require() {
 
 require asciinema
 require agg
-require brew-tui
+require brewtui-bar
 
 mkdir -p "$ASSETS"
 
@@ -44,7 +44,7 @@ cat <<'INSTRUCTIONS'
 
 After this banner, asciinema starts. Then:
 
-  1.  Type:          brew-tui
+  1.  Type:          brewtui-bar
       Press:         Enter
       Wait:          ~2 seconds for the dashboard to render
 
@@ -66,7 +66,7 @@ After this banner, asciinema starts. Then:
   6.  Press 0        → Security Audit (Pro)
       Wait:          2s
 
-  7.  Press q        → Quit Brew-TUI
+  7.  Press q        → Quit BrewTUI-Bar
 
   8.  Press Ctrl+D   → Stop the asciinema recording
 

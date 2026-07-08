@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-La arquitectura de Brew-TUI sigue con coherencia el modelo de capas documentado en `CLAUDE.md` (Views → Stores → brew-api → brew-cli), y el companion BrewBar implementa protocolos de DI explícitos con aislamiento `@MainActor` correcto para la mayoría de sus componentes. Sin embargo, existe un vector de instalación arbitraria de paquetes en `compliance-remediator.ts` que pasa `packageName` extraído de un fichero de política controlado por el usuario directamente a `streamBrew` — cuyo `spawn` usa array de argumentos sin `shell: true`, por lo que no es inyección de shell clásica, sino ejecución de `brew install <nombre-arbitrario>` sin validación del trust boundary. Adicionalmente, un archivo de exploración de diseño de 991 líneas se incluye en el bundle de producción firmado y notariado de BrewBar debido a un glob excesivamente amplio en el manifest de Tuist.
+La arquitectura de BrewTUI-Bar sigue con coherencia el modelo de capas documentado en `CLAUDE.md` (Views → Stores → brew-api → brew-cli), y el companion BrewBar implementa protocolos de DI explícitos con aislamiento `@MainActor` correcto para la mayoría de sus componentes. Sin embargo, existe un vector de instalación arbitraria de paquetes en `compliance-remediator.ts` que pasa `packageName` extraído de un fichero de política controlado por el usuario directamente a `streamBrew` — cuyo `spawn` usa array de argumentos sin `shell: true`, por lo que no es inyección de shell clásica, sino ejecución de `brew install <nombre-arbitrario>` sin validación del trust boundary. Adicionalmente, un archivo de exploración de diseño de 991 líneas se incluye en el bundle de producción firmado y notariado de BrewBar debido a un glob excesivamente amplio en el manifest de Tuist.
 
 ---
 

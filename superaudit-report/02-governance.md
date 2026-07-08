@@ -25,7 +25,7 @@ El proyecto presenta una base de gobierno solida: CI dual (Ubuntu para TypeScrip
 |----------|--------|-----------|-----------|--------|
 | Target `BrewBar` (app menubar macOS 14+) | Conforme | — | `menubar/Project.swift:53` | — |
 | Target `BrewBarTests` (XCTest) | Conforme | — | `menubar/Project.swift:93` | — |
-| Target `brew-tui` (npm CLI binary) | Conforme | — | `package.json:6-8`, `bin/brew-tui.js` | — |
+| Target `brewtui-bar` (npm CLI binary) | Conforme | — | `package.json:6-8`, `bin/brewtui-bar.js` | — |
 | Configuraciones Debug / Release en Project.swift | Conforme | — | `menubar/Project.swift:47-50` | — |
 | Debug desactiva `ENABLE_HARDENED_RUNTIME` | Parcial | Baja | `menubar/Project.swift:83-89` — deliberado para Xcode Preview; documentado en comentario | Mantener el comentario; verificar periodicamente que no se filtre a Release |
 | Separacion testing / produccion | Conforme | — | `BrewBarTests` usa `bundleId` propio y depende del target `BrewBar` como dependencia de test | — |
@@ -131,10 +131,10 @@ El proyecto presenta una base de gobierno solida: CI dual (Ubuntu para TypeScrip
 |----------|--------|-----------|-----------|--------|
 | Version coherente entre `package.json`, CHANGELOG y git tag | Conforme | — | `package.json:4` → `1.2.1`; `CHANGELOG.md:3` → `[1.2.1] - 2026-05-18`; ultimo tag → `v1.2.1` | — |
 | `MARKETING_VERSION` de BrewBar leido de `package.json` | Conforme | — | `menubar/Project.swift:11-27` — `readMarketingVersion()` parsea `package.json` en generate-time; fuente unica de verdad entre ambos productos | — |
-| `homebrew/Formula/brew-tui.rb` desactualizado | No conforme | Alta | `homebrew/Formula/brew-tui.rb:4` → version `0.7.0`; version publicada → `1.2.1`; diferencia de 9 releases. Este archivo es una copia local del tap canonical (`MoLinesDesigns/homebrew-tap`), no el archivo publicado, pero induce a error a cualquier contribuidor | Actualizar a 1.2.1 con el SHA256 del tarball publicado, o eliminar el directorio `homebrew/` del repo y documentar que el tap canonical esta en `MoLinesDesigns/homebrew-tap` |
+| `homebrew/Formula/brewtui-bar.rb` desactualizado | No conforme | Alta | `homebrew/Formula/brewtui-bar.rb:4` → version `0.7.0`; version publicada → `1.2.1`; diferencia de 9 releases. Este archivo es una copia local del tap canonical (`MoLinesDesigns/homebrew-tap`), no el archivo publicado, pero induce a error a cualquier contribuidor | Actualizar a 1.2.1 con el SHA256 del tarball publicado, o eliminar el directorio `homebrew/` del repo y documentar que el tap canonical esta en `MoLinesDesigns/homebrew-tap` |
 | `homebrew/Casks/brewbar.rb` desactualizado | No conforme | Alta | `homebrew/Casks/brewbar.rb:2` → version `0.7.0`; version publicada → `1.2.1`; diferencia de 9 releases | Misma accion que Formula: actualizar o eliminar la copia local |
-| `homebrew/macports/brew-tui.tcl` obsoleto y con referencias legacy | No conforme | Media | `homebrew/macports/brew-tui.tcl:7` → version `0.1.0`; checksums invalidos (`0000...`); `homebrew/macports/brew-tui.tcl:12` → `@MoLinesGitHub` (org legacy); `homebrew/macports/brew-tui.tcl:20` → `https://github.com/MoLinesGitHub/Brew-TUI` | Si MacPorts no es un canal activo, eliminar el archivo. Si lo es, actualizar version, checksums, maintainer y homepage |
-| `brew-tui` `DOWNLOAD_URL` en `brewbar-installer.ts` apunta a org correcta | Conforme | — | `src/lib/brewbar-installer.ts:14` → `https://github.com/MoLinesDesigns/Brew-TUI/releases/latest/download/BrewBar.app.zip` | — |
+| `homebrew/macports/brewtui-bar.tcl` obsoleto y con referencias legacy | No conforme | Media | `homebrew/macports/brewtui-bar.tcl:7` → version `0.1.0`; checksums invalidos (`0000...`); `homebrew/macports/brewtui-bar.tcl:12` → `@MoLinesGitHub` (org legacy); `homebrew/macports/brewtui-bar.tcl:20` → `https://github.com/MoLinesGitHub/BrewTUI-Bar` | Si MacPorts no es un canal activo, eliminar el archivo. Si lo es, actualizar version, checksums, maintainer y homepage |
+| `brewtui-bar` `DOWNLOAD_URL` en `brewbar-installer.ts` apunta a org correcta | Conforme | — | `src/lib/brewbar-installer.ts:14` → `https://github.com/MoLinesDesigns/BrewTUI-Bar/releases/latest/download/BrewBar.app.zip` | — |
 | `.github/CODEOWNERS` usa handle legacy `@MoLinesGitHub` | No conforme | Alta | `.github/CODEOWNERS:1` → `* @MoLinesGitHub`; la org fue renombrada a `MoLinesDesigns`; las solicitudes de review automaticas fallan silenciosamente o se enrutan a un usuario que puede no tener acceso | Actualizar a `* @MoLinesDesigns` o al usuario/equipo correcto en la organizacion actual |
 | Dependabot no cubre Swift/Tuist | Parcial | Baja | `.github/dependabot.yml` — solo configura el ecosistema `npm`; no hay entrada para `swift` ni para la version de Tuist en CI | Valorar agregar monitoreo de actualizaciones de Tuist; Swift sin SPM externos actualmente no aplica |
 | `release.sh` no tiene paso de actualizacion del tap local | Parcial | Baja | `menubar/scripts/release.sh:91-95` — los "Next steps" son comentarios manuales; no hay automatizacion de bump de version en `homebrew/Formula/` ni `homebrew/Casks/` | Agregar instruccion explicita en release.sh o script auxiliar; mitigacion parcial si se elimina el directorio `homebrew/` local |
@@ -156,5 +156,5 @@ El proyecto presenta una base de gobierno solida: CI dual (Ubuntu para TypeScrip
 
 1. `.playwright-mcp/` — 198 archivos trackeados en git (sesiones internas Playwright); accion: `git rm -r --cached .playwright-mcp/`
 2. `.github/CODEOWNERS` → `* @MoLinesGitHub`; handle legacy inactivo; reviews automaticos no funcionan
-3. `homebrew/Formula/brew-tui.rb` en repo a version 0.7.0 (publicada: 1.2.1); copia local 9 releases atrasada
+3. `homebrew/Formula/brewtui-bar.rb` en repo a version 0.7.0 (publicada: 1.2.1); copia local 9 releases atrasada
 4. `homebrew/Casks/brewbar.rb` en repo a version 0.7.0 (publicada: 1.2.1); copia local 9 releases atrasada

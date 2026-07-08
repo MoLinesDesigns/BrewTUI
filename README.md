@@ -1,8 +1,8 @@
-# BrewTUI
+# BrewTUI-Bar
 
 ### Your Homebrew, finally visible.
 
-[![npm](https://img.shields.io/npm/v/brew-tui)](https://www.npmjs.com/package/brew-tui)
+[![npm](https://img.shields.io/npm/v/brewtui-bar)](https://www.npmjs.com/package/brewtui-bar)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-tap-orange)](https://github.com/MoLinesDesigns/homebrew-tap)
@@ -10,20 +10,20 @@
 
 A keyboard-driven terminal UI for Homebrew, with a native macOS menu bar companion that watches updates in the background. No daemons, no middleware — both tools call `brew` directly.
 
-![BrewTUI demo](assets/demo.gif)
+![BrewTUI-Bar demo](assets/demo.gif)
 
 ```bash
 brew tap MoLinesDesigns/tap
-brew install brew-tui      # then just type:  brew-tui
+brew install brewtui-bar      # then just type:  brewtui-bar
 ```
 
 ---
 
-## Why BrewTUI?
+## Why BrewTUI-Bar?
 
-You don't memorize `brew outdated && brew upgrade && brew services list && brew leaves`. You forget half of them. BrewTUI puts every command behind one keystroke and shows you what `brew` never tells you until something breaks: orphans, vulnerabilities, services that died last Tuesday.
+You don't memorize `brew outdated && brew upgrade && brew services list && brew leaves`. You forget half of them. BrewTUI-Bar puts every command behind one keystroke and shows you what `brew` never tells you until something breaks: orphans, vulnerabilities, services that died last Tuesday.
 
-| Without BrewTUI | With BrewTUI |
+| Without BrewTUI-Bar | With BrewTUI-Bar |
 |---|---|
 | `brew outdated` → wall of text → grep | Press **3** → list with version arrows → `Enter` to upgrade |
 | `brew services list` → restart by hand | Press **4** → toggle services with one key |
@@ -37,13 +37,13 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 ```bash
 # Homebrew (recommended)
 brew tap MoLinesDesigns/tap
-brew install brew-tui
+brew install brewtui-bar
 
 # npm
-npm install -g brew-tui
+npm install -g brewtui-bar
 
 # Run without installing
-npx brew-tui
+npx brewtui-bar
 ```
 
 **Requirements:** Homebrew, macOS. The Homebrew formula installs the required Node.js runtime dependency.
@@ -102,12 +102,12 @@ Everything in Pro plus **Team Compliance** — admin defines a central PolicyFil
 ## Usage
 
 ```bash
-brew-tui                   # Launch the TUI
-brew-tui status            # Show license status
-brew-tui activate <key>    # Activate Pro license
-brew-tui revalidate        # Revalidate Pro license
-brew-tui deactivate        # Deactivate license on this machine
-brew-tui delete-account    # Remove all local data (~/.brew-tui/)
+brewtui-bar                   # Launch the TUI
+brewtui-bar status            # Show license status
+brewtui-bar activate <key>    # Activate Pro license
+brewtui-bar revalidate        # Revalidate Pro license
+brewtui-bar deactivate        # Deactivate license on this machine
+brewtui-bar delete-account    # Remove all local data (~/.brewtui-bar/)
 ```
 
 ### Keyboard Navigation
@@ -134,7 +134,7 @@ brew-tui delete-account    # Remove all local data (~/.brew-tui/)
 
 ### Language
 
-BrewTUI supports **English** and **Spanish**. Language is detected from your system locale (`LANG`), or you can:
+BrewTUI-Bar supports **English** and **Spanish**. Language is detected from your system locale (`LANG`), or you can:
 
 - Pass `--lang=es` or `--lang=en` as a CLI flag
 - Press `L` inside the TUI to toggle
@@ -155,10 +155,10 @@ BrewTUI-Bar is a native macOS menu bar companion app (Swift 6 / SwiftUI) that:
 ### Install BrewTUI-Bar
 
 ```bash
-# Via BrewTUI CLI (Pro license required)
-brew-tui install-brew-tui-bar
-brew-tui install-brew-tui-bar --force   # Reinstall / update
-brew-tui uninstall-brew-tui-bar         # Remove
+# Via BrewTUI-Bar CLI (Pro license required)
+brewtui-bar install-brewtui-bar
+brewtui-bar install-brewtui-bar --force   # Reinstall / update
+brewtui-bar uninstall-brewtui-bar         # Remove
 
 # Via Homebrew Cask
 brew install --cask MoLinesDesigns/tap/brewbar
@@ -240,8 +240,8 @@ menubar/           # BrewTUI-Bar (Swift 6 / SwiftUI / Tuist)
 ## Contributing
 
 ```bash
-git clone https://github.com/MoLinesDesigns/Brew-TUI.git
-cd BrewTUI
+git clone https://github.com/MoLinesDesigns/BrewTUI-Bar.git
+cd BrewTUI-Bar
 npm install
 npm run dev          # Run with tsx (requires interactive TTY)
 npm run typecheck    # tsc --noEmit

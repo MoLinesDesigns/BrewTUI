@@ -2,7 +2,7 @@
 
 ## [4.1.1] - 2026-06-14
 
-### Brew-TUI-Bar
+### BrewTUI-Bar
 
 - **One-click upgrades with an 8s countdown.** Tapping a package's upgrade
   button no longer opens a confirmation dialog — it starts an 8-second
@@ -22,14 +22,14 @@
 
 ### Fixed
 
-- **Stale outdated list.** Brew-TUI and Brew-TUI-Bar ran `brew outdated` in
+- **Stale outdated list.** The CLI and BrewTUI-Bar ran `brew outdated` in
   parallel with `brew update`, so the index was often still stale and the UI
   showed "up to date" while the terminal listed real updates. Both apps now
   finish `brew update` before querying outdated (manual refresh included).
 
 ## [3.3.0] - 2026-05-29
 
-### Brew-TUI-Bar — Crystal Glass redesign + install progress modal
+### BrewTUI-Bar — Crystal Glass redesign + install progress modal
 
 - **Visual overhaul (Apple Liquid Glass).** New `CrystalGlass.swift` design
   system: `.ultraThinMaterial` panels with cyan/coral gradient overlays,
@@ -74,7 +74,7 @@
 
 - Tests: 45 → 52 passing (45 functional + 7 parser + an opt-in screenshot
   generation suite gated by `RUN_SCREENSHOTS=1`).
-- No CLI / npm changes. Brew-TUI (TUI) untouched in this release.
+- No CLI / npm changes. TypeScript TUI untouched in this release.
 
 ## [3.1.0] - 2026-05-26
 
@@ -88,7 +88,7 @@
   devuelve `'expired'` cuando `lastValidatedAt` está en el futuro
   (reloj atrasado o manipulado), en lugar de tratarlo como sesión
   válida. Mismo cambio aplicado en `LicenseChecker.swift` para que
-  Brew-TUI-Bar mantenga el mismo contrato.
+  BrewTUI-Bar mantenga el mismo contrato.
 - **SEC-L2 — Machine-id comparison case-insensitive.** La verificación
   de binding compara `machineId.toLowerCase()` en ambos lados para
   evitar falsos positivos cuando UUID se persistió con casing
@@ -115,26 +115,26 @@
 
 ### Breaking
 - **Cask `brewbar` disabled.** El cask transicional que envolvía la migración
-  desde el rename de 2.0.0 (BrewBar → Brew-TUI-Bar) pasa de `deprecate!` a
+  desde el rename de 2.0.0 (BrewBar → BrewTUI-Bar) pasa de `deprecate!` a
   `disable!`. Instalaciones existentes siguen funcionales hasta que el
   usuario ejecute `brew uninstall --cask brewbar`; nuevos `brew install
   --cask brewbar` quedan bloqueados con un mensaje que dirige al cask
-  canónico (`molinesdesigns/tap/brew-tui-bar`).
-- **Subcomandos CLI legacy retirados.** `brew-tui install-brewbar` y
-  `brew-tui uninstall-brewbar` (alias deprecados que llevaban un warning
+  canónico (`molinesdesigns/tap/brewtui-bar`).
+- **Subcomandos CLI legacy retirados.** `brewtui-bar install-brewbar` y
+  `brewtui-bar uninstall-brewbar` (alias deprecados que llevaban un warning
   desde 2.0.0) ya no se aceptan. La key i18n `cli_brewtuibarLegacyAlias`
   y el branching `command === 'install-brewbar'` se han eliminado. Usa
-  `install-brew-tui-bar` / `uninstall-brew-tui-bar`.
+  `install-brewtui-bar` / `uninstall-brewtui-bar`.
 - **Auto-cleanup de `/Applications/BrewBar.app` retirado.** La función
   `removeLegacyBundleIfOurs()` del instalador y los `LEGACY_APP_PATH /
   LEGACY_BUNDLE_ID / LEGACY_PROCESS_NAME` se han eliminado. Cualquier
   usuario que aún tenga `/Applications/BrewBar.app` lo verá listado por
-  `brew-tui doctor` con la instrucción `rm -rf /Applications/BrewBar.app`
+  `brewtui-bar doctor` con la instrucción `rm -rf /Applications/BrewBar.app`
   para limpiarlo a mano; el TUI ya no la toca en cada install.
 
 ### Added
 - **Deep-link `#pricing`** en el botón "See all plans" del popover Free
-  de Brew-TUI-Bar. El usuario aterriza directamente en los badges de
+  de BrewTUI-Bar. El usuario aterriza directamente en los badges de
   precios (Pro + Team) en lugar de tener que recorrer la cuadrícula de
   features primero. Anchor añadido al article del Pro card en el repo
   Website.
@@ -152,7 +152,7 @@
 - `LegacyMigrator.swift` permanece intacto: la migración one-shot de
   UserDefaults + Login Item del bundle ID viejo al nuevo sigue siendo
   útil para cualquier usuario que llegue desde una versión 1.x sin
-  haber abierto Brew-TUI-Bar desde 2.0.0.
+  haber abierto BrewTUI-Bar desde 2.0.0.
 
 ## [2.3.2] - 2026-05-26
 
@@ -166,7 +166,7 @@
   separado, y el divider entre el comando y el "See all plans" link.
 - **Precios de Pro alineados con los productos vigentes en Polar.** La
   copy del TUI (`upgrade_pricing`, `upgrade_proLabel`, account label) y
-  la del popover de Brew-TUI-Bar (CTA mensual + CTA anual + savings tag
+  la del popover de BrewTUI-Bar (CTA mensual + CTA anual + savings tag
   + accessibility labels) ahora reflejan el pricing actual. Polar
   checkout URLs intactas (apuntan a los mismos product IDs); el
   maintainer mantiene los valores dentro de Polar.
@@ -184,9 +184,9 @@
   algún futuro view lo necesita.
 
 ### Accessibility
-- **Free funnel del popover Brew-TUI-Bar** auditado y refinado:
-  - El comando `brew-tui activate <your-license-key>` ya no se trunca a
-    `brew-tui activ…` con Dynamic Type grande (`lineLimit(2)` +
+- **Free funnel del popover BrewTUI-Bar** auditado y refinado:
+  - El comando `brewtui-bar activate <your-license-key>` ya no se trunca a
+    `brewtui-bar activ…` con Dynamic Type grande (`lineLimit(2)` +
     `minimumScaleFactor(0.85)`).
   - El background del bloque del comando dobla su opacidad bajo "Increase
     Contrast" para seguir siendo visible.
@@ -199,24 +199,24 @@
 ## [2.3.0] - 2026-05-25
 
 ### Added
-- **Subcomando `brew-tui doctor`**: dump diagnóstico plano para soporte y
+- **Subcomando `brewtui-bar doctor`**: dump diagnóstico plano para soporte y
   troubleshooting. Reporta versión del CLI, plataforma + Node, estado de
-  Brew-TUI-Bar (instalada, versión, sync vs CLI, bundle ID match, proceso
+  BrewTUI-Bar (instalada, versión, sync vs CLI, bundle ID match, proceso
   corriendo), legacy BrewBar.app si sigue ahí, estado de licencia (tier,
   email, fechas, degradación), brew binary en PATH, presencia de machine-id.
-- **`brew-tui --version` ahora detecta mismatch** con Brew-TUI-Bar.app y emite
+- **`brewtui-bar --version` ahora detecta mismatch** con BrewTUI-Bar.app y emite
   un warning a **stderr** (stdout sigue siendo solo la versión limpia, así
-  los scripts que parsean `$(brew-tui --version)` no se rompen).
-- **Progress bar durante el download de Brew-TUI-Bar.app.zip.** En TTYs
+  los scripts que parsean `$(brewtui-bar --version)` no se rompen).
+- **Progress bar durante el download de BrewTUI-Bar.app.zip.** En TTYs
   interactivos sobreescribe la línea con `\r` (`1.4 MB / 3.0 MB (47%)`);
   en non-TTY (e.g. `brew install` capturando stdout) emite una línea
-  cada 25%. Antes el usuario veía "Downloading Brew-TUI-Bar..." y
+  cada 25%. Antes el usuario veía "Downloading BrewTUI-Bar..." y
   silencio durante 3-15 segundos.
-- **Indicador `↑` de self-update en el popover de Brew-TUI-Bar.** Cuando
+- **Indicador `↑` de self-update en el popover de BrewTUI-Bar.** Cuando
   `brew outdated` reporta una versión nueva del propio cask (que se filtra
   del badge para no confundir al usuario), el versionFooter del popover
   muestra un icono pequeño junto a la versión actual. Click → abre Terminal
-  con `brew upgrade --cask brew-tui-bar`. Patrón mismo que "Open Brew-TUI".
+  con `brew upgrade --cask brewtui-bar`. Patrón mismo que "Open BrewTUI-Bar".
 
 ### Changed
 - **`LegacyMigrator` refactorizado para testabilidad.** `migrateUserDefaultsIfNeeded`
@@ -227,7 +227,7 @@
   poder usarse en default args sin Swift 6 isolation warnings.
 - **`OutdatedResponse.selfUpdateVersion`**: nuevo campo opcional poblado en
   proceso por `BrewChecker.checkOutdated()` con la versión más alta de los
-  self-casks detectados (`brew-tui-bar` o el transicional `brewbar`).
+  self-casks detectados (`brewtui-bar` o el transicional `brewbar`).
   Excluido del decoder JSON vía `CodingKeys`; AppState lo expone para el
   indicador del popover.
 
@@ -243,7 +243,7 @@
 - `src/postinstall.ts` refactorizado para exportar `runPostinstall()`
   (testeable) con guard `import.meta.url === argv[1]` para invocación
   como entry point.
-- `bundleIdAt(path)` ahora es exported desde `src/lib/brew-tui-bar-installer.ts`
+- `bundleIdAt(path)` ahora es exported desde `src/lib/brewtui-bar-installer.ts`
   para que `doctor` pueda reutilizarlo sin duplicar la lógica de
   `defaults read … CFBundleIdentifier`.
 - Nuevo módulo `src/lib/doctor.ts` con la lógica del subcomando.
@@ -255,7 +255,7 @@
   todavía emitía notificaciones con prefixes `brewbar-outdated`,
   `brewbar-sync` y `brewbar-cve` — residuo del rename de 2.0.0. Funcionalmente
   equivalentes, pero los IDs aparecían como huellas legacy en cualquier
-  inspección del UNUserNotificationCenter. Ahora son `brew-tui-bar-*`.
+  inspección del UNUserNotificationCenter. Ahora son `brewtui-bar-*`.
 
 ### Docs
 - Auditoría completa de `CLAUDE.md`: corregidos datos contradichos por el
@@ -263,47 +263,47 @@
   donde el doc decía 0, `tuist clean` añadido como paso explícito del
   release runbook), y añadidos los huecos de cobertura detectados
   (aliases CLI deprecados, comando para ejecutar tests Swift, sección
-  Naming ampliada con Brew-TUI-Bar / brew-tui-bar / bundle ID, lógica
+  Naming ampliada con BrewTUI-Bar / brewtui-bar / bundle ID, lógica
   `wasEverActive` que discrimina Free vs Expired en el popover, y la
   semántica de `_isPro` ignorado en `installBrewTUIBar`).
 
 ## [2.2.1] - 2026-05-25
 
 ### Fixed
-- **Postinstall ahora actualiza Brew-TUI-Bar.app cuando está desactualizada,
+- **Postinstall ahora actualiza BrewTUI-Bar.app cuando está desactualizada,
   no solo cuando falta.** En 2.2.0 el postinstall solo bajaba el bundle si
-  `/Applications/Brew-TUI-Bar.app` no existía; si el usuario tenía una
-  versión vieja se quedaba ahí, y `brew upgrade brew-tui` no actualizaba la
+  `/Applications/BrewTUI-Bar.app` no existía; si el usuario tenía una
+  versión vieja se quedaba ahí, y `brew upgrade brewtui-bar` no actualizaba la
   app. Ahora invoca el mismo helper `syncAndLaunchBrewTUIBar()` que la ruta
   cold-start del TUI: install si falta, reinstall si outdated, launch.
-- **Brew-TUI-Bar ya no se cuenta a sí misma como paquete outdated en el
+- **BrewTUI-Bar ya no se cuenta a sí misma como paquete outdated en el
   badge de la barra.** `brew outdated --json=v2` lista todos los casks con
-  versión nueva en el tap; cuando se publicaba una release de Brew-TUI-Bar,
+  versión nueva en el tap; cuando se publicaba una release de BrewTUI-Bar,
   la propia app aparecía como "1 update available", confundiendo al usuario
   ("¿qué paquete?"). `BrewChecker.checkOutdated()` filtra los casks
-  `brew-tui-bar` y `brewbar` antes de retornar al popover. El postinstall +
+  `brewtui-bar` y `brewbar` antes de retornar al popover. El postinstall +
   cold-start ya mantienen el bundle al día sin intervención.
 
 ### Internal
 - `syncAndLaunchBrewTUIBar()` nuevo helper exportado desde
-  `src/lib/brew-tui-bar-installer.ts`. Centraliza la lógica antes duplicada
+  `src/lib/brewtui-bar-installer.ts`. Centraliza la lógica antes duplicada
   entre `ensureBrewTUIBarRunning()` (cold-start) y el `postinstall.ts`
 - `BrewChecker.selfCaskNames` set con los nombres de los casks propios
 
 ## [2.2.0] - 2026-05-25
 
 ### Added
-- **Instalación + lanzamiento automático de Brew-TUI-Bar en macOS al instalar
-  el CLI globalmente.** Ahora `brew install brew-tui` (que internamente hace
-  `npm install --global`) o `npm install -g brew-tui` ejecutan un script
-  `postinstall` que descarga `/Applications/Brew-TUI-Bar.app` desde la GH
+- **Instalación + lanzamiento automático de BrewTUI-Bar en macOS al instalar
+  el CLI globalmente.** Ahora `brew install brewtui-bar` (que internamente hace
+  `npm install --global`) o `npm install -g brewtui-bar` ejecutan un script
+  `postinstall` que descarga `/Applications/BrewTUI-Bar.app` desde la GH
   Release y lo lanza con `open -g -a`. El usuario ve el icono en la barra
   de menú sin pasos extras.
   - No-op fuera de macOS (`process.platform !== 'darwin'` → return)
   - No-op en instalaciones locales (`npm_config_global !== 'true'` → return),
     así que clonar el repo para desarrollo no toca `/Applications`
   - Non-fatal por diseño: cualquier fallo de red, permisos o disco solo
-    imprime un warning con el comando `brew-tui install-brew-tui-bar` como
+    imprime un warning con el comando `brewtui-bar install-brewtui-bar` como
     fallback, nunca rompe el install
   - Se ejecuta para usuarios Free y Pro (2.1.0 quitó el gate Pro en el
     installer); Free users ven la vista de upgrade en el popover
@@ -331,15 +331,15 @@
 ## [2.1.0] - 2026-05-25
 
 ### Changed
-- **Brew-TUI-Bar ahora se instala y ejecuta para usuarios Free.** Antes la
+- **BrewTUI-Bar ahora se instala y ejecuta para usuarios Free.** Antes la
   app exigía Pro y se cerraba al abrirla sin licencia. Ahora cualquier
-  usuario macOS la recibe automáticamente al primer `brew-tui` o
-  `brew-tui activate`, vive en la barra de menú igual que para Pro, y al
+  usuario macOS la recibe automáticamente al primer `brewtui-bar` o
+  `brewtui-bar activate`, vive en la barra de menú igual que para Pro, y al
   hacer click muestra un funnel de upgrade dentro del popover con la
-  lista de features Pro (Brew-TUI-Bar, Profiles, Smart Cleanup, History,
+  lista de features Pro (BrewTUI-Bar, Profiles, Smart Cleanup, History,
   Security Audit), CTA destacado "Subscribe Yearly — €82 (save 31%)",
   opción secundaria "Subscribe Monthly — €9.95", caja con el comando
-  `brew-tui activate <your-license-key>` y botón de copia, y enlace
+  `brewtui-bar activate <your-license-key>` y botón de copia, y enlace
   "See all plans".
 - **Eliminados los gates Pro del CLI installer.** `installBrewTUIBar()` y
   `ensureBrewTUIBarRunning()` ya no rechazan a Free users. El gate vive
@@ -359,26 +359,26 @@
 ## [2.0.1] - 2026-05-25
 
 ### Changed
-- **`brew-tui activate` ahora instala y lanza Brew-TUI-Bar inmediatamente.**
+- **`brewtui-bar activate` ahora instala y lanza BrewTUI-Bar inmediatamente.**
   Tras una activación exitosa se dispara la misma ruta de auto-install y
   auto-launch que antes solo se ejecutaba en el siguiente arranque del TUI.
-  En macOS + Pro, el bundle aparece en `/Applications/Brew-TUI-Bar.app` y se
-  lanza en la barra de menú sin necesidad de re-invocar `brew-tui`. No-op
+  En macOS + Pro, el bundle aparece en `/Applications/BrewTUI-Bar.app` y se
+  lanza en la barra de menú sin necesidad de re-invocar `brewtui-bar`. No-op
   en Linux/Windows y libre de fallos (la ruta de cold-start del siguiente
   run sigue cubriendo cualquier error transitorio).
 
 ## [2.0.0] - 2026-05-25
 
 ### Changed
-- **Renombrado: BrewBar → Brew-TUI-Bar.** El nombre `BrewBar` colisionaba con
+- **Renombrado: BrewBar → BrewTUI-Bar.** El nombre `BrewBar` colisionaba con
   un cask de terceros (`omkarkirpan/tap/brewbar`), publicado tres meses antes
   que el nuestro. Reescritura completa del branding interno y externo:
   - Bundle ID: `com.molinesdesigns.brewbar` → `com.molinesdesigns.brewtuibar`
-  - Filename: `BrewBar.app` → `Brew-TUI-Bar.app`
+  - Filename: `BrewBar.app` → `BrewTUI-Bar.app`
   - Subcomandos CLI: `install-brewbar` / `uninstall-brewbar` →
-    `install-brew-tui-bar` / `uninstall-brew-tui-bar`. Los aliases viejos
+    `install-brewtui-bar` / `uninstall-brewtui-bar`. Los aliases viejos
     siguen funcionando con warning de deprecación; se eliminan en 2.1.0.
-  - Cask: nuevo `molinesdesigns/tap/brew-tui-bar`; `brewbar` queda como
+  - Cask: nuevo `molinesdesigns/tap/brewtui-bar`; `brewbar` queda como
     cask transicional `deprecate!` que distribuye el mismo binario nuevo.
 - **Migrador automático en primer launch** (`LegacyMigrator.swift`): copia
   todos los UserDefaults bajo el bundle ID viejo al nuevo (preferencias de
@@ -386,12 +386,12 @@
   Login Item con `SMAppService`, y deja un flag idempotente para no repetir.
   El permiso de notificaciones se vuelve a pedir cuando el usuario active
   notificaciones (limitación de macOS al cambiar bundle ID).
-- **Guard de bundle ID en `install-brew-tui-bar`**: antes de tocar
-  `/Applications/Brew-TUI-Bar.app` se verifica que el bundle ID coincida con
+- **Guard de bundle ID en `install-brewtui-bar`**: antes de tocar
+  `/Applications/BrewTUI-Bar.app` se verifica que el bundle ID coincida con
   `com.molinesdesigns.brewtuibar`. Si encuentra una app de otro autor con el
   mismo nombre, aborta sin sobreescribir.
 - **Asset de release renombrado**: `BrewBar.app.zip` →
-  `Brew-TUI-Bar.app.zip` (más `.sha256`). El guard prepublish ahora se llama
+  `BrewTUI-Bar.app.zip` (más `.sha256`). El guard prepublish ahora se llama
   `scripts/check-brewtuibar-release.mjs` y la variable de bypass es
   `SKIP_BREWTUIBAR_CHECK` (la antigua sigue aceptada por compatibilidad).
 - **Keychain profile de notarización**: `brewbar-notary` se conserva tal cual
@@ -401,32 +401,32 @@
 ### Migration notes
 Los usuarios con `brewbar` cask instalado reciben el binario renombrado
 automáticamente al hacer `brew upgrade --cask brewbar` (la versión
-transicional 2.0.0 instala `Brew-TUI-Bar.app` y limpia `BrewBar.app`).
+transicional 2.0.0 instala `BrewTUI-Bar.app` y limpia `BrewBar.app`).
 Para migrar al nombre de cask nuevo:
 
 ```
 brew uninstall --cask brewbar
-brew install --cask molinesdesigns/tap/brew-tui-bar
+brew install --cask molinesdesigns/tap/brewtui-bar
 ```
 
 Settings y Login Item se transfieren automáticamente en el primer arranque
-de `Brew-TUI-Bar.app`.
+de `BrewTUI-Bar.app`.
 
 ## [1.3.0] - 2026-05-21
 
 ### Added
-- **Brew-TUI-Bar: intervalos de verificación más finos** en Ajustes. Ahora ofrece
+- **BrewTUI-Bar: intervalos de verificación más finos** en Ajustes. Ahora ofrece
   30 minutos y 2 horas además del set previo (1 h / 4 h / 8 h). Los
   rawValues anteriores se conservan, así las preferencias guardadas siguen
   mapeando sin migración.
 
 ### Fixed
-- **Brew-TUI-Bar: el popover se cierra al hacer click fuera** sin abortar
+- **BrewTUI-Bar: el popover se cierra al hacer click fuera** sin abortar
   procesos en curso. Se añadió un `NSEvent.addGlobalMonitorForEvents`
   (`.leftMouseDown` + `.rightMouseDown`) como red de seguridad sobre el
   `behavior = .transient` existente, que en ocasiones no disparaba el
   cierre por foco residual de la sheet de Settings o por `makeKey()`.
-- **Brew-TUI-Bar: refresh y upgrade ya no se cancelan al ocultarse el popover.**
+- **BrewTUI-Bar: refresh y upgrade ya no se cancelan al ocultarse el popover.**
   Se retiraron los `@State Task<Void, Never>?` que se cancelaban en
   `onDisappear` de `PopoverView` y `OutdatedListView`; ahora las
   operaciones viven exclusivamente en `AppState` y completan en
@@ -435,19 +435,19 @@ de `Brew-TUI-Bar.app`.
 ## [1.2.3] - 2026-05-21
 
 ### Added
-- **Auto-restart de Brew-TUI-Bar al actualizarse**: si Brew-TUI-Bar está corriendo
-  cuando `brew-tui install-brew-tui-bar` (o el auto-update del cold-start)
+- **Auto-restart de BrewTUI-Bar al actualizarse**: si BrewTUI-Bar está corriendo
+  cuando `brewtui-bar install-brewtui-bar` (o el auto-update del cold-start)
   reemplaza el bundle, ahora se cierra de forma controlada con
-  AppleScript (`tell application "Brew-TUI-Bar" to quit`), se sustituye
-  `/Applications/Brew-TUI-Bar.app` y se relanza automáticamente. Sin esto el
+  AppleScript (`tell application "BrewTUI-Bar" to quit`), se sustituye
+  `/Applications/BrewTUI-Bar.app` y se relanza automáticamente. Sin esto el
   proceso vivo quedaba apuntando a un bundle huérfano hasta el siguiente
   arranque manual.
 
 ### Changed
 - **Guard `prepublishOnly`**: nuevo `scripts/check-brewbar-release.mjs`
   consulta la GitHub API y aborta `npm publish` si la release `vX.Y.Z`
-  no contiene `Brew-TUI-Bar.app.zip` + `.sha256`. Previene el escenario que
-  rompió 1.2.2 (release publicada sin assets → `install-brew-tui-bar` 404).
+  no contiene `BrewTUI-Bar.app.zip` + `.sha256`. Previene el escenario que
+  rompió 1.2.2 (release publicada sin assets → `install-brewtui-bar` 404).
   Bypass de emergencia: `SKIP_BREWBAR_CHECK=1 npm publish`.
 
 ## [1.2.2] - 2026-05-21
@@ -457,7 +457,7 @@ de `Brew-TUI-Bar.app`.
   `brewfile-manager` and `rollback-engine`: package names are now validated
   via `validatePackageName` before being streamed to `brew` (SEG-001,
   SEG-002).
-- **PII no longer logged** with `privacy: .public` in Brew-TUI-Bar's
+- **PII no longer logged** with `privacy: .public` in BrewTUI-Bar's
   `LicenseChecker`. Email, license key and instance id pass through a
   `summarizeStatus` helper that redacts before reaching the unified log
   (SEG-003).
@@ -468,7 +468,7 @@ de `Brew-TUI-Bar.app`.
 - `machineId` is hashed with SHA-256 before being sent to Polar (BK-009).
 
 ### Fixed
-- **TUI ⇄ Brew-TUI-Bar IPC**: `writeLastAction` is now invoked after both
+- **TUI ⇄ BrewTUI-Bar IPC**: `writeLastAction` is now invoked after both
   install (`search.tsx`) and uninstall (`installed.tsx`); the menubar app
   no longer goes stale after a TUI operation (BK-001).
 - **`SyncMonitor.getKnownMachineCount`** returns `-1` (unknown) instead
@@ -498,7 +498,7 @@ de `Brew-TUI-Bar.app`.
 - `release.sh` runs a `notarytool history` preflight (REL-001).
 
 ### Governance
-- `DesignExploration/` excluded from the notarised Brew-TUI-Bar binary
+- `DesignExploration/` excluded from the notarised BrewTUI-Bar binary
   (ARQ-005).
 - `CODEOWNERS` set to `@MoLinesDesigns` (GOV-001).
 - `.playwright-mcp/` removed from the index (198 files, GOV-002).
@@ -557,20 +557,20 @@ de `Brew-TUI-Bar.app`.
 ## [1.1.0] - 2026-05-17
 
 ### Added
-- **Brew-TUI-Bar popover footer** now shows `Brew-TUI-Bar v<version> · <tier>` so the
+- **BrewTUI-Bar popover footer** now shows `BrewTUI-Bar v<version> · <tier>` so the
   user can see at a glance which version is installed and whether the active
   license is Pro or Basic.
-- **Brew-TUI-Bar Settings panel** reorganised into five sections:
+- **BrewTUI-Bar Settings panel** reorganised into five sections:
   - **General** — check interval, launch at login.
   - **Notifications** — toggle plus System Settings hint when denied.
   - **Menu Bar Badges** — independent toggles for the outdated counter, CVE
     alerts, and sync indicator next to the menu bar icon (`BadgePreferences`,
     persisted in UserDefaults, default on).
   - **License** — tier, email, plan, last validated, expiration, plus
-    `Revalidate license` (spawns `brew-tui revalidate` in Terminal) and
+    `Revalidate license` (spawns `brewtui-bar revalidate` in Terminal) and
     `Manage subscription` (opens Polar).
-  - **Advanced** — `Brew-TUI-Bar version`, `Brew-TUI CLI` version, `Open data
-    folder` (`~/.brew-tui/` in Finder), and `View logs` (Console.app).
+  - **Advanced** — `BrewTUI-Bar version`, `BrewTUI-Bar CLI` version, `Open data
+    folder` (`~/.brewtui-bar/` in Finder), and `View logs` (Console.app).
 - **`LicenseSummary` model** — flat, Sendable snapshot derived from
   `LicenseStatus` exposed on `AppState`. Built once at launch so the popover
   and Settings can read tier/email/plan/dates without re-decrypting
@@ -590,7 +590,7 @@ de `Brew-TUI-Bar.app`.
 - **Search view layout** rewritten around the new container size so result
   columns and pagination match the actual panel width, not the raw terminal
   width.
-- **Brew-TUI-Bar Info.plist** declares `LSApplicationCategoryType =
+- **BrewTUI-Bar Info.plist** declares `LSApplicationCategoryType =
   public.app-category.developer-tools` (set in `menubar/Project.swift`), so
   Xcode's "No App Category" archive warning no longer fires.
 
@@ -615,7 +615,7 @@ de `Brew-TUI-Bar.app`.
 ## [0.9.2] - 2026-05-17
 
 ### Fixed
-- **`brew-tui install-brew-tui-bar` progress line.** The "Installing Brew-TUI-Bar…" log
+- **`brewtui-bar install-brewtui-bar` progress line.** The "Installing BrewTUI-Bar…" log
   used to print from inside `lib/brewbar-installer.ts`, violating the CLAUDE.md
   rule that `lib/` modules must not use bare `console.*`. The log now lives in
   the CLI subcommand handler (`src/index.tsx`) where stdout is the intended
@@ -663,22 +663,22 @@ de `Brew-TUI-Bar.app`.
 - **Welcome screen** rewritten to teach the new model.
 
 ### Added
-- **Brew-TUI-Bar live status banner.** After every `brew upgrade`, `install` or
-  `uninstall` from Brew-TUI, Brew-TUI-Bar refreshes immediately and shows a
+- **BrewTUI-Bar live status banner.** After every `brew upgrade`, `install` or
+  `uninstall` from BrewTUI-Bar, BrewTUI-Bar refreshes immediately and shows a
   friendly banner explaining what happened and how many packages are still
-  pending — for example *"Just upgraded htop from Brew-TUI. 3 packages still
+  pending — for example *"Just upgraded htop from BrewTUI-Bar. 3 packages still
   pending an update."* or *"No packages left to update — you're all set."*.
   Auto-fades after 30 s, dismissable manually. The handoff goes through
-  `~/.brew-tui/last-action.json` (atomic rename), watched by a
-  `DispatchSourceFileSystemObject` in Brew-TUI-Bar — same pattern already used
+  `~/.brewtui-bar/last-action.json` (atomic rename), watched by a
+  `DispatchSourceFileSystemObject` in BrewTUI-Bar — same pattern already used
   for iCloud sync, no new IPC.
 - **`useViewInput` hook** that suppresses per-view keypresses while the side
   menu owns input, so arrow keys never get double-handled.
 
 ### Cross-platform contract
-- Brew-TUI 0.9.0 and Brew-TUI-Bar 0.9.0 are released together. Update both halves
-  to keep license decryption and the new live banner working. Brew-TUI-Bar
-  detects drift on launch and prompts `brew-tui install-brew-tui-bar --force`.
+- TypeScript TUI 0.9.0 and BrewTUI-Bar 0.9.0 are released together. Update both halves
+  to keep license decryption and the new live banner working. BrewTUI-Bar
+  detects drift on launch and prompts `brewtui-bar install-brewtui-bar --force`.
 
 ## [0.8.1] - 2026-05-08
 
@@ -690,79 +690,79 @@ de `Brew-TUI-Bar.app`.
 ## [0.7.0] - 2026-05-02
 
 ### Fixed
-- **Brew-TUI-Bar release channel:** notarization and cask publishing now target the
+- **BrewTUI-Bar release channel:** notarization and cask publishing now target the
   active package version instead of a hardcoded release tag.
 - **AsyncState lint gate:** preserved the public `AsyncState` helper API while
   avoiding the TypeScript value/type redeclaration that blocked pre-push lint.
 
 ### Changed
-- **Brew-TUI-Bar:** version bumped to 0.7.0 for the notarized macOS companion app.
-- **Homebrew:** formula and cask release metadata prepared for Brew-TUI and
-  Brew-TUI-Bar 0.7.0.
+- **BrewTUI-Bar:** version bumped to 0.7.0 for the notarized macOS companion app.
+- **Homebrew:** formula and cask release metadata prepared for BrewTUI-Bar and
+  BrewTUI-Bar 0.7.0.
 - **Release metadata:** npm, JSR, package-lock and Tuist marketing versions now
   move together for the 0.7.0 release.
 
 ## [0.6.2] - 2026-05-01
 
 ### Fixed
-- **Security Audit (Pro):** the TUI mirror of the Brew-TUI-Bar OSV bug. `osv-api.ts`
+- **Security Audit (Pro):** the TUI mirror of the BrewTUI-Bar OSV bug. `osv-api.ts`
   was sending `ecosystem: 'Homebrew'` to OSV.dev, which rejects that value with
   HTTP 400, so every Security Audit run silently returned zero CVEs. Switched
   to `Bitnami` (same approach already used by `SecurityMonitor.swift`).
   Packages outside Bitnami's catalog return empty results instead of failing
   the whole batch.
-- **`brew-tui install-brew-tui-bar`:** the bundled download URL pointed at the old
+- **`brewtui-bar install-brewtui-bar`:** the bundled download URL pointed at the old
   `MoLinesGitHub` org. GitHub still serves a 301 redirect, but stricter HTTP
-  clients can fail. Updated to `MoLinesDesigns/Brew-TUI/releases/latest/...`.
+  clients can fail. Updated to `MoLinesDesigns/BrewTUI-Bar/releases/latest/...`.
 - **Homebrew Cask:** `brewbar` was stuck at 0.1.0 with the same outdated org
   URL — the cask was effectively unusable. Bumped to 0.6.1 with the SHA256 of
   the published release zip and the corrected URL.
 
 ### Changed
 - **License portability check is stricter.** Previously, if
-  `~/.brew-tui/machine-id` was missing the check silently passed. Now a
+  `~/.brewtui-bar/machine-id` was missing the check silently passed. Now a
   missing machine-id is regenerated and compared against the one stored in
   `license.json` — if they don't match, the license is rejected and the user
   is asked to reactivate. This affects users whose machine-id was wiped
   by a Time Machine restore, a fresh shell init or manual cleanup. Run
-  `brew-tui activate <key>` once to re-bind the license.
+  `brewtui-bar activate <key>` once to re-bind the license.
 
 ### Internal
 - Repository URLs across `package.json`, `README`, the formula, the cask, the
   issue template and the brewbar installer now point at `MoLinesDesigns/*`.
 - `jsr.json` bumped 0.5.2 → 0.6.2 to follow npm.
-- Stale 0.4.1 Brew-TUI-Bar artefacts (`Brew-TUI-Bar.app.zip`, `.dSYM`) removed from the
+- Stale 0.4.1 BrewTUI-Bar artefacts (`BrewTUI-Bar.app.zip`, `.dSYM`) removed from the
   repo working tree; they were already gitignored but had been committed
   earlier.
 - Single canonical `getMachineId()` lives in `data-dir.ts`; the four
   diverging implementations across `polar-api`, `license-manager`, `promo`
   and `sync-engine` were collapsed. The hostname fallback in sync (which
   collided same-named machines on freshly-imaged fleets) is gone.
-- Brew-TUI-Bar's `BrewProcess.run` drains brew's stdout incrementally; the
+- BrewTUI-Bar's `BrewProcess.run` drains brew's stdout incrementally; the
   previous synchronous `readDataToEndOfFile()` deadlocked on outputs over
   ~64 KB.
-- `~/.brew-tui/snapshots/` is now capped at 20 auto entries per
+- `~/.brewtui-bar/snapshots/` is now capped at 20 auto entries per
   `saveSnapshot`; user-labelled checkpoints are preserved.
-- Brew-TUI-Bar's license degradation now mirrors the TUI's 7/14/30-day
+- BrewTUI-Bar's license degradation now mirrors the TUI's 7/14/30-day
   thresholds and exposes the level via `LicenseStatus.pro(_, level)`.
-- CI now runs `xcodebuild build` + `xcodebuild test` for Brew-TUI-Bar on
+- CI now runs `xcodebuild build` + `xcodebuild test` for BrewTUI-Bar on
   `macos-latest` in addition to the existing `npm run validate` on Ubuntu.
 
 ## [0.6.1] - 2026-05-01
 
 ### Fixed
-- **Brew-TUI-Bar:** outdated count was always zero on systems with cask updates,
+- **BrewTUI-Bar:** outdated count was always zero on systems with cask updates,
   so notifications never fired. `OutdatedPackage` required `pinned: Bool` but
   casks from `brew outdated --json=v2 --greedy` omit that field, making the
   whole JSON decode throw and the refresh abort silently. The decoder now
   treats `pinned` and `pinned_version` as optional and defaults `pinned` to
   `false`, matching the formula contract.
-- **Brew-TUI-Bar:** CVE check spammed `OSV API returned HTTP 400` every hour
+- **BrewTUI-Bar:** CVE check spammed `OSV API returned HTTP 400` every hour
   because OSV does not accept `Homebrew` as an ecosystem. Switched to
   `Bitnami`, which covers most common OSS packages and filters by version
   correctly. Packages outside Bitnami's catalog return empty results
   instead of crashing the batch.
-- **Brew-TUI-Bar:** consecutive outdated notifications were silently replaced
+- **BrewTUI-Bar:** consecutive outdated notifications were silently replaced
   in macOS Notification Center because every `UNNotificationRequest` reused
   the same identifier. Notifications now use a per-fire timestamped
   identifier so each one shows as a fresh banner.
@@ -770,13 +770,13 @@ de `Brew-TUI-Bar.app`.
 ### Internal
 - `AppState.refresh()` now logs decoding/refresh errors via `os.Logger` so
   silent failures show up in `log show --predicate 'subsystem == "com.molinesdesigns.brewtuibar"'`.
-- `Brew-TUI-Bar` version bumped to 0.6.1.
+- `BrewTUI-Bar` version bumped to 0.6.1.
 
 ## [0.5.3] - 2026-04-29
 
 ### Fixed
-- **Brew-TUI-Bar:** outdated packages now reflect the current Homebrew formula index.
-  Previously `brew update` was never run before `brew outdated`, so Brew-TUI-Bar
+- **BrewTUI-Bar:** outdated packages now reflect the current Homebrew formula index.
+  Previously `brew update` was never run before `brew outdated`, so BrewTUI-Bar
   could show zero updates while the terminal found packages to upgrade.
   `AppState.refresh()` now runs `brew update --quiet` first (non-fatal, 120s
   timeout) before the parallel outdated + services check.
@@ -784,7 +784,7 @@ de `Brew-TUI-Bar.app`.
 ### Internal
 - `BrewChecker.updateIndex()` added — runs `brew update` without
   `HOMEBREW_NO_AUTO_UPDATE` so the local tap index is always fresh.
-- `Brew-TUI-Bar` version bumped to 0.4.2.
+- `BrewTUI-Bar` version bumped to 0.4.2.
 
 ## [0.5.2] - 2026-04-28
 
@@ -807,7 +807,7 @@ de `Brew-TUI-Bar.app`.
 ### Fixed
 - **License gating bug:** `isTeam()` returned true for Pro users, granting free access to Team Compliance. Now strict (`status === 'team'` only).
 - **Plan persistence:** activate / initialize now propagate `license.plan` ('pro' or 'team') instead of hardcoding 'pro'. Combined with the new `detectPlan()` helper that infers tier from the license-key prefix (`BTUI-T-` → Team, `BTUI-` → Pro).
-- **Brew-TUI-Bar menu bar icon:** the status item reserved extra horizontal space because the icon's native size was used and the badge string had a leading whitespace. Icon now forced to 18×18 pt and the badge collapses to truly empty when there is nothing to show.
+- **BrewTUI-Bar menu bar icon:** the status item reserved extra horizontal space because the icon's native size was used and the badge string had a leading whitespace. Icon now forced to 18×18 pt and the badge collapses to truly empty when there is nothing to show.
 
 ### Added
 - `POLAR_PRODUCT_IDS` and `POLAR_CHECKOUT_URLS` constants for the four live Polar products.
@@ -817,36 +817,36 @@ de `Brew-TUI-Bar.app`.
 
 ### Added — Power Release (Phase 1-6)
 
-- **CVE Real-time monitoring (Pro):** Brew-TUI-Bar polls OSV.dev hourly, shows ⚠N badge in menu bar and sends macOS notifications for new critical/high CVEs in installed packages. Click notification jumps to security-audit view.
+- **CVE Real-time monitoring (Pro):** BrewTUI-Bar polls OSV.dev hourly, shows ⚠N badge in menu bar and sends macOS notifications for new critical/high CVEs in installed packages. Click notification jumps to security-audit view.
 - **Impact Analysis (Pro):** pre-upgrade risk panel (low/medium/high) showing dependency tree, breaking changes hint, and reverse-deps that will be affected. Surfaced in `outdated` view before each upgrade.
 - **Smart Rollback (Pro):** automatic snapshots after every install/upgrade/uninstall/pin. Rollback view generates plans using bottle/versioned/pin strategies. `R` key in security-audit jumps to rollback for vulnerable packages.
 - **Declarative Brewfile (Pro):** YAML-based desired state with drift score 0-100 and interactive reconciliation. High-risk upgrades hint to add the package to Brewfile first.
-- **Cross-machine Sync (Pro):** iCloud Drive backend with AES-256-GCM encryption, per-machine identity, interactive conflict resolution, ⟳ drift badge in Brew-TUI-Bar. Post-sync success offers `c` shortcut to Compliance.
+- **Cross-machine Sync (Pro):** iCloud Drive backend with AES-256-GCM encryption, per-machine identity, interactive conflict resolution, ⟳ drift badge in BrewTUI-Bar. Post-sync success offers `c` shortcut to Compliance.
 - **Team Compliance (Team tier):** PolicyFile JSON, score 0-100, severity-graded violations, automatic remediation plans. New `compliance` view (Team-gated, separate from Pro).
 - **Dashboard Pro Status panel:** unified state of the 4 power modules (snapshots, Brewfile drift, sync, compliance).
-- **`brew-tui status` CLI:** now shows snapshot count, Brewfile drift, sync state and compliance score.
+- **`brewtui-bar status` CLI:** now shows snapshot count, Brewfile drift, sync state and compliance score.
 
 ### Internal
 - New shared modules: `state-snapshot/`, `diff-engine/`, `impact/`, `rollback/`, `brewfile/`, `sync/` (with `crypto` + iCloud backend), `compliance/`.
-- Brew-TUI-Bar `SyncMonitor.swift` + scheduler hooks for `cveMonitor` and `syncDriftCheck`.
+- BrewTUI-Bar `SyncMonitor.swift` + scheduler hooks for `cveMonitor` and `syncDriftCheck`.
 - 205 tests across 20 test files (all passing).
 
 ## [0.4.1] - 2026-04-27
 
 ### Added
-- Brew-TUI-Bar auto-install + auto-launch on every `brew-tui` run for Pro users (macOS only).
-- Brew-TUI-Bar auto-registers as a login item the first time it runs as Pro (idempotent; respects later opt-out from Settings).
+- BrewTUI-Bar auto-install + auto-launch on every `brewtui-bar` run for Pro users (macOS only).
+- BrewTUI-Bar auto-registers as a login item the first time it runs as Pro (idempotent; respects later opt-out from Settings).
 
 ### Changed
-- Brew-TUI-Bar binary now signed with Developer ID + hardened runtime, notarized by Apple, and stapled — installs cleanly without Gatekeeper warnings.
-- `LicenseChecker` (Swift) now recognizes built-in PRO accounts so they pass the Pro check in Brew-TUI-Bar.
+- BrewTUI-Bar binary now signed with Developer ID + hardened runtime, notarized by Apple, and stapled — installs cleanly without Gatekeeper warnings.
+- `LicenseChecker` (Swift) now recognizes built-in PRO accounts so they pass the Pro check in BrewTUI-Bar.
 
 ## [0.2.0] - 2026-04-23
 
 ### Security
 - Fix: Remove source maps from production bundle
 - Fix: Add timeouts to all network requests (15s API, 120s downloads)
-- Fix: Verify Brew-TUI-Bar download integrity with SHA-256
+- Fix: Verify BrewTUI-Bar download integrity with SHA-256
 - Fix: License deactivation retries before clearing local data
 - Fix: Remove anti-debug environment variable bypass
 - Add: PrivacyInfo.xcprivacy for Apple compliance
@@ -858,14 +858,14 @@ de `Brew-TUI-Bar.app`.
 - Account: deactivation no longer freezes on network error
 - Profiles: importing mode no longer traps user
 - Installed: ProgressLog dismissible with Esc after uninstall
-- Brew-TUI-Bar: Upgrade All now requires confirmation
-- Brew-TUI-Bar: Expired license no longer terminates app
+- BrewTUI-Bar: Upgrade All now requires confirmation
+- BrewTUI-Bar: Expired license no longer terminates app
 - CLI: `status` now reports expired licenses correctly
-- CLI: `install-brew-tui-bar` now evaluates the current license before requiring Pro
+- CLI: `install-brewtui-bar` now evaluates the current license before requiring Pro
 - Dashboard: partial Homebrew fetch failures now surface explicit warnings instead of misleading stats
 - License: revalidation now refreshes degradation state instead of leaving stale warnings
-- Brew-TUI-Bar: expired-license guidance now points to `brew-tui revalidate`
-- Brew-TUI-Bar: expired licenses now fall back to actual basic mode with upgrades disabled
+- BrewTUI-Bar: expired-license guidance now points to `brewtui-bar revalidate`
+- BrewTUI-Bar: expired licenses now fall back to actual basic mode with upgrades disabled
 
 ### Improved
 - Dynamic terminal row adaptation (no more hardcoded 20 rows)
@@ -873,8 +873,8 @@ de `Brew-TUI-Bar.app`.
 - Proper file permissions (0o600) for user data files
 - GradientText memoized for better render performance
 - fetchAll no longer blocks on brew update
-- Brew-TUI-Bar badge timer reduced from 2s to 30s
-- Parallel refresh in Brew-TUI-Bar (outdated + services)
+- BrewTUI-Bar badge timer reduced from 2s to 30s
+- Parallel refresh in BrewTUI-Bar (outdated + services)
 - CLI: new `revalidate` command for existing licenses
 - Docs and release notes aligned with the current npm-only publish flow
 

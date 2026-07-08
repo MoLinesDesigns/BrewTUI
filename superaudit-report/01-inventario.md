@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo freemium (tiers Free, Pro y Team) y una companion app macOS menubar (Swift 6/SwiftUI) llamada BrewBar. El codebase TypeScript contiene 178 archivos `.ts`/`.tsx` (118 fuente + 60 test) con 19.951 LOC; el codebase Swift tiene 27 archivos de produccion mas 2 de test con 4.918 LOC totales incluyendo el target `BrewBarTests`. Se identifican 16 vistas TUI, 13 modulos de libreria Pro/Team, 8 stores Zustand y carpetas de artefactos legacy con impacto en la higiene del repositorio.
+BrewTUI-Bar es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo freemium (tiers Free, Pro y Team) y una companion app macOS menubar (Swift 6/SwiftUI) llamada BrewBar. El codebase TypeScript contiene 178 archivos `.ts`/`.tsx` (118 fuente + 60 test) con 19.951 LOC; el codebase Swift tiene 27 archivos de produccion mas 2 de test con 4.918 LOC totales incluyendo el target `BrewBarTests`. Se identifican 16 vistas TUI, 13 modulos de libreria Pro/Team, 8 stores Zustand y carpetas de artefactos legacy con impacto en la higiene del repositorio.
 
 ---
 
@@ -12,7 +12,7 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 
 > Este proyecto no sigue la arquitectura iOS tipica. Los marcadores se adaptan a la realidad del producto.
 
-* [x] CLI binary macOS — `bin/brew-tui.js` (Node ≥22, ESM, entry `src/index.tsx`)
+* [x] CLI binary macOS — `bin/brewtui-bar.js` (Node ≥22, ESM, entry `src/index.tsx`)
 * [x] App macOS menubar — BrewBar, `com.molinesdesigns.brewbar`, macOS 14+, `LSUIElement: true`
 * [ ] App iPhone — No aplica
 * [ ] App iPad — No aplica
@@ -24,13 +24,13 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 * [ ] Backend API — No aplica (licencias via Polar API externa; no hay backend propio en este repo)
 * [ ] Jobs / workers — No aplica
 * [ ] Admin panel / dashboard — No aplica
-* [ ] Servicios auxiliares — No aplica (Docker ausente; IPC local via `~/.brew-tui/last-action.json`)
+* [ ] Servicios auxiliares — No aplica (Docker ausente; IPC local via `~/.brewtui-bar/last-action.json`)
 
 ### Detalle de targets
 
 | Target | Plataforma | Bundle ID | Deployment Target | Tipo |
 |--------|------------|-----------|-------------------|------|
-| `brew-tui` (npm bin) | macOS (Node ≥22) | `brew-tui` (npm package) | Node 22 | CLI / TUI binario |
+| `brewtui-bar` (npm bin) | macOS (Node ≥22) | `brewtui-bar` (npm package) | Node 22 | CLI / TUI binario |
 | `BrewBar` | macOS | `com.molinesdesigns.brewbar` | macOS 14.0 | App menubar (LSUIElement) |
 | `BrewBarTests` | macOS | `com.molinesdesigns.brewbar.tests` | macOS 14.0 | Unit test target (XCTest) |
 
@@ -165,8 +165,8 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 * **Modulo:** `src/views/history.tsx` + `src/lib/history/` + `src/stores/history-store.ts`
 * **Pantallas involucradas:** `HistoryView`
 * **Casos de uso:** Ver historial de operaciones brew; rollback a punto anterior
-* **APIs asociadas:** Lee `~/.brew-tui/history.json`
-* **Persistencia asociada:** `history-logger.ts` — escribe en `~/.brew-tui/history.json`
+* **APIs asociadas:** Lee `~/.brewtui-bar/history.json`
+* **Persistencia asociada:** `history-logger.ts` — escribe en `~/.brewtui-bar/history.json`
 * **Estados criticos:** Gating Pro; integridad del historial entre sesiones
 * **Riesgo funcional:** Alto — historial incorrecto puede llevar a rollbacks erroneos
 
@@ -198,7 +198,7 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 * **Modulo:** `src/views/profiles.tsx` + `src/views/profiles/` (4 subcomponentes) + `src/lib/profiles/` + `src/stores/profile-store.ts`
 * **Pantallas involucradas:** `ProfilesView`, `ProfileListMode`, `ProfileDetailMode`, `ProfileCreateFlow`, `ProfileEditFlow`
 * **Casos de uso:** Crear, editar, exportar e importar perfiles de paquetes; watermark en exportacion
-* **APIs asociadas:** Lee/escribe `~/.brew-tui/profiles/`
+* **APIs asociadas:** Lee/escribe `~/.brewtui-bar/profiles/`
 * **Persistencia asociada:** Sistema de archivos local (`profiles/` en data dir)
 * **Estados criticos:** Gating Pro; 4 modos de subvista; watermark zero-width Unicode requiere `consent` explicito
 * **Riesgo funcional:** Medio
@@ -210,7 +210,7 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 * **Pantallas involucradas:** `RollbackView`
 * **Casos de uso:** Revertir una operacion brew a un estado anterior usando snapshots
 * **APIs asociadas:** `brew install <pkg>@<version>`, `brew uninstall`; lee snapshots de `state-snapshot/`
-* **Persistencia asociada:** Snapshots en `~/.brew-tui/` (gestionados por `snapshot.ts`)
+* **Persistencia asociada:** Snapshots en `~/.brewtui-bar/` (gestionados por `snapshot.ts`)
 * **Estados criticos:** Gating Pro; consistencia snapshot↔estado real; operacion destructiva
 * **Riesgo funcional:** Alta — un rollback mal ejecutado puede dejar el entorno Homebrew inconsistente
 
@@ -254,7 +254,7 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 * **Pantallas involucradas:** `AccountView`
 * **Casos de uso:** Activar/revalidar/desactivar licencia; mostrar estado de tier; acceso a `install-brewbar`
 * **APIs asociadas:** Polar API (`polar-api.ts`), subcommands CLI `activate`/`revalidate`/`deactivate`/`status`
-* **Persistencia asociada:** `~/.brew-tui/license.json` (AES-256-GCM, machine-bound) + `~/.brew-tui/machine-id`
+* **Persistencia asociada:** `~/.brewtui-bar/license.json` (AES-256-GCM, machine-bound) + `~/.brewtui-bar/machine-id`
 * **Estados criticos:** Rate limiting (30s cooldown, lockout 15min tras 5 fallos); offline grace period 7 dias; integridad del bundle
 * **Riesgo funcional:** Critica — fallo aqui bloquea acceso a todas las features Pro/Team
 
@@ -381,7 +381,7 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 | `src/` (root: app.tsx) | 1 | 1 | 0 | 100% |
 
 > **Gaps criticos sin cobertura:**
-> - `src/lib/data-dir.ts` — gestiona el directorio `~/.brew-tui/` y la escritura atomica de `last-action.json` (IPC con BrewBar); sin test
+> - `src/lib/data-dir.ts` — gestiona el directorio `~/.brewtui-bar/` y la escritura atomica de `last-action.json` (IPC con BrewBar); sin test
 > - `src/lib/analytics.ts` — sin test
 > - `src/lib/crash-reporter.ts` — sin test
 > - `src/lib/sync/backends/icloud-backend.ts` — backend de sync iCloud; sin test
@@ -457,8 +457,8 @@ Brew-TUI es un producto dual: una TUI Node.js (TypeScript/React/Ink) con modelo 
 
 | Canal | Detalle |
 |-------|---------|
-| npm | Paquete `brew-tui` en registro publico; `prepublishOnly` corre `validate` completo |
-| Homebrew tap | `MoLinesDesigns/homebrew-tap` — `Formula/brew-tui.rb` + `Casks/brewbar.rb` (en `homebrew/` del repo) |
+| npm | Paquete `brewtui-bar` en registro publico; `prepublishOnly` corre `validate` completo |
+| Homebrew tap | `MoLinesDesigns/homebrew-tap` — `Formula/brewtui-bar.rb` + `Casks/brewbar.rb` (en `homebrew/` del repo) |
 | GitHub Releases | `vX.Y.Z` con assets `BrewBar.app.zip` + `.sha256` |
-| MacPorts | `homebrew/macports/brew-tui.tcl` (presente en repo, estado de mantenimiento no verificado) |
+| MacPorts | `homebrew/macports/brewtui-bar.tcl` (presente en repo, estado de mantenimiento no verificado) |
 | Notarizacion | `brewbar-notary` keychain profile; `menubar/scripts/release.sh`; `menubar/exportOptions.plist` |

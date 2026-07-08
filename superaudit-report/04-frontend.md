@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-La arquitectura de componentes de Brew-TUI es solida para un TUI en React/Ink: jerarquia clara, separacion layout/comportamiento bien ejecutada, tokens de color y spacing sin excepciones, patron uncontrolled de `TextInput` respetado en todo el codigo. Se detectan dos hallazgos de severidad Alta con impacto funcional real — el bloque de estados del componente `account.tsx` que silencia el tier `team` y la ruptura del canal IPC con BrewBar en instalaciones desde `search.tsx` — mas tres hallazgos de severidad Media/Baja que afectan mantenibilidad y consistencia sin impacto inmediato en el usuario.
+La arquitectura de componentes de BrewTUI-Bar es solida para un TUI en React/Ink: jerarquia clara, separacion layout/comportamiento bien ejecutada, tokens de color y spacing sin excepciones, patron uncontrolled de `TextInput` respetado en todo el codigo. Se detectan dos hallazgos de severidad Alta con impacto funcional real — el bloque de estados del componente `account.tsx` que silencia el tier `team` y la ruptura del canal IPC con BrewBar en instalaciones desde `search.tsx` — mas tres hallazgos de severidad Media/Baja que afectan mantenibilidad y consistencia sin impacto inmediato en el usuario.
 
 ---
 
@@ -24,7 +24,7 @@ La arquitectura de componentes de Brew-TUI es solida para un TUI en React/Ink: j
 El punto de entrada es `src/app.tsx`. Estructura confirmada:
 
 - `<App>` → `<LicenseInitializer>` + `<AppLayout>` → `<Header>` + `<ViewRouter>` + `<Footer>`
-- `<WelcomeView>` renderizado fuera del router en primer lanzamiento (flag en `~/.brew-tui/onboarding`)
+- `<WelcomeView>` renderizado fuera del router en primer lanzamiento (flag en `~/.brewtui-bar/onboarding`)
 - `<ViewRouter>` enruta 16 vistas via `switch(currentView)` con gate Pro/Team via `isProView()`/`isTeamView()`
 - `<LicenseInitializer>` extraido como componente propio, no inline effect en `App` — conforme
 
@@ -384,7 +384,7 @@ El patron es: `navigationStore` con `currentView: ViewId`, `viewHistory: ViewId[
 
 ### Nota de contexto
 
-Brew-TUI es un TUI (terminal UI) ejecutado en macOS sobre terminal emuladores. Los conceptos de "iPhone/iPad/Mac idiom" no aplican. Los equivalentes TUI son: terminales estreching (resizes), `rows < N` (terminales pequenas), `columns < N` (terminales angostas), modo multitarea no aplica.
+BrewTUI-Bar es un TUI (terminal UI) ejecutado en macOS sobre terminal emuladores. Los conceptos de "iPhone/iPad/Mac idiom" no aplican. Los equivalentes TUI son: terminales estreching (resizes), `rows < N` (terminales pequenas), `columns < N` (terminales angostas), modo multitarea no aplica.
 
 ### Checklist
 

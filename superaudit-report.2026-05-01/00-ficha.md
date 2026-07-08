@@ -4,8 +4,8 @@
 
 ## Datos del proyecto
 
-* **Nombre del proyecto:** Brew-TUI + BrewBar
-* **Version actual:** 0.6.1 (npm / GitHub Release / BrewBar). Nota: la formula Homebrew tap (`homebrew/Formula/brew-tui.rb`) todavia apunta a 0.5.3 — desincronizacion documentada, pendiente de auditoria de release.
+* **Nombre del proyecto:** BrewTUI-Bar + BrewBar
+* **Version actual:** 0.6.1 (npm / GitHub Release / BrewBar). Nota: la formula Homebrew tap (`homebrew/Formula/brewtui-bar.rb`) todavia apunta a 0.5.3 — desincronizacion documentada, pendiente de auditoria de release.
 * **Plataformas:** macOS (CLI via Node.js, TUI en terminal) + macOS 14+ (BrewBar, app nativa en menu bar)
 * **Stack principal:**
   * TUI: TypeScript 6, React 19, Ink 7 (terminal renderer), Zustand 5 — ESM-only, Node ≥ 22
@@ -16,7 +16,7 @@
   * Licencias: Polar API (SaaS), AES-256-GCM para license.json en disco
   * Seguridad CVE: OSV.dev API (batch endpoint)
   * Sync: iCloud Drive con AES-256-GCM
-* **Repositorio:** https://github.com/MoLinesDesigns/Brew-TUI.git (origin git remote) / https://github.com/MoLinesGitHub/Brew-TUI (referenciado en package.json, README y formula). Desincronizacion de usuario de GitHub documentada para auditoria de gobierno.
+* **Repositorio:** https://github.com/MoLinesDesigns/BrewTUI-Bar.git (origin git remote) / https://github.com/MoLinesGitHub/BrewTUI-Bar (referenciado en package.json, README y formula). Desincronizacion de usuario de GitHub documentada para auditoria de gobierno.
 * **Commit auditado:** 72b6d84 (chore: release v0.6.1)
 * **Rama auditada:** main
 * **Fecha de auditoria:** 2026-05-01

@@ -55,7 +55,7 @@ El proyecto rinde bien para una app de terminal y un menubar pequeño: el bundle
 | Elemento | Severidad | Evidencia | Acción |
 |----------|-----------|-----------|--------|
 | Lazy imports en `status` Pro y en installer | Conforme — Informativa | `src/index.tsx:122,136,148,159,160,178,190,232` — cada bloque Pro hace `await import()` para snapshots, brewfile, sync, compliance, brewbar-installer | Mantener patrón. Generaron 9 chunks de tamaño pequeño (≤49 KB) en lugar de cargarse en el bundle principal |
-| `ensureBrewBarRunning()` se ejecuta antes de la TUI | Baja | `src/index.tsx:217` se llama en cada arranque de TUI; chequea `process.platform === 'darwin'`, inicializa licencia y verifica `isBrewBarInstalled()`. En usuarios free retorna pronto, pero ya pagó `ensureDataDirs + initialize` | Mover el chequeo a "primer arranque" o gating con flag (variable de entorno o config en `~/.brew-tui/`) para no penalizar arranques repetidos |
+| `ensureBrewBarRunning()` se ejecuta antes de la TUI | Baja | `src/index.tsx:217` se llama en cada arranque de TUI; chequea `process.platform === 'darwin'`, inicializa licencia y verifica `isBrewBarInstalled()`. En usuarios free retorna pronto, pero ya pagó `ensureDataDirs + initialize` | Mover el chequeo a "primer arranque" o gating con flag (variable de entorno o config en `~/.brewtui-bar/`) para no penalizar arranques repetidos |
 | Bundle `index.js` 241 KB / 6.264 líneas | Informativa | `build/index.js` — incluye Ink, Zustand, lógica completa de stores y vistas (React queda externalizado por `tsup.config.ts:9`) | Aceptable para CLI. Considerar `tsup --metafile` para auditar el reparto si crece más de 350 KB |
 | `tsup target: 'node18'` con `engines: ">=22"` | Baja (ya documentado en 03.4) | `tsup.config.ts:9` vs `package.json` engines | Alinear a `node22` para evitar polyfills innecesarios y aprovechar nativos (ya nombrado en sección 3) |
 | Borrado de scrollback al iniciar (`\x1B[3J`) | Conforme — Informativa | `index.tsx:222` — limpia scrollback además de pantalla; típico para apps fullscreen TUI pero pierde contexto visible al usuario antes del `render` | — |
@@ -193,13 +193,13 @@ El proyecto rinde bien para una app de terminal y un menubar pequeño: el bundle
 * [x] `launchTask` cancelable y guardado para terminación (`AppDelegate.swift:17,76-77`)
 * [x] `setupStatusItem()` y `setupPopover()` se ejecutan tras la verificación de Pro
 * [x] `appState.refresh()` se invoca tras `setupStatusItem` (el icono ya está visible)
-* [ ] `await checkBrewTuiInstalled()` se ejecuta antes de cualquier UI; en el peor caso bloquea hasta que `which brew-tui` termine
+* [ ] `await checkBrewTuiInstalled()` se ejecuta antes de cualquier UI; en el peor caso bloquea hasta que `which brewtui-bar` termine
 
 #### Hallazgos
 
 | Elemento | Severidad | Evidencia | Acción |
 |----------|-----------|-----------|--------|
-| Tiempo a primer icono dependiente de `checkBrewTuiInstalled` | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift:106-142`. Primero recorre 3 paths conocidos (operación de FS muy rápida); si fallan, hace un `which brew-tui` con `terminationHandler`. En la mayoría de máquinas el path `/opt/homebrew/bin/brew-tui` se resuelve sin spawn | Ya optimizado con check de paths conocidos. Aceptable |
+| Tiempo a primer icono dependiente de `checkBrewTuiInstalled` | Baja | `menubar/BrewBar/Sources/App/AppDelegate.swift:106-142`. Primero recorre 3 paths conocidos (operación de FS muy rápida); si fallan, hace un `which brewtui-bar` con `terminationHandler`. En la mayoría de máquinas el path `/opt/homebrew/bin/brewtui-bar` se resuelve sin spawn | Ya optimizado con check de paths conocidos. Aceptable |
 | `setupStatusItem()` ocurre tras `LicenseChecker.checkLicense()` | Informativa | `AppDelegate.swift:34-49`. La verificación de licencia incluye descifrado AES-GCM (`LicenseChecker.swift:64-75`); es local y rápida (<5 ms) pero retrasa la aparición del icono | — |
 | Carga inicial de CVE alerts y sync activity (sin red) | Conforme | `AppDelegate.swift:59-65` — `loadCachedAlerts()` y `checkForSyncActivity()` solo leen archivos locales antes de `updateBadge` | — |
 | `NSHostingController` reutilizado entre apariciones del popover | Conforme | `AppDelegate.swift:209-213` — comentario explícito: "Create the hosting controller once and reuse on each popover open" | — |

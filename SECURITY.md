@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Security updates are provided for the latest released version of Brew-TUI.
+Security updates are provided for the latest released version of BrewTUI-Bar.
 
 ## Reporting a Vulnerability
 
@@ -21,7 +21,7 @@ I will review valid reports as soon as practical and coordinate a fix before pub
 
 In scope:
 
-- Brew-TUI CLI behavior
+- BrewTUI-Bar CLI behavior
 - BrewBar installer and update flow
 - License storage and activation flow
 - Dependency and release artifact integrity

@@ -6,7 +6,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI cuenta con una infraestructura de testing sólida para un proyecto indie: 60 archivos de test, 403 bloques `it()` literales (444 casos ejecutados por Vitest, incluyendo `it.each`), framework Vitest con `passWithNoTests: false` como gate de CI, y uso activo de `ink-testing-library` para renderizado de vistas. La suite cubre correctamente la lógica de licencias (incluyendo el pin SEG-009), parsers, stores principales y views Pro. Sin embargo, existen brechas relevantes: los 8 stores Pro carecen de tests unitarios directos, varios módulos de seguridad de licencias (`anti-tamper`, `anti-debug`, `pro-guard`) no tienen cobertura, y hay un test que falla por timeout en producción (`confirm-dialog` español). En observabilidad, el logging y el crash reporter están bien estructurados y son opt-in por defecto, pero el módulo de analytics tiene taxonomía definida y zero call sites en producción — ningún evento llega realmente a ningún sink.
+BrewTUI-Bar cuenta con una infraestructura de testing sólida para un proyecto indie: 60 archivos de test, 403 bloques `it()` literales (444 casos ejecutados por Vitest, incluyendo `it.each`), framework Vitest con `passWithNoTests: false` como gate de CI, y uso activo de `ink-testing-library` para renderizado de vistas. La suite cubre correctamente la lógica de licencias (incluyendo el pin SEG-009), parsers, stores principales y views Pro. Sin embargo, existen brechas relevantes: los 8 stores Pro carecen de tests unitarios directos, varios módulos de seguridad de licencias (`anti-tamper`, `anti-debug`, `pro-guard`) no tienen cobertura, y hay un test que falla por timeout en producción (`confirm-dialog` español). En observabilidad, el logging y el crash reporter están bien estructurados y son opt-in por defecto, pero el módulo de analytics tiene taxonomía definida y zero call sites en producción — ningún evento llega realmente a ningún sink.
 
 ---
 
@@ -182,7 +182,7 @@ Brew-TUI cuenta con una infraestructura de testing sólida para un proyecto indi
 
 ### Checklist
 
-* [x] Logs estructurados — TS: `src/utils/logger.ts` implementa logger con niveles (`debug/info/warn/error`), contexto JSON estructurado en segundo parámetro, y routing automático a archivo (`~/.brew-tui/logs/brew-tui.log`) cuando el TUI está activo. Swift: todos los services de BrewBar usan `Logger(subsystem: "com.molinesdesigns.brewbar", category: ...)` — compatible con Unified Logging / Console.app.
+* [x] Logs estructurados — TS: `src/utils/logger.ts` implementa logger con niveles (`debug/info/warn/error`), contexto JSON estructurado en segundo parámetro, y routing automático a archivo (`~/.brewtui-bar/logs/brewtui-bar.log`) cuando el TUI está activo. Swift: todos los services de BrewBar usan `Logger(subsystem: "com.molinesdesigns.brewbar", category: ...)` — compatible con Unified Logging / Console.app.
 * [x] Niveles correctos — TS: nivel por defecto `warn` (configurable con `LOG_LEVEL` env). Los paths críticos usan `logger.error()`. Rutas de diagnóstico usan `logger.debug()`. Swift: errores en `.error()`, avisos en `.warning()`, trazas en `.info()` y `.debug()`.
 * [x] Sin datos sensibles — Grep exhaustivo de calls a `logger.*` en producción: solo se encontró `machineId` (UUID, no PII) y `machines: count` en `sync-engine.ts:218`. Sin tokens, emails, passwords ni claves en logs. Swift usa `privacy: .public` explícitamente en todas las interpolaciones — los datos privados no llegan a Unified Log sin debug consent.
 * [ ] Correlacion frontend/backend — No existe correlation ID entre TUI y BrewBar. La única IPC es el archivo `last-action.json` (estructura `{ timestamp, action, packages, remainingOutdated, source }`). No hay request ID compartido.
@@ -192,7 +192,7 @@ Brew-TUI cuenta con una infraestructura de testing sólida para un proyecto indi
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Sin correlación IPC TUI↔BrewBar | Pendiente | Baja | `last-action.json` incluye `source: 'brew-tui'` pero no un trace ID correlacionable con el log de la sesión TUI. Dificulta debug de sincronía cuando BrewBar no aplica la acción. | Añadir campo `sessionId` (UUID generado en arranque del TUI) a `LastAction` y a los logs del `LastActionMonitor` de BrewBar. |
+| Sin correlación IPC TUI↔BrewBar | Pendiente | Baja | `last-action.json` incluye `source: 'brewtui-bar'` pero no un trace ID correlacionable con el log de la sesión TUI. Dificulta debug de sincronía cuando BrewBar no aplica la acción. | Añadir campo `sessionId` (UUID generado en arranque del TUI) a `LastAction` y a los logs del `LastActionMonitor` de BrewBar. |
 
 ---
 
@@ -200,7 +200,7 @@ Brew-TUI cuenta con una infraestructura de testing sólida para un proyecto indi
 
 ### Checklist
 
-* [ ] Crash reporting configurado — TS (`src/lib/crash-reporter.ts`): opt-in, desactivado por defecto. Requiere `BREW_TUI_CRASH_ENDPOINT` env var o `~/.brew-tui/crash-reporter.json`. **No hay endpoint configurado en el binario distribuido.** Solo captura `uncaughtException` y `unhandledRejection`. Swift (`CrashReporter.swift`): idem, requiere `defaults write com.molinesdesigns.brewbar crashReporterEndpoint <url>`. Solo captura `NSException` via `NSSetUncaughtExceptionHandler`. Los crashes puros de Swift (`fatalError`, traps de acceso a memoria) **no son capturables** sin un SDK nativo (Sentry-Cocoa, Crashlytics) — comentario `QA-007` en source lo reconoce explícitamente.
+* [ ] Crash reporting configurado — TS (`src/lib/crash-reporter.ts`): opt-in, desactivado por defecto. Requiere `BREW_TUI_CRASH_ENDPOINT` env var o `~/.brewtui-bar/crash-reporter.json`. **No hay endpoint configurado en el binario distribuido.** Solo captura `uncaughtException` y `unhandledRejection`. Swift (`CrashReporter.swift`): idem, requiere `defaults write com.molinesdesigns.brewbar crashReporterEndpoint <url>`. Solo captura `NSException` via `NSSetUncaughtExceptionHandler`. Los crashes puros de Swift (`fatalError`, traps de acceso a memoria) **no son capturables** sin un SDK nativo (Sentry-Cocoa, Crashlytics) — comentario `QA-007` en source lo reconoce explícitamente.
 * [ ] Symbolication verificada — No hay script de upload de dSYM. `menubar/scripts/release.sh` produce `BrewBar.app.zip` pero no sube symbols a ningún servicio. Sin symbolication, los stack traces del crash reporter son ilegibles si se produce un crash en código optimizado.
 * [x] Trazas utiles — Los crash reports incluyen: `version`, `platform`, `os`, `arch`, `machineId`, `timestamp`, `level`, `message`, `stack` (callStackSymbols para NSException), `context`. El campo `context` permite añadir breadcrumbs via `reportError(err, { context })`.
 * [ ] Alertas caidas criticas — No hay alertas configuradas. No hay webhook, PagerDuty, ni email integrado al endpoint de crash reporting. Requiere infraestructura adicional del usuario.

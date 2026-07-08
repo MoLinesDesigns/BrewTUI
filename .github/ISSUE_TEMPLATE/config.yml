@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/MoLinesDesigns/Brew-TUI/security/advisories/new
+    url: https://github.com/MoLinesDesigns/BrewTUI-Bar/security/advisories/new
     about: Report suspected vulnerabilities privately.

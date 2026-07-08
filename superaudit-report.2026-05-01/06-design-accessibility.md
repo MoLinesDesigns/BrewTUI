@@ -70,7 +70,7 @@ El proyecto presenta dos subsistemas de diseno claramente diferenciados: la TUI 
 * [x] Botones de accion principales (`.buttonStyle(.borderedProminent)` / `.bordered`)
 * [x] Icono de menu bar con `isTemplate = true` y descripcion de accesibilidad
 * [x] Filas de paquetes con `contentShape(Rectangle())` para target de toque extendido
-* [x] Dialogo de requisito de Brew-TUI (`NSAlert` con `.critical`)
+* [x] Dialogo de requisito de BrewTUI-Bar (`NSAlert` con `.critical`)
 * [x] Alerta de licencia expirada (`NSAlert` con `.warning`)
 * [ ] `Card` o contenedor de seccion reutilizable — **Baja**: no existe; cada vista define su propio `GroupBox` o `VStack` ad-hoc
 * [ ] `EmptyState` reutilizable — **Baja**: no existe en BrewBar
@@ -142,7 +142,7 @@ El proyecto presenta dos subsistemas de diseno claramente diferenciados: la TUI 
 * [x] Boton Refresh: `accessibilityLabel("Refresh")` — `PopoverView.swift:53`
 * [x] Boton Settings: `accessibilityLabel("Settings")` — `PopoverView.swift:58`
 * [x] Boton Quit: `accessibilityLabel("Quit")` — `PopoverView.swift:62`
-* [x] Boton Open Brew-TUI: `accessibilityLabel` + `.accessibilityAddTraits(.isButton)` — `PopoverView.swift:67`
+* [x] Boton Open BrewTUI-Bar: `accessibilityLabel` + `.accessibilityAddTraits(.isButton)` — `PopoverView.swift:67`
 * [x] Cabecera "Outdated Packages": `.accessibilityAddTraits(.isHeader)` — `PopoverView.swift:79`
 * [x] Iconos decorativos: `.accessibilityHidden(true)` en iconos de estado — `PopoverView.swift`
 * [x] Boton Upgrade por paquete: label incluye nombre del paquete — `OutdatedListView.swift:96-98`

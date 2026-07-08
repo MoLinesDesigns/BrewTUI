@@ -1,5 +1,5 @@
 name: Bug report
-description: Report something that is not working in Brew-TUI.
+description: Report something that is not working in BrewTUI-Bar.
 title: "[Bug]: "
 labels:
   - bug
@@ -17,7 +17,7 @@ body:
       label: Steps to reproduce
       description: List the smallest set of steps that reproduces the issue.
       placeholder: |
-        1. Run `brew-tui`
+        1. Run `brewtui-bar`
         2. Press ...
         3. See ...
     validations:
@@ -32,7 +32,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Include macOS version, Homebrew version, Node version, and Brew-TUI version.
+      description: Include macOS version, Homebrew version, Node version, and BrewTUI-Bar version.
       render: text
     validations:
       required: true

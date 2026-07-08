@@ -22,7 +22,7 @@ Estos hallazgos representan riesgos de caida, fuga de datos, perdida de negocio 
 
 | ID | Hallazgo | Riesgo | Accion inmediata |
 |----|----------|--------|------------------|
-| SEG-001 | Dos tokens npm en `.claude/settings.local.json:56,58` en texto plano | Publicacion maliciosa del paquete `brew-tui` en npmjs.com comprometeria a todos los usuarios del CLI | Revocar ambos tokens en npmjs.com ahora. Agregar `.claude/` al `.gitignore` del repo. Crear token de scope `publish` restringido |
+| SEG-001 | Dos tokens npm en `.claude/settings.local.json:56,58` en texto plano | Publicacion maliciosa del paquete `brewtui-bar` en npmjs.com comprometeria a todos los usuarios del CLI | Revocar ambos tokens en npmjs.com ahora. Agregar `.claude/` al `.gitignore` del repo. Crear token de scope `publish` restringido |
 | BK-001 | `ecosystem: 'Homebrew'` en `osv-api.ts:125,143,181` → OSV HTTP 400 silenciado → 0 CVEs siempre | El feature Pro Security Audit esta completamente roto: devuelve falsa sensacion de seguridad a todos los usuarios Pro | Cambiar las tres ocurrencias de `'Homebrew'` a `'Bitnami'` en `osv-api.ts`; publicar hotfix npm |
 
 ### Ranking de urgencia para Criticos
@@ -42,14 +42,14 @@ Estos hallazgos afectan flujos clave, calidad percibida, seguridad del modelo de
 | SEG-003 | Clave AES precomputada como hex literal en `LicenseChecker.swift:50-53` | Recuperable via `strings BrewBar.app/Contents/MacOS/BrewBar` sin herramienta especializada | Eliminar el literal hex; rederivarlo en runtime desde las constantes de texto |
 | GOV-001 | Sin CI Swift — BrewBar nunca validado automaticamente | Regresiones Swift llegan a produccion sin deteccion | Agregar job `test-swift` con runner `macos-latest` y `xcodebuild test -scheme BrewBar` |
 | GOV-002 | Homebrew Cask URL con usuario `MoLinesGitHub` → HTTP 404 | Canal de distribucion BrewBar completamente roto; instalacion via Homebrew falla siempre | Corregir URL a `MoLinesDesigns`, actualizar version a `0.6.1` y SHA256 |
-| GOV-003 | Homebrew Formula en version `0.5.3` vs `0.6.1` publicado | Usuarios que instalan via `brew install brew-tui` reciben version sin fixes de seguridad | Actualizar URL y SHA256 a `0.6.1` en `brew-tui.rb` |
+| GOV-003 | Homebrew Formula en version `0.5.3` vs `0.6.1` publicado | Usuarios que instalan via `brew install brewtui-bar` reciben version sin fixes de seguridad | Actualizar URL y SHA256 a `0.6.1` en `brewtui-bar.rb` |
 | GOV-004 | `jsr.json` version `0.5.2` vs `0.6.1` | Proximo ciclo de release publicaria `0.5.2` en JSR | Sincronizar `jsr.json` con `package.json`; agregar sincronizacion automatica en `prepublishOnly` |
 | GOV-005 | BrewBar no notarizado — `method: none` en `exportOptions.plist` | Gatekeeper bloquea o advierte a usuarios que descargan BrewBar directamente | Agregar `xcrun notarytool submit --wait` y `xcrun stapler staple` al script de release |
 | GOV-006 | `PrivacyInfo.xcprivacy` declara `NSPrivacyAccessedAPICategoryFileTimestamp` sin codigo que lo justifique | Riesgo de rechazo en Apple Review / pipeline de notarizacion | Eliminar el bloque del manifest o identificar el uso real |
 | ARQ-001 | Schemas de licencia duplicados entre TS y Swift sin test de contrato | Un cambio de campo rompe silenciosamente la lectura en el otro codebase | Anadir test de contrato en `BrewBarTests` con fixture JSON generado por TS |
 | ARQ-002 | Politica de degradacion de licencia divergente: 7 dias TS vs 30 dias Swift | Usuario entre dias 7-30 ve estados contradictorios en TUI y BrewBar | Extraer especificacion compartida; alinear umbrales en ambos lados |
 | BK-002 | `readDataToEndOfFile()` sincrono en `terminationHandler` de `BrewProcess.swift:99` | Deadlock potencial con buffers > 64 KB; BrewBar puede quedar bloqueado 60s | Migrar a lectura incremental con `availableData` o `AsyncStream` |
-| BK-003 | Snapshots sin poda en `~/.brew-tui/snapshots/` | Crecimiento ilimitado del directorio; degradacion de rendimiento | Implementar `pruneSnapshots(maxCount = 20)` tras cada `saveSnapshot` |
+| BK-003 | Snapshots sin poda en `~/.brewtui-bar/snapshots/` | Crecimiento ilimitado del directorio; degradacion de rendimiento | Implementar `pruneSnapshots(maxCount = 20)` tras cada `saveSnapshot` |
 | UI-001 | Brewfile reconcile sin `ConfirmDialog` (`brewfile.tsx:155`) | Instalacion/desinstalacion masiva de paquetes sin confirmacion | Agregar `ConfirmDialog` con resumen de paquetes afectados |
 | UI-002 | SyncView `syncNow` sin confirmacion (`sync.tsx:232`) | Sync puede sobrescribir estado local sin confirmacion; accion irreversible | Agregar `ConfirmDialog` antes de `syncNow` |
 | UI-003 | ComplianceView remediacion sin `ConfirmDialog` (`compliance.tsx:198`) | Remediacion destructiva sin confirmacion en contexto Team | Agregar `ConfirmDialog` con numero de violaciones accionables |
@@ -93,7 +93,7 @@ Estos hallazgos afectan flujos clave, calidad percibida, seguridad del modelo de
 
 - Corregir URL y usuario GitHub en `brewbar.rb` (GOV-002): `MoLinesGitHub` → `MoLinesDesigns`
 - Actualizar version en `brewbar.rb` a `0.6.1` con SHA256 correcto
-- Actualizar `brew-tui.rb` a `0.6.1` (GOV-003)
+- Actualizar `brewtui-bar.rb` a `0.6.1` (GOV-003)
 - Sincronizar `jsr.json` con `package.json` (GOV-004)
 - Corregir URL del repositorio en `package.json` (GOV-007)
 
@@ -169,7 +169,7 @@ Estos hallazgos afectan consistencia, deuda tecnica o UX de forma relevante.
 | DS-004 | MenuBarIcon apariencias invertidas en `Contents.json` | Icono del menu bar incorrecto en modo claro y oscuro | Intercambiar asignaciones de apariencia |
 | DS-005 | Tema oscuro exclusivo en TUI | Ilegibilidad en terminales con fondo claro | Detectar `COLORFGBG` y degradar para terminales claros |
 | GOV-007 | URL del repositorio erronea en `package.json` | URLs rotas en npm registry | Actualizar `package.json`, README, Formula y Cask |
-| GOV-008 | `dist-standalone/brew-tui-bun` comprometido en git (65 MB) | Historial git inflado; artefacto sin procedencia verificable | Agregar a `.gitignore` y ejecutar `git rm --cached` |
+| GOV-008 | `dist-standalone/brewtui-bar-bun` comprometido en git (65 MB) | Historial git inflado; artefacto sin procedencia verificable | Agregar a `.gitignore` y ejecutar `git rm --cached` |
 | EP-002 | Promo `/redeem` sin idempotency-key | Usuario puede canjear el mismo codigo dos veces si la conexion falla | Agregar `idempotencyKey: randomUUID()` al body |
 
 ---

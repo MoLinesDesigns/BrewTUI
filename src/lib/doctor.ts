@@ -51,7 +51,7 @@ export async function runDoctor(): Promise<void> {
   const cliVersion = process.env.APP_VERSION ?? '0.0.0';
 
   // ── BrewTUI-Bar ──────────────────────────────────────────────────────────
-  console.log(format('BrewTUI', [
+  console.log(format('BrewTUI-Bar', [
     { label: 'CLI version', value: cliVersion },
     { label: 'Platform', value: `${process.platform} (${arch()})` },
     { label: 'Node', value: process.version },

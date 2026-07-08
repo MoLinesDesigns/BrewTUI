@@ -49,8 +49,8 @@ jobs:
       - name: Build BrewBar
         run: |
           xcodebuild \
-            -workspace menubar/Brew-TUI-Bar.xcworkspace \
-            -scheme Brew-TUI-Bar \
+            -workspace menubar/BrewTUI-Bar.xcworkspace \
+            -scheme BrewTUI-Bar \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
@@ -61,8 +61,8 @@ jobs:
       - name: Run BrewBar tests
         run: |
           xcodebuild \
-            -workspace menubar/Brew-TUI-Bar.xcworkspace \
-            -scheme Brew-TUI-Bar \
+            -workspace menubar/BrewTUI-Bar.xcworkspace \
+            -scheme BrewTUI-Bar \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \

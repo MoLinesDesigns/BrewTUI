@@ -42,12 +42,12 @@ Hallazgos que afectan seguridad adicional, deuda técnica con impacto de manteni
 | 1 | ARQ-005 | `DesignExploration/BrewBarDesignVariants.swift` (991 LOC) en binario de producción via glob `Sources/**` | XS | Dead code en binario notariado; engrosamiento de firma | iOS/macOS dev |
 | 2 | DS-001 | `BlinkingText` titila siempre a 600 ms sin gate de `NO_COLOR`/`REDUCE_MOTION`; sin motion tokens | S | Usuarios con fotosensibilidad o preferencia reduce-motion no tienen opt-out | Frontend dev |
 | 3 | ACC-001 | Ninguna vista de BrewBar consulta `@Environment(\.accessibilityReduceMotion)` | XS | Animaciones futuras ignorarán reduce-motion; regresión de accesibilidad garantizada | iOS/macOS dev |
-| 4 | GOV-003 | `homebrew/Formula/brew-tui.rb` y `Casks/brewbar.rb` en repo con versión `0.7.0` (actual: `1.2.1`) | XS | Contribuidores y scripts obtienen versión 9 releases obsoleta | Maintainer |
+| 4 | GOV-003 | `homebrew/Formula/brewtui-bar.rb` y `Casks/brewbar.rb` en repo con versión `0.7.0` (actual: `1.2.1`) | XS | Contribuidores y scripts obtienen versión 9 releases obsoleta | Maintainer |
 | 5 | REL-001 | `release.sh` no verifica salud del perfil notary antes de iniciar; fallo tras ~10 min de build | XS | Waste de tiempo de build; release interrumpido tardíamente | Maintainer |
 | 6 | SEG-004 | `brew-cli.ts` invoca `spawn('brew', ...)` via PATH heredado sin verificar ruta canónica | M | PATH hijack puede ejecutar un `brew` falso | Backend dev |
 | 7 | SEG-005 | 2 vulnerabilidades npm moderadas: `brace-expansion` ReDoS (CVSS 5.3), `ws` memory disclosure (CVSS 5.3) | XS | Supply chain: exploits de CVSS 5.3 en dependencias con fix disponible | Maintainer |
 | 8 | SEG-006 | Rate limit de activación de licencia es estado en memoria; reinicio del proceso resetea el lockout | M | Bypass del anti-brute-force con `kill -9` + relanzar proceso | Backend dev |
-| 9 | BK-005 | Path traversal en `policy-io.ts` — `loadPolicy()`/`exportReport()` sin sanitización de `..` | S | Lectura/escritura de archivos arbitrarios fuera de `~/.brew-tui/` | Backend dev |
+| 9 | BK-005 | Path traversal en `policy-io.ts` — `loadPolicy()`/`exportReport()` sin sanitización de `..` | S | Lectura/escritura de archivos arbitrarios fuera de `~/.brewtui-bar/` | Backend dev |
 | 10 | ARQ-001 | Clave `legacyEncryptionKey` scrypt activa como fallback en `license-manager.ts`, `sync/crypto.ts` y `LicenseChecker.swift`; TODO marcado desde v0.6.3 | M | Superficie de clave fija conocida en bundle; 9 versiones de mora | Backend dev / iOS dev |
 | 11 | BK-004 | Polar 429 no reintentado con backoff `Retry-After`; activaciones fallan en picos | S | Activaciones bloqueadas sin reintento cuando Polar limita por rate | Backend dev |
 | 12 | BK-003 | `promo.ts` sin retry en 5xx — canje de código promo descartado en error transitorio | XS | Usuarios pierden acceso a códigos promo por errores de red momentáneos | Backend dev |
@@ -59,7 +59,7 @@ Hallazgos que afectan seguridad adicional, deuda técnica con impacto de manteni
 | 18 | QA-003 | 8 stores Pro sin tests unitarios | L | Regresiones en `loading`/`error` de stores Pro sin detección | QA lead |
 | 19 | ARQ-004 | `PKG_PATTERN` divergente en `brew-api.ts` vs `profile-manager.ts` — comportamiento inconsistente | XS | Paquetes válidos para brew rechazados en perfiles; bug difícil de diagnosticar | Backend dev |
 | 20 | ARQ-006 | `async-state.ts` sin importadores de producción — dead code | XS | Confusión para contribuidores; mantenimiento innecesario | n/a |
-| 21 | GOV-004 | `homebrew/macports/brew-tui.tcl` en `0.1.0` con checksums zeros inválidos | XS | Canal MacPorts no funcional | Maintainer |
+| 21 | GOV-004 | `homebrew/macports/brewtui-bar.tcl` en `0.1.0` con checksums zeros inválidos | XS | Canal MacPorts no funcional | Maintainer |
 | 22 | GOV-005 | Tuist no pinado en CI — versión de Tuist indeterminada en `.github/workflows/ci.yml` | XS | CI puede romperse silenciosamente tras un breaking release de Tuist | DevOps |
 
 ---

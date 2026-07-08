@@ -12,7 +12,7 @@ Set TypingSpeed 60ms
 Set Padding 24
 
 # ── Smart Cleanup ──
-Type "brew-tui --lang=en" Enter
+Type "brewtui-bar --lang=en" Enter
 Sleep 6s
 Type "7"
 Sleep 10s
@@ -21,7 +21,7 @@ Type "q"
 Sleep 1s
 
 # ── Security Audit ──
-Type "brew-tui --lang=en" Enter
+Type "brewtui-bar --lang=en" Enter
 Sleep 6s
 Type "9"
 Sleep 25s
@@ -30,7 +30,7 @@ Type "q"
 Sleep 1s
 
 # ── Doctor (also re-shoot) ──
-Type "brew-tui --lang=en" Enter
+Type "brewtui-bar --lang=en" Enter
 Sleep 6s
 Type "5"
 Sleep 8s

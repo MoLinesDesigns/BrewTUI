@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-Brew-TUI no tiene servidor propio: su "backend" son seis capas de integracion externas (Polar API, OSV.dev, brewtui-api para promos, CLI de Homebrew, iCloud Drive y sistema de archivos local). La superficie es reducida pero presenta hallazgos relevantes de validacion de argumentos en operaciones de brew, un bug confirmado de campo incorrecto en `SyncMonitor.swift`, y varios gaps de resiliencia en reintentos y rate limiting. La persistencia local es solida en la mayoria de rutas, con cifrado AES-256-GCM, escrituras atomicas y permisos restrictivos.
+BrewTUI-Bar no tiene servidor propio: su "backend" son seis capas de integracion externas (Polar API, OSV.dev, brewtui-api para promos, CLI de Homebrew, iCloud Drive y sistema de archivos local). La superficie es reducida pero presenta hallazgos relevantes de validacion de argumentos en operaciones de brew, un bug confirmado de campo incorrecto en `SyncMonitor.swift`, y varios gaps de resiliencia en reintentos y rate limiting. La persistencia local es solida en la mayoria de rutas, con cifrado AES-256-GCM, escrituras atomicas y permisos restrictivos.
 
 ---
 
@@ -63,7 +63,7 @@ Brew-TUI no tiene servidor propio: su "backend" son seis capas de integracion ex
 
 | Elemento | Estado | Severidad | Evidencia | Accion |
 |----------|--------|-----------|-----------|--------|
-| Rate limit tracker en memoria | Parcial | Media | `license-manager.ts`: `rateLimitTracker` es variable de modulo; se pierde al reiniciar proceso | Persistir estado de lockout en `~/.brew-tui/rate-limit-state.json` con TTL o fecha de expiracion |
+| Rate limit tracker en memoria | Parcial | Media | `license-manager.ts`: `rateLimitTracker` es variable de modulo; se pierde al reiniciar proceso | Persistir estado de lockout en `~/.brewtui-bar/rate-limit-state.json` con TTL o fecha de expiracion |
 | Machine ID enviado sin hashear | Parcial | Baja | `polar-api.ts`: `label: machineId` — UUID raw en cuerpo de peticion Polar | Opcional: hashear (SHA-256 truncado) para reducir superficie de correlacion en logs externos |
 
 ---
@@ -80,7 +80,7 @@ Brew-TUI no tiene servidor propio: su "backend" son seis capas de integracion ex
 * [x] Idempotency key UUID en promo redeem (header + body)
 * [ ] Flag injection en `compliance-remediator.ts` — **Alta**: `streamBrew(['install', v.packageName])` y `streamBrew(['upgrade', v.packageName])` sin pasar por `validatePackageName()` (lineas 18 y 29); un policy file malicioso puede inyectar `--HEAD` u otros flags
 * [ ] Flag injection en `brewfile-manager.ts` — **Alta**: `applyDrift()` llama `streamBrew(['install', name])` sin validacion (patron identico al anterior); un brewfile YAML manipulado puede inyectar flags en brew
-* [ ] Path traversal en `policy-io.ts` — **Media**: `loadPolicy(filePath)` y `exportReport(report, outputPath)` aceptan rutas arbitrarias sin sanear; si el caller no sanitiza, un path relativo o con `..` accede fuera de `~/.brew-tui/`
+* [ ] Path traversal en `policy-io.ts` — **Media**: `loadPolicy(filePath)` y `exportReport(report, outputPath)` aceptan rutas arbitrarias sin sanear; si el caller no sanitiza, un path relativo o con `..` accede fuera de `~/.brewtui-bar/`
 * [x] Sanitizacion de terminos de busqueda: `safeTerm = term.replace(/^-+/, '')` en `brew-api.ts`
 
 ### Hallazgos
@@ -127,7 +127,7 @@ Brew-TUI no tiene servidor propio: su "backend" son seis capas de integracion ex
 
 ### Checklist
 
-* [x] Sin Core Data ni SwiftData — BrewBar no persiste estado de dominio; lee archivos en `~/.brew-tui/`
+* [x] Sin Core Data ni SwiftData — BrewBar no persiste estado de dominio; lee archivos en `~/.brewtui-bar/`
 * [x] Directorio de datos con modo 0o700 (`DATA_DIR` en `data-dir.ts`)
 * [x] Archivos de datos con modo 0o600: `license.json`, `machine-id`, `last-action.json`, `promo.json`
 * [x] Escrituras atomicas via tmp + rename en `writeLastAction()`, `saveSyncConfig()`, perfil, historia

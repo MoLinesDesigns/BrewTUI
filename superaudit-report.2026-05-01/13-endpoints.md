@@ -4,7 +4,7 @@
 
 ## Resumen ejecutivo
 
-El proyecto carece de servidor HTTP propio: las "endpoints" auditables se reducen a (1) cuatro integraciones HTTP salientes (Polar, OSV.dev, Promo backend propio en `api.molinesdesigns.com`, y descarga de release de GitHub), (2) ocho subcomandos del binario `brew-tui` y (3) ~25 invocaciones distintas de `brew` repartidas en el TUI TypeScript y la app Swift BrewBar. La superficie HTTP esta razonablemente protegida en Polar y en GitHub Releases (TLS sistema, validacion de host, validacion runtime de respuestas, timeouts agresivos, SHA-256 obligatorio del binario), pero conserva tres defectos que se mantienen desde la auditoria original sin estar corregidos: (a) el ecosistema enviado al endpoint OSV es `'Homebrew'` en TypeScript (`osv-api.ts:125,143,181`), valor que la API rechaza con HTTP 400 — la version Swift ya migro a `'Bitnami'` (`SecurityMonitor.swift:119`), de modo que el feature Security Audit del TUI devuelve resultados vacios sistematicamente; (b) `promo.ts` no aplica `validateApiUrl` a su URL base; (c) `brewUpdate()` ejecuta `spawn('brew', ['update'])` sin timeout. La capa de subprocesos `brew` valida nombres de paquete con `PKG_PATTERN` antes de pasar a `spawn` con array (sin shell), por lo que no hay riesgo de inyeccion de comandos. El subcomando `install-brewbar` impone validacion estricta del binario descargado (limite duro de 200 MB con corte en stream, SHA-256 obligatorio fail-closed). Hay un hallazgo de severidad Critica heredada (TS osv-api ecosystem='Homebrew') y dos Medias (validateApiUrl ausente en promo, brewUpdate sin timeout).
+El proyecto carece de servidor HTTP propio: las "endpoints" auditables se reducen a (1) cuatro integraciones HTTP salientes (Polar, OSV.dev, Promo backend propio en `api.molinesdesigns.com`, y descarga de release de GitHub), (2) ocho subcomandos del binario `brewtui-bar` y (3) ~25 invocaciones distintas de `brew` repartidas en el TUI TypeScript y la app Swift BrewBar. La superficie HTTP esta razonablemente protegida en Polar y en GitHub Releases (TLS sistema, validacion de host, validacion runtime de respuestas, timeouts agresivos, SHA-256 obligatorio del binario), pero conserva tres defectos que se mantienen desde la auditoria original sin estar corregidos: (a) el ecosistema enviado al endpoint OSV es `'Homebrew'` en TypeScript (`osv-api.ts:125,143,181`), valor que la API rechaza con HTTP 400 — la version Swift ya migro a `'Bitnami'` (`SecurityMonitor.swift:119`), de modo que el feature Security Audit del TUI devuelve resultados vacios sistematicamente; (b) `promo.ts` no aplica `validateApiUrl` a su URL base; (c) `brewUpdate()` ejecuta `spawn('brew', ['update'])` sin timeout. La capa de subprocesos `brew` valida nombres de paquete con `PKG_PATTERN` antes de pasar a `spawn` con array (sin shell), por lo que no hay riesgo de inyeccion de comandos. El subcomando `install-brewbar` impone validacion estricta del binario descargado (limite duro de 200 MB con corte en stream, SHA-256 obligatorio fail-closed). Hay un hallazgo de severidad Critica heredada (TS osv-api ecosystem='Homebrew') y dos Medias (validateApiUrl ausente en promo, brewUpdate sin timeout).
 
 ---
 
@@ -75,14 +75,14 @@ El proyecto carece de servidor HTTP propio: las "endpoints" auditables se reduce
 * **Transporte:** `URLSession.shared.data(for:)` (`SecurityMonitor.swift:134`) — TLS sistema, sin delegate custom, sin reintentos manuales.
 * **Validacion runtime:** `SecurityMonitor.swift:144-152` exige `results: [[String: Any]]` y `results.count == packages.count`. Ante mismatch lanza `SecurityMonitorError.responseMismatch`.
 * **Mapeo de errores:** enum `SecurityMonitorError` (`SecurityMonitor.swift:288-303`): `invalidURL`, `invalidResponse`, `httpError(Int)`, `invalidResponseFormat`, `responseMismatch`, todos `LocalizedError`.
-* **Cache:** archivo `~/.brew-tui/cve-cache.json`, TTL `cacheMaxAge = 3600` segundos (1 h) — distinto al TUI (30 min). Si el cache es fresco no se hace request (`SecurityMonitor.swift:27-31`).
+* **Cache:** archivo `~/.brewtui-bar/cve-cache.json`, TTL `cacheMaxAge = 3600` segundos (1 h) — distinto al TUI (30 min). Si el cache es fresco no se hace request (`SecurityMonitor.swift:27-31`).
 * **Idempotente:** si — la API es read-only.
 
 ##### Hallazgo Informativa A.2.b
 
 | Elemento | Severidad | Evidencia | Accion |
 |----------|-----------|-----------|--------|
-| TTL de cache divergente entre TUI (30 min) y BrewBar (60 min) sobre el mismo archivo `~/.brew-tui/cve-cache.json` | Informativa | `SecurityMonitor.swift:11` vs convencion TUI documentada en CLAUDE.md y `01-inventario.md:294` | Unificar TTL o documentar la divergencia explicitamente; el archivo se comparte y el primero que escriba con su TTL prevalece |
+| TTL de cache divergente entre TUI (30 min) y BrewBar (60 min) sobre el mismo archivo `~/.brewtui-bar/cve-cache.json` | Informativa | `SecurityMonitor.swift:11` vs convencion TUI documentada en CLAUDE.md y `01-inventario.md:294` | Unificar TTL o documentar la divergencia explicitamente; el archivo se comparte y el primero que escriba con su TTL prevalece |
 
 ---
 
@@ -101,7 +101,7 @@ El proyecto carece de servidor HTTP propio: las "endpoints" auditables se reduce
 * **Timeout:** `10_000 ms` en ambos (`promo.ts:98, 146`) via `fetchWithTimeout`.
 * **Reintentos:** ninguno — `fetchWithTimeout` no envuelve `fetchWithRetry`. Un retry manual tras timeout puede provocar doble redencion server-side.
 * **Mapeo de errores HTTP:** lee `body.error` del JSON; si no, mensaje generico `'Invalid or expired promo code'` o `'Could not reach promo server.'`. Catch de excepciones logguea via `logger.error(...)` y devuelve un objeto de fallo (`promo.ts:122-125, 169-172`).
-* **Persistencia local tras canje:** `~/.brew-tui/promo.json` con escritura atomica (`promo.ts:198-200`, tmp + `rename`), permisos 0o600. Comprobacion local de duplicado en `promo.ts:191`.
+* **Persistencia local tras canje:** `~/.brewtui-bar/promo.json` con escritura atomica (`promo.ts:198-200`, tmp + `rename`), permisos 0o600. Comprobacion local de duplicado en `promo.ts:191`.
 
 #### Hallazgos seccion A.3
 
@@ -116,7 +116,7 @@ El proyecto carece de servidor HTTP propio: las "endpoints" auditables se reduce
 ### A.4 GitHub Releases — descarga de `BrewBar.app.zip`
 
 * **Archivo:** `src/lib/brewbar-installer.ts`
-* **URL del binario:** `https://github.com/MoLinesGitHub/Brew-TUI/releases/latest/download/BrewBar.app.zip` (`brewbar-installer.ts:14`).
+* **URL del binario:** `https://github.com/MoLinesGitHub/BrewTUI-Bar/releases/latest/download/BrewBar.app.zip` (`brewbar-installer.ts:14`).
 * **URL del checksum:** `${DOWNLOAD_URL}.sha256` (`brewbar-installer.ts:89`).
 * **Cadena de redirects:** `fetchWithTimeout` usa el `fetch` nativo de Node 22, que sigue redirects HTTP automaticamente con limite por defecto (Undici, 20 redirects). GitHub redirige `/latest/download/...` a `objects.githubusercontent.com` con TLS — la cadena queda dentro de HTTPS.
 * **Timeout:** `120_000 ms` (2 min) para el binario (`brewbar-installer.ts:48`); `15_000 ms` para el checksum (`brewbar-installer.ts:89`).
@@ -145,7 +145,7 @@ Aunque no estaba en el alcance original, ambos clients hacen network calls condi
 #### A.5.a TypeScript
 
 * **Archivo:** `src/lib/crash-reporter.ts`
-* **Endpoint:** configurable via env `BREW_TUI_CRASH_ENDPOINT` o config `~/.brew-tui/crash-reporter.json` (`crash-reporter.ts:11-13`).
+* **Endpoint:** configurable via env `BREW_TUI_CRASH_ENDPOINT` o config `~/.brewtui-bar/crash-reporter.json` (`crash-reporter.ts:11-13`).
 * **Validacion de host:** `isHttpsOrLocal(url)` (`crash-reporter.ts:77-90`) acepta HTTPS o HTTP unicamente para loopback / LAN privada (10/8, 192.168/16, 172.16-31/12). Cierra fail-closed.
 * **Auth:** opcional `Authorization: Bearer <token>` (`crash-reporter.ts:99`). Token se lee del env `BREW_TUI_CRASH_TOKEN` o del config file.
 * **Timeout:** 5 s (`crash-reporter.ts:15`).
@@ -165,17 +165,17 @@ Aunque no estaba en el alcance original, ambos clients hacen network calls condi
 
 ## B. CLI subcommands (`src/index.tsx`)
 
-Todos comparten parsing trivial: `process.argv[2]` = `command`, `process.argv[3]` = `arg`. Sin libreria de argv ni ayuda formal (`brew-tui --help` no esta implementado). Cada handler imprime mensajes via `console.log/console.error` (la unica excepcion documentada al uso obligatorio del `logger`).
+Todos comparten parsing trivial: `process.argv[2]` = `command`, `process.argv[3]` = `arg`. Sin libreria de argv ni ayuda formal (`brewtui-bar --help` no esta implementado). Cada handler imprime mensajes via `console.log/console.error` (la unica excepcion documentada al uso obligatorio del `logger`).
 
 | Subcomando | Args | Validaciones | Side effects | Exit codes | Output | Riesgo |
 |------------|------|--------------|--------------|-----------|--------|--------|
-| `activate <key>` (`index.tsx:19-37`) | `key` requerida; rechazo si vacia | `validateLicenseKey` (`license-manager.ts:257-267`): longitud 10-100, regex `/^[\w-]+$/`. `checkRateLimit()` antes de la red | Red: `POST /activate` + `POST /validate` (Polar). Disco: escribe `~/.brew-tui/license.json` cifrado AES-GCM y `~/.brew-tui/machine-id` si no existe. Mutex: actualiza `tracker` en memoria | 0 = ok; 1 = key vacia o `apiActivate` lanza | Stdout: `cli_activated`, `cli_planPro`, `cli_expires`. Stderr: `cli_activationFailed{error}` | Medio — operacion remota; bloquea cuenta tras 5 fallos durante 15 min |
+| `activate <key>` (`index.tsx:19-37`) | `key` requerida; rechazo si vacia | `validateLicenseKey` (`license-manager.ts:257-267`): longitud 10-100, regex `/^[\w-]+$/`. `checkRateLimit()` antes de la red | Red: `POST /activate` + `POST /validate` (Polar). Disco: escribe `~/.brewtui-bar/license.json` cifrado AES-GCM y `~/.brewtui-bar/machine-id` si no existe. Mutex: actualiza `tracker` en memoria | 0 = ok; 1 = key vacia o `apiActivate` lanza | Stdout: `cli_activated`, `cli_planPro`, `cli_expires`. Stderr: `cli_activationFailed{error}` | Medio — operacion remota; bloquea cuenta tras 5 fallos durante 15 min |
 | `revalidate` (`index.tsx:60-83`) | Ninguno | `loadLicense()` debe devolver licencia | Red: `POST /validate`. Disco: reescribe `license.json` con `lastValidatedAt` actualizado o `status='expired'` | 0 = valid o grace; 1 = no hay licencia o `expired` | Stdout segun resultado: `cli_revalidated`, `cli_revalidateGrace` (warn), `cli_revalidateFailed` (error) | Bajo |
-| `deactivate` (`index.tsx:39-58`) | Ninguno | Confirmacion interactiva via readline (`y`/`s`/`Y`/`S`) | Red: `POST /deactivate` (Polar) — hasta 3 reintentos × 3 reintentos internos = 9. Disco: borra `~/.brew-tui/license.json` siempre (incluso si remoto falla) | 0 siempre (remoto fallido es warning, no error) | Stdout: `cli_deactivated`. Warn: `cli_deactivateRemoteFailed` si remoto fallo | Medio — irreversible localmente |
-| `status` (`index.tsx:85-173`) | Ninguno | Ninguna | Side effects de lectura: inicializa `useLicenseStore`, lee `~/.brew-tui/snapshots/`, `policy.yaml`, `Brewfile`, `sync-config.json` (todos best-effort, sin throw). Para Pro tambien invoca `checkCompliance` que ejecuta `brew leaves`/`brew list` indirectamente | 0 siempre | Stdout estructurado: plan, email, status, expires, snapshots count, brewfile drift, sync date, compliance score | Bajo |
+| `deactivate` (`index.tsx:39-58`) | Ninguno | Confirmacion interactiva via readline (`y`/`s`/`Y`/`S`) | Red: `POST /deactivate` (Polar) — hasta 3 reintentos × 3 reintentos internos = 9. Disco: borra `~/.brewtui-bar/license.json` siempre (incluso si remoto falla) | 0 siempre (remoto fallido es warning, no error) | Stdout: `cli_deactivated`. Warn: `cli_deactivateRemoteFailed` si remoto fallo | Medio — irreversible localmente |
+| `status` (`index.tsx:85-173`) | Ninguno | Ninguna | Side effects de lectura: inicializa `useLicenseStore`, lee `~/.brewtui-bar/snapshots/`, `policy.yaml`, `Brewfile`, `sync-config.json` (todos best-effort, sin throw). Para Pro tambien invoca `checkCompliance` que ejecuta `brew leaves`/`brew list` indirectamente | 0 siempre | Stdout estructurado: plan, email, status, expires, snapshots count, brewfile drift, sync date, compliance score | Bajo |
 | `install-brewbar [--force]` (`index.tsx:175-187`) | `--force` opcional | Inicializa store; comprueba `isPro()`; macOS only (lanza si no); rechaza si ya instalado salvo `--force` | Red: GET zip + GET .sha256. Disco: zip a `tmpdir()`, `ditto -xk` a `/Applications/`, opcionalmente `rm` previo de `/Applications/BrewBar.app`. Subproceso: `ditto` | 0 = ok; 1 = error de cualquier validacion | Stdout: `cli_brewbarInstalling`, `cli_brewbarInstalled`. Stderr: mensaje del error | Alto — escribe en `/Applications/`, requiere permisos correctos |
 | `uninstall-brewbar` (`index.tsx:189-199`) | Ninguno | `isBrewBarInstalled()` debe devolver true | Disco: `rm -rf /Applications/BrewBar.app` | 0 = ok; 1 = no instalado o error | Stdout: `cli_brewbarUninstalled`. Stderr: mensaje | Medio |
-| `delete-account` (`index.tsx:201-213`) | Ninguno | Confirmacion interactiva `y`/`s` | Disco: `rm -rf ~/.brew-tui/` (toda la data del usuario, incluyendo licencia, snapshots, history, profiles, machine-id, logs) | 0 siempre | Stdout: `delete_account_success` o `cli_deactivateCancelled` | Critico — destructivo e irreversible. **No** desactiva licencia en Polar previamente: el slot queda consumido server-side hasta soporte manual |
+| `delete-account` (`index.tsx:201-213`) | Ninguno | Confirmacion interactiva `y`/`s` | Disco: `rm -rf ~/.brewtui-bar/` (toda la data del usuario, incluyendo licencia, snapshots, history, profiles, machine-id, logs) | 0 siempre | Stdout: `delete_account_success` o `cli_deactivateCancelled` | Critico — destructivo e irreversible. **No** desactiva licencia en Polar previamente: el slot queda consumido server-side hasta soporte manual |
 | Default (sin args) (`index.tsx:215-224`) | — | — | Auto-instala+lanza BrewBar para Pro en macOS (`ensureBrewBarRunning`); pinta pantalla en blanco; `render(<App />)` | 0 hasta `q` | TUI completo | Bajo (la TUI tiene su propia logica de errores) |
 
 #### Hallazgos seccion B
@@ -184,7 +184,7 @@ Todos comparten parsing trivial: `process.argv[2]` = `command`, `process.argv[3]
 |----------|-----------|-----------|--------|
 | `delete-account` no desactiva en Polar antes de borrar la licencia local | Media | `index.tsx:201-213`: `rm(DATA_DIR, ...)` borra `license.json` directamente sin invocar `apiDeactivate`. El usuario pierde la licencia local pero el slot sigue ocupado en el servidor; al reactivar en otra maquina puede toparse con `activation_limit_reached` | Antes de `rm`, intentar `loadLicense()` + `apiDeactivate(license.key, license.instanceId)` con timeout corto (5 s) y continuar aunque falle. Documentar el comportamiento en la confirmacion |
 | Confirmaciones via `readline.question` sin TTY check | Baja | `index.tsx:45, 203`: si stdin no es TTY, `rl.question` devuelve `''` y la condicion `!== 'y' && !== 's'` cancela — fail-safe. Sin embargo no hay mensaje claro de "no TTY" | Detectar `!process.stdin.isTTY` y emitir un error explicito o anadir flag `--yes` |
-| Sin `brew-tui --help`, `--version` ni manejo de subcomando desconocido | Baja | `index.tsx`: si el comando no coincide con ninguno de los `if`, cae al default que renderiza la TUI. `brew-tui foo` lanza la TUI sin warning | Anadir parser minimo (yargs/commander o switch explicito) que detecte comando desconocido y emita ayuda |
+| Sin `brewtui-bar --help`, `--version` ni manejo de subcomando desconocido | Baja | `index.tsx`: si el comando no coincide con ninguno de los `if`, cae al default que renderiza la TUI. `brewtui-bar foo` lanza la TUI sin warning | Anadir parser minimo (yargs/commander o switch explicito) que detecte comando desconocido y emita ayuda |
 
 ---
 
@@ -255,7 +255,7 @@ Definidos en `menubar/BrewBar/Sources/Services/BrewProcess.swift` y `BrewChecker
 
 ### C.3 Swift — invocaciones que NO usan `brew`
 
-* `/usr/bin/which brew-tui` en `AppDelegate.swift:121-141` — chequeo unico al lanzar BrewBar para verificar que el CLI esta disponible. Sin timeout (rapido). Stdout/stderr a `nullDevice`.
+* `/usr/bin/which brewtui-bar` en `AppDelegate.swift:121-141` — chequeo unico al lanzar BrewBar para verificar que el CLI esta disponible. Sin timeout (rapido). Stdout/stderr a `nullDevice`.
 
 #### Hallazgos seccion C
 
@@ -263,7 +263,7 @@ Definidos en `menubar/BrewBar/Sources/Services/BrewProcess.swift` y `BrewChecker
 |----------|-----------|-----------|--------|
 | `brewUpdate()` sin timeout | Media (heredada) | `brew-api.ts:18-26` — `spawn('brew', ['update'], { stdio: 'ignore' })` sin timer ni `AbortController`; un `brew update` colgado bloquea indefinidamente el proceso TUI | Reutilizar `execBrew(['update'])` (con env `HOMEBREW_NO_AUTO_UPDATE` borrado) o anadir timeout explicito (60-120 s). Alinear con BrewBar que usa 120 s |
 | `BrewChecker.upgradePackage` no valida el nombre | Baja | `BrewChecker.swift:41-45` — el nombre llega desde la lista de outdated (parseada de Homebrew, presumiblemente confiable), pero no hay regex equivalente a `PKG_PATTERN`. Si la lista se contamina por un payload malformado del JSON, `Process` con array no permite inyeccion shell pero si argumentos inesperados | Anadir validacion regex `^[a-z0-9][-a-z0-9_.@+]*$` en BrewChecker antes de pasar al Process |
-| `rollback-engine` invoca `streamBrew(['install', action.versionedFormula])` y `['install', '--force-bottle', action.packageName])` sin validatePackageName explicito | Baja | `rollback-engine.ts:171,178,189,194,199` — los nombres provienen de snapshots serializados en `~/.brew-tui/snapshots/` (escritos por la propia app), pero un usuario con permisos puede editar el JSON. Spawn con array sigue sin permitir inyeccion shell | Anadir `validatePackageName(action.packageName)` y verificacion de `versionedFormula` (regex con `@` y version) en el engine antes de cada `streamBrew` |
+| `rollback-engine` invoca `streamBrew(['install', action.versionedFormula])` y `['install', '--force-bottle', action.packageName])` sin validatePackageName explicito | Baja | `rollback-engine.ts:171,178,189,194,199` — los nombres provienen de snapshots serializados en `~/.brewtui-bar/snapshots/` (escritos por la propia app), pero un usuario con permisos puede editar el JSON. Spawn con array sigue sin permitir inyeccion shell | Anadir `validatePackageName(action.packageName)` y verificacion de `versionedFormula` (regex con `@` y version) en el engine antes de cada `streamBrew` |
 | `brew --cellar <name>` sin validacion explicita | Informativa | `cleanup-analyzer.ts:22` — `name` viene de `getInstalled()` (output de Homebrew, confiable) | Aceptable; opcional: validar por consistencia |
 | stderr descartado en BrewProcess Swift | Informativa | `BrewProcess.swift:92` — `process.standardError = FileHandle.nullDevice`. En errores, solo se sabe el exit code, no el mensaje real | Capturar stderr en un Pipe separado y devolverlo en `BrewProcessError.processExited(code, stderr)` para diagnostico |
 
