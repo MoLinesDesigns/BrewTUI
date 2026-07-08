@@ -33,11 +33,15 @@ async function doRevalidation(
   const result = await manager.revalidate(license);
   if (result === 'expired') {
     set({ status: 'expired', license: { ...license, status: 'expired' }, degradation: 'expired' });
-  } else {
-    const updated = await manager.loadLicense();
-    const effective = updated ?? license;
-    set({ license: effective, degradation: getDegradationLevel(effective) });
+    return;
   }
+  const updated = await manager.loadLicense();
+  const effective = updated ?? license;
+  set({
+    status: effective.plan,
+    license: effective,
+    degradation: getDegradationLevel(effective),
+  });
 }
 
 export const useLicenseStore = create<LicenseState>((set, get) => ({
@@ -49,7 +53,7 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
   initialize: async () => {
     initStoreIntegrity(useLicenseStore);
     await ensureDataDirs();
-    const license = await manager.loadLicense();
+    let license = await manager.loadLicense();
 
     if (!license) {
       set({ status: 'free', license: null, degradation: 'none' });
@@ -59,28 +63,33 @@ export const useLicenseStore = create<LicenseState>((set, get) => ({
     // SEG-009: built-in perennial accounts removed; every license — including
     // operator/admin — is validated against Polar like a normal customer.
 
+    // Attempt online refresh before denying Pro — stale lastValidatedAt (30+ days
+    // offline) or benign clock skew should self-heal when the API is reachable.
+    const shouldTryRevalidation =
+      manager.needsRevalidation(license) || getDegradationLevel(license) === 'expired';
+
+    if (shouldTryRevalidation) {
+      if (!_revalidatingPromise) {
+        _revalidatingPromise = doRevalidation(license, set)
+          .finally(() => { _revalidatingPromise = null; });
+      }
+      await _revalidatingPromise;
+      if (get().status === 'expired') return;
+      license = get().license ?? (await manager.loadLicense()) ?? license;
+    }
+
     if (manager.isExpired(license)) {
       set({ status: 'expired', license, degradation: 'expired' });
       return;
     }
 
-    // Layer 15: Check degradation level based on offline time
     const level = getDegradationLevel(license);
     if (level === 'expired') {
       set({ status: 'expired', license, degradation: 'expired' });
       return;
     }
 
-    // Set tier immediately (warning/limited still shown as the licensed tier, but pro-guard checks degradation)
     set({ status: license.plan, license, degradation: level });
-
-    if (manager.needsRevalidation(license)) {
-      if (!_revalidatingPromise) {
-        _revalidatingPromise = doRevalidation(license, set)
-          .finally(() => { _revalidatingPromise = null; });
-      }
-      await _revalidatingPromise;
-    }
 
     // Periodically re-check license validity during the session
     if (_revalidationInterval) clearInterval(_revalidationInterval);

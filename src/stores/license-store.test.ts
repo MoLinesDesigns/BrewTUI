@@ -98,4 +98,24 @@ describe('license-store', () => {
     expect(useLicenseStore.getState().degradation).toBe('expired');
     expect(useLicenseStore.getState().license?.status).toBe('expired');
   });
+
+  it('attempts revalidation before marking degraded licenses expired', async () => {
+    mockLoadLicense
+      .mockResolvedValueOnce(staleLicense)
+      .mockResolvedValueOnce(refreshedLicense);
+    mockIsExpired.mockReturnValue(false);
+    mockNeedsRevalidation.mockReturnValue(false);
+    mockGetDegradationLevel
+      .mockReturnValueOnce('expired')
+      .mockReturnValue('none');
+    mockRevalidate.mockResolvedValue('valid');
+
+    const { useLicenseStore } = await import('./license-store.js');
+
+    await useLicenseStore.getState().initialize();
+
+    expect(mockRevalidate).toHaveBeenCalledOnce();
+    expect(useLicenseStore.getState().status).toBe('pro');
+    expect(useLicenseStore.getState().degradation).toBe('none');
+  });
 });

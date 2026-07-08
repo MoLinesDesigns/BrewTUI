@@ -19,6 +19,8 @@ export function getBuiltinAccountType(_email: string): 'pro' | 'team' | 'free' |
 
 const REVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24h
 const GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+/** Benign clock skew: keep Pro while auto-revalidation corrects the server stamp. */
+const CLOCK_SKEW_TOLERANCE_MS = 24 * 60 * 60 * 1000; // 24h
 
 // ── Layer 18: Client-side rate limiting on activations ──
 const ACTIVATION_COOLDOWN_MS = 30_000; // 30 seconds between attempts
@@ -224,7 +226,9 @@ export function isExpired(license: LicenseData): boolean {
 export function needsRevalidation(license: LicenseData): boolean {
   const lastValidated = new Date(license.lastValidatedAt).getTime();
   if (isNaN(lastValidated)) return true; // corrupted date → force revalidation
-  return Date.now() - lastValidated > REVALIDATION_INTERVAL_MS;
+  const elapsed = Date.now() - lastValidated;
+  if (elapsed < 0) return true; // clock skew — refresh server timestamp
+  return elapsed > REVALIDATION_INTERVAL_MS;
 }
 
 export function isWithinGracePeriod(license: LicenseData): boolean {
@@ -249,11 +253,11 @@ export function getDegradationLevel(license: LicenseData): DegradationLevel {
   const lastValidated = new Date(license.lastValidatedAt).getTime();
   if (isNaN(lastValidated)) return 'expired'; // corrupted date → deny access
   const elapsed = Date.now() - lastValidated;
-  // SEC-L1: a negative elapsed means lastValidatedAt is in the future. This
-  // is almost always a clock-skew exploit (set system clock forward to keep
-  // Pro features forever). Fail-closed instead of granting full access. The
-  // next revalidate() against Polar will reset things if the skew is benign.
-  if (elapsed < 0) return 'expired';
+  // SEC-L1: large future skew is treated as exploitation; small skew (≤24h) is
+  // tolerated while auto-revalidation corrects the server stamp.
+  if (elapsed < 0) {
+    return Math.abs(elapsed) <= CLOCK_SKEW_TOLERANCE_MS ? 'none' : 'expired';
+  }
   const days = elapsed / (24 * 60 * 60 * 1000);
 
   if (days <= 7) return 'none';
