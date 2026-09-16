@@ -30,6 +30,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 
 const API_BASE = 'https://api.polar.sh/v1';
+// Pinned API contract — un-versioned requests follow Polar's rolling "Current",
+// which changes every quarter. https://polar.sh/docs/api-reference/versioning
+const POLAR_API_VERSION = process.env.POLAR_API_VERSION || '2026-04';
 
 // Sourced from src/lib/license/polar-api.ts — keep in sync if products move.
 const PRODUCTS = {
@@ -90,6 +93,7 @@ async function polar(method, path, body) {
       'Authorization': `Bearer ${TOKEN}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Polar-Version': POLAR_API_VERSION,
     },
     body: body == null ? undefined : JSON.stringify(body),
   });
