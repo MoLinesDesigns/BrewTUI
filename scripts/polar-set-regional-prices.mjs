@@ -31,8 +31,9 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const API_BASE = 'https://api.polar.sh/v1';
 // Pinned API contract — un-versioned requests follow Polar's rolling "Current",
-// which changes every quarter. https://polar.sh/docs/api-reference/versioning
-const POLAR_API_VERSION = process.env.POLAR_API_VERSION || '2026-04';
+// which changes every quarter. 2026-10 left products/prices untouched; it is
+// removed at the Apr 2027 release. https://polar.sh/docs/api-reference/versioning
+const POLAR_API_VERSION = process.env.POLAR_API_VERSION || '2026-10';
 
 // Sourced from src/lib/license/polar-api.ts — keep in sync if products move.
 const PRODUCTS = {
