@@ -39,8 +39,8 @@ You don't memorize `brew outdated && brew upgrade && brew services list && brew 
 brew tap MoLinesDesigns/tap
 brew install brewtui-bar
 
-# npm
-npm install -g brewtui-bar
+# npm (--allow-scripts lets npm 12+ run the postinstall that sets up the menu bar app)
+npm install -g --allow-scripts=brewtui-bar brewtui-bar
 
 # Run without installing
 npx brewtui-bar
