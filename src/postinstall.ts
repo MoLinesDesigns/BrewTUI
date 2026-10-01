@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Runs after `npm install -g brewtui-bar` (which is what `brew install brewtui-bar`
-// does internally). Auto-installs and launches BrewTUI-Bar so that users get
-// the menu bar app without needing a separate `brew install --cask` step.
+// Runs after `npm install -g brewtui-bar`. Auto-installs and launches
+// BrewTUI-Bar so npm users get the menu bar app without a separate
+// `brew install --cask` step. The Homebrew formula never reaches this:
+// `std_npm_args` passes `--ignore-scripts`, and the cask covers that path.
+// npm 12 also skips it unless the user passes `--allow-scripts=brewtui-bar`.
 //
 // Non-fatal by design: any failure here only logs a warning and exits 0. We
 // never want a transient network / disk / permissions issue to break the npm
@@ -13,9 +15,8 @@ import { t } from './i18n/index.js';
 /// The entry-point guard below invokes this only when the file is executed
 /// directly (i.e. `node build/postinstall.js`).
 export async function runPostinstall(): Promise<void> {
-  // Only run on global installs. `brew install` calls `npm install --global`
-  // (which sets npm_config_global=true), and `npm install -g <pkg>` does the
-  // same. Local installs in dev (`npm install` from the repo) skip this so
+  // Only run on global installs (`npm install -g` sets npm_config_global=true).
+  // Local installs in dev (`npm install` from the repo) skip this so
   // cloning the repo does not silently touch /Applications.
   if (process.env['npm_config_global'] !== 'true') {
     return;
