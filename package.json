@@ -79,5 +79,9 @@
     "esbuild": ">=0.28.1",
     "postcss": ">=8.5.18",
     "vite": ">=8.0.16"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "fsevents": false
   }
 }
