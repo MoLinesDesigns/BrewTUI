@@ -154,6 +154,8 @@ Never put specific prices, percentages or old→new price comparisons in commit 
 
 ## Publishing
 
+**`brewpublish X.Y.Z [--notes-file F]`** (`brewpublish.sh` at the repo root; alias in `~/.config/zsh/aliases.zsh`) runs the whole sequence below. Each step detects whether it is already done, so after a failure, relaunching the same command resumes from the first pending step. Run it from a native terminal, because the npm 2FA URL is censored inside Claude Code. The registry now processes publishes asynchronously: `npm publish` exits 0 minutes before the version is served, and the script waits for it.
+
 **Canonical tap:** `MoLinesDesigns/homebrew-tap` (tapped as `molinesdesigns/tap`). The org was renamed from `MoLinesGitHub` and GitHub silently redirects, so `brew tap molinesgithub/tap` resolves to the **same repo** but registers as a second tap — producing `Formulae found in multiple taps` on every install. **Never re-add the legacy tap**; if it reappears, `brew untap molinesgithub/tap`. Do not script around it.
 
 All three channels must be updated on each release, in this order:
