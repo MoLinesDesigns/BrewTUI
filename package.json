@@ -1,6 +1,6 @@
 {
   "name": "brewtui-bar",
-  "version": "5.2.3",
+  "version": "5.2.4",
   "description": "BrewTUI-Bar — Visual TUI and menu bar companion for Homebrew",
   "type": "module",
   "bin": {
